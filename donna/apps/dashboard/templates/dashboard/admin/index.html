@@ -1,0 +1,150 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}Administration{% endblock %}
+{% block page_heading %}Administration{% endblock %}
+{% block page_subheading %}Systemverwaltung & Einstellungen{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'dashboard:user_create' %}"
+     class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    </svg>
+    Neuer Benutzer
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- KPI-Karten -->
+  <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+    <a href="{% url 'dashboard:user_list' %}"
+       class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:border-indigo-300 hover:shadow-md transition group">
+      <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Gesamt aktiv</p>
+      <p class="text-3xl font-bold text-slate-800 group-hover:text-indigo-700 transition">{{ user_count }}</p>
+      <p class="text-xs text-slate-400 mt-1">Benutzer</p>
+    </a>
+    <a href="{% url 'dashboard:user_list' %}?role=admin"
+       class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:border-red-300 hover:shadow-md transition group">
+      <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Administratoren</p>
+      <p class="text-3xl font-bold text-slate-800 group-hover:text-red-600 transition">{{ admin_count }}</p>
+      <p class="text-xs text-slate-400 mt-1">Admin</p>
+    </a>
+    <a href="{% url 'dashboard:user_list' %}?role=project_manager"
+       class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:border-amber-300 hover:shadow-md transition group">
+      <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Projektleiter</p>
+      <p class="text-3xl font-bold text-slate-800 group-hover:text-amber-600 transition">{{ project_manager_count }}</p>
+      <p class="text-xs text-slate-400 mt-1">Project Manager</p>
+    </a>
+    <a href="{% url 'dashboard:user_list' %}?role=employee"
+       class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:border-blue-300 hover:shadow-md transition group">
+      <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Mitarbeiter</p>
+      <p class="text-3xl font-bold text-slate-800 group-hover:text-blue-600 transition">{{ employee_count }}</p>
+      <p class="text-xs text-slate-400 mt-1">Employee</p>
+    </a>
+    <a href="{% url 'dashboard:user_list' %}?role=project_assistant"
+       class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:border-violet-300 hover:shadow-md transition group">
+      <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Projektassistenz</p>
+      <p class="text-3xl font-bold text-slate-800 group-hover:text-violet-600 transition">{{ project_assistant_count }}</p>
+      <p class="text-xs text-slate-400 mt-1">
+        {% if inactive_user_count > 0 %}+ {{ inactive_user_count }} inaktiv{% else %}Assistenz{% endif %}
+      </p>
+    </a>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- Schnellzugriff -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100">
+        <h2 class="font-semibold text-slate-800 text-sm">Schnellzugriff</h2>
+      </div>
+      <div class="divide-y divide-slate-50">
+        <a href="{% url 'dashboard:user_list' %}"
+           class="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition">
+          <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-slate-700">Benutzerverwaltung</p>
+            <p class="text-xs text-slate-400">Benutzer anlegen, bearbeiten, Rollen zuweisen</p>
+          </div>
+          <svg class="w-4 h-4 text-slate-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </a>
+        <a href="{% url 'dashboard:user_create' %}"
+           class="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition">
+          <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-slate-700">Neuen Benutzer anlegen</p>
+            <p class="text-xs text-slate-400">Konto erstellen und Rolle zuweisen</p>
+          </div>
+          <svg class="w-4 h-4 text-slate-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </a>
+        <a href="/admin/"
+           class="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition">
+          <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-slate-700">Django Admin</p>
+            <p class="text-xs text-slate-400">Erweitertes Datenbank-Backend</p>
+          </div>
+          <svg class="w-4 h-4 text-slate-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Zuletzt angelegte Benutzer -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h2 class="font-semibold text-slate-800 text-sm">Zuletzt angelegt</h2>
+        <a href="{% url 'dashboard:user_list' %}" class="text-xs text-indigo-600 hover:text-indigo-800 transition">Alle →</a>
+      </div>
+      <div class="divide-y divide-slate-50">
+        {% for u in recent_users %}
+          <div class="flex items-center gap-3 px-6 py-3 hover:bg-slate-50 transition">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0
+              {% if u.role == 'admin' %}bg-red-500{% elif u.role == 'project_manager' %}bg-amber-500{% elif u.role == 'project_assistant' %}bg-violet-500{% else %}bg-slate-400{% endif %}">
+              {{ u.first_name|first|upper }}{{ u.last_name|first|upper }}
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-slate-700 truncate">{{ u.get_full_name }}</p>
+              <p class="text-xs text-slate-400 truncate">{{ u.email }}</p>
+            </div>
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full
+              {% if u.role == 'admin' %}bg-red-100 text-red-700
+              {% elif u.role == 'project_manager' %}bg-amber-100 text-amber-700
+                {% elif u.role == 'project_assistant' %}bg-violet-100 text-violet-700
+              {% else %}bg-slate-100 text-slate-600{% endif %}">
+              {{ u.get_role_display }}
+            </span>
+          </div>
+        {% empty %}
+          <div class="px-6 py-8 text-center text-slate-400 text-sm">Noch keine Benutzer.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

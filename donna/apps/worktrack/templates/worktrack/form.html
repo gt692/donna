@@ -1,0 +1,129 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_heading %}{{ page_title }}{% endblock %}
+{% block page_subheading %}{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'worktrack:list' %}"
+     class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Zurück
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+
+      <!-- Projekt & Datum -->
+      <div class="px-6 py-5 border-b border-slate-100">
+        <h3 class="text-sm font-semibold text-slate-700 mb-4">Projekt & Datum</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="col-span-2">
+            <label class="block text-sm font-medium text-slate-600 mb-1">
+              {{ form.project.label }} <span class="text-red-500">*</span>
+            </label>
+            {{ form.project }}
+            {% if form.project.errors %}
+              <p class="mt-1 text-xs text-red-600">{{ form.project.errors|join:", " }}</p>
+            {% endif %}
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">
+              {{ form.date.label }} <span class="text-red-500">*</span>
+            </label>
+            {{ form.date }}
+            {% if form.date.errors %}
+              <p class="mt-1 text-xs text-red-600">{{ form.date.errors|join:", " }}</p>
+            {% endif %}
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">
+              {{ form.activity_type.label }}
+            </label>
+            {{ form.activity_type }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Zeitangaben -->
+      <div class="px-6 py-5 border-b border-slate-100">
+        <h3 class="text-sm font-semibold text-slate-700 mb-4">Zeitangaben</h3>
+        <div class="grid grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">
+              {{ form.duration_hours.label }} <span class="text-red-500">*</span>
+            </label>
+            {{ form.duration_hours }}
+            {% if form.duration_hours.errors %}
+              <p class="mt-1 text-xs text-red-600">{{ form.duration_hours.errors|join:", " }}</p>
+            {% endif %}
+            <p class="mt-1 text-xs text-slate-400">z.B. 1.5 = 1h 30min</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.start_time.label }}</label>
+            {{ form.start_time }}
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.end_time.label }}</label>
+            {{ form.end_time }}
+          </div>
+        </div>
+        {% if form.non_field_errors %}
+          <p class="mt-2 text-xs text-red-600">{{ form.non_field_errors|join:" " }}</p>
+        {% endif %}
+      </div>
+
+      <!-- Tätigkeit -->
+      <div class="px-6 py-5 border-b border-slate-100">
+        <h3 class="text-sm font-semibold text-slate-700 mb-4">Tätigkeit</h3>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">
+            {{ form.description.label }} <span class="text-red-500">*</span>
+          </label>
+          {{ form.description }}
+          {% if form.description.errors %}
+            <p class="mt-1 text-xs text-red-600">{{ form.description.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div class="mt-4 flex items-center gap-2">
+          {{ form.is_billable }}
+          <label for="{{ form.is_billable.id_for_label }}" class="text-sm text-slate-600 cursor-pointer">
+            {{ form.is_billable.label }}
+            <span class="text-xs text-slate-400 ml-1">(dem Kunden berechenbar)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="px-6 py-4 bg-slate-50 flex items-center justify-between gap-3">
+        <a href="{% url 'worktrack:list' %}"
+           class="text-sm text-slate-500 hover:text-slate-700 transition">Abbrechen</a>
+        <div class="flex items-center gap-2">
+          <button type="submit" name="action" value="save"
+                  class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm
+                         px-5 py-2.5 rounded-lg transition focus:outline-none focus:ring-2
+                         focus:ring-indigo-500 focus:ring-offset-2">
+            {{ submit_label }}
+          </button>
+          {% if not object %}
+            <button type="submit" name="action" value="save_and_submit"
+                    class="bg-green-600 hover:bg-green-700 text-white font-medium text-sm
+                           px-5 py-2.5 rounded-lg transition focus:outline-none focus:ring-2
+                           focus:ring-green-500 focus:ring-offset-2">
+              Speichern & einreichen
+            </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

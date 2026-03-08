@@ -1,0 +1,144 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_heading %}{{ page_title }}{% endblock %}
+{% block page_subheading %}{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'crm:project_list' %}"
+     class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Zur Projektliste
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    <!-- Basis-Infos -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Projektinformationen</h3>
+      </div>
+      <div class="px-6 py-5 grid grid-cols-2 gap-4">
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-600 mb-1">
+            {{ form.name.label }} <span class="text-red-500">*</span>
+          </label>
+          {{ form.name }}
+          {% if form.name.errors %}<p class="mt-1 text-xs text-red-600">{{ form.name.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">
+            {{ form.account.label }} <span class="text-red-500">*</span>
+          </label>
+          {{ form.account }}
+          {% if form.account.errors %}<p class="mt-1 text-xs text-red-600">{{ form.account.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.status.label }}</label>
+          {{ form.status }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.internal_reference.label }}</label>
+          {{ form.internal_reference }}
+          <p class="mt-1 text-xs text-slate-400">Interne Projektnummer, z.B. P-2024-042</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.team_lead.label }}</label>
+          {{ form.team_lead }}
+        </div>
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.description.label }}</label>
+          {{ form.description }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Team -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Team-Mitglieder</h3>
+        <p class="text-xs text-slate-400 mt-0.5">Nur zugewiesene Mitarbeiter können Stunden auf dieses Projekt buchen.</p>
+      </div>
+      <div class="px-6 py-5">
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {% for checkbox in form.team_members %}
+            <label class="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200
+                          hover:bg-slate-50 cursor-pointer transition text-sm text-slate-700 has-[:checked]:border-indigo-300 has-[:checked]:bg-indigo-50">
+              {{ checkbox.tag }}
+              {{ checkbox.choice_label }}
+            </label>
+          {% endfor %}
+        </div>
+        {% if form.team_members.errors %}
+          <p class="mt-1 text-xs text-red-600">{{ form.team_members.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Zeitraum & Budget -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Zeitraum & Budget</h3>
+      </div>
+      <div class="px-6 py-5 grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.start_date.label }}</label>
+          {{ form.start_date }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.end_date.label }}</label>
+          {{ form.end_date }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.budget_hours.label }}</label>
+          {{ form.budget_hours }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.hourly_rate.label }}</label>
+          {{ form.hourly_rate }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.budget_amount.label }}</label>
+          {{ form.budget_amount }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Speicher & Lexoffice -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Speicher & Integration</h3>
+      </div>
+      <div class="px-6 py-5 grid grid-cols-2 gap-4">
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.storage_path.label }}</label>
+          {{ form.storage_path }}
+          <p class="mt-1 text-xs text-slate-400">Netzlaufwerk-Pfad oder Azure Blob Key zum Projektordner</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.lexoffice_id.label }}</label>
+          {{ form.lexoffice_id }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="flex items-center justify-between">
+      <a href="{% url 'crm:project_list' %}" class="text-sm text-slate-500 hover:text-slate-700 transition">Abbrechen</a>
+      <button type="submit"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm
+                     px-6 py-2.5 rounded-lg transition focus:outline-none focus:ring-2
+                     focus:ring-indigo-500 focus:ring-offset-2">
+        {{ submit_label }}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

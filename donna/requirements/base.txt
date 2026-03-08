@@ -1,0 +1,32 @@
+# ──────────────────────────────────────────────
+# Donna — Base Requirements
+# ──────────────────────────────────────────────
+
+# Core Framework  (4.2 LTS = Python 3.9 kompatibel; bei Python ≥3.10 auf 5.x upgraden)
+Django==4.2.*
+
+# Environment / Config
+django-environ==0.11.*          # .env-Datei-Parsing, Datenbank-URL-Parsing
+
+# Auth & 2FA
+django-otp==1.5.*               # TOTP-2FA-Infrastruktur
+qrcode[pil]==8.*                # QR-Code-Generierung für Authenticator-Setup
+pyotp==2.9.*                    # TOTP-Secret-Generierung & -Validierung
+
+# API / REST
+djangorestframework==3.14.*     # REST-API für späteres Frontend / Mobile
+djangorestframework-simplejwt==5.3.*  # JWT-Auth für API
+
+# Datenbank
+# SQLite ist Django-Standard (für Prototyping bereits enthalten)
+# psycopg2-binary==2.9.*        # Aktivieren für PostgreSQL-Produktivbetrieb
+
+# Admin-Erweiterungen
+django-jazzmin==3.*             # Modernisiertes Admin-Interface
+
+# Utilities
+Pillow==11.*                    # Bildverarbeitung (für QR-Codes und zukünftige Uploads)
+python-dateutil==2.9.*          # Erweiterte Datums-Utilities
+
+# CORS (für späteres SPA-Frontend)
+django-cors-headers==4.*

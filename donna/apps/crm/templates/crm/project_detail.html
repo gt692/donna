@@ -1,0 +1,201 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ project.name }}{% endblock %}
+{% block page_heading %}{{ project.name }}{% endblock %}
+{% block page_subheading %}{{ project.account.name }}{% endblock %}
+
+{% block topbar_actions %}
+  {% if request.user.can_approve_time_entries %}
+    <a href="{% url 'crm:project_edit' project.pk %}"
+       class="flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50
+              text-slate-700 font-medium text-sm px-4 py-2 rounded-lg transition">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+      </svg>
+      Bearbeiten
+    </a>
+  {% endif %}
+  <a href="{% url 'worktrack:create' %}?project={{ project.pk }}"
+     class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white
+            font-medium text-sm px-4 py-2 rounded-lg transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    Stunden buchen
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-3 gap-6">
+
+  <!-- ── Linke Spalte: Details + Zeiteinträge ──────────────────── -->
+  <div class="col-span-2 space-y-5">
+
+    <!-- KPI-Zeile -->
+    <div class="grid grid-cols-3 gap-4">
+      <div class="bg-white rounded-xl border border-slate-200 p-4">
+        <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Gebuchte Stunden</p>
+        <p class="text-2xl font-bold text-slate-800">{{ hours_total|floatformat:1 }} h</p>
+        {% if project.budget_hours %}
+          <p class="text-xs text-slate-400 mt-1">von {{ project.budget_hours }} h Budget</p>
+          <!-- Budget-Balken -->
+          <div class="mt-2 w-full bg-slate-100 rounded-full h-1.5">
+            <div class="h-1.5 rounded-full transition-all
+              {% if budget_pct >= 90 %}bg-red-500{% elif budget_pct >= 75 %}bg-amber-500{% else %}bg-indigo-500{% endif %}"
+              style="width: {{ budget_pct|default:0 }}%"></div>
+          </div>
+          <p class="text-xs mt-0.5 {% if budget_pct >= 90 %}text-red-600{% elif budget_pct >= 75 %}text-amber-600{% else %}text-slate-400{% endif %}">
+            {{ budget_pct|default:0 }} % ausgelastet
+          </p>
+        {% endif %}
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 p-4">
+        <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Freigegeben</p>
+        <p class="text-2xl font-bold text-green-600">{{ hours_approved|floatformat:1 }} h</p>
+      </div>
+      <div class="bg-white rounded-xl border border-slate-200 p-4">
+        <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Team</p>
+        <p class="text-2xl font-bold text-slate-800">{{ team_members.count }}</p>
+        <p class="text-xs text-slate-400 mt-1">Mitglieder</p>
+      </div>
+    </div>
+
+    <!-- Zeitbuchungen -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-slate-700">Letzte Zeitbuchungen</h2>
+        <a href="{% url 'worktrack:list' %}" class="text-xs text-indigo-600 hover:text-indigo-800 transition">Alle anzeigen →</a>
+      </div>
+      <div class="divide-y divide-slate-50">
+        {% for entry in time_entries %}
+          <div class="flex items-center gap-4 px-5 py-3">
+            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-bold">
+              {{ entry.user.first_name|first|upper }}{{ entry.user.last_name|first|upper }}
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm text-slate-700 truncate">{{ entry.description|truncatechars:60 }}</p>
+              <p class="text-xs text-slate-400">{{ entry.user.get_full_name }} · {{ entry.date|date:"d.m.Y" }}</p>
+            </div>
+            <span class="flex-shrink-0 text-sm font-semibold text-slate-600">{{ entry.duration_hours }} h</span>
+            {% if entry.status == "approved" %}
+              <span class="flex-shrink-0 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">✓</span>
+            {% elif entry.status == "submitted" %}
+              <span class="flex-shrink-0 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">⏳</span>
+            {% else %}
+              <span class="flex-shrink-0 text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium">Entwurf</span>
+            {% endif %}
+          </div>
+        {% empty %}
+          <div class="px-5 py-8 text-center text-slate-400 text-sm">Noch keine Zeitbuchungen für dieses Projekt.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Dokumente -->
+    {% if documents %}
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100">
+          <h2 class="text-sm font-semibold text-slate-700">Dokumente</h2>
+        </div>
+        <div class="divide-y divide-slate-50">
+          {% for doc in documents %}
+            <div class="flex items-center gap-3 px-5 py-3">
+              <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm text-slate-700 truncate">{{ doc.title }}</p>
+                <p class="text-xs text-slate-400">{{ doc.get_document_type_display }}{% if doc.lexoffice_document_number %} · {{ doc.lexoffice_document_number }}{% endif %}{% if doc.document_date %} · {{ doc.document_date|date:"d.m.Y" }}{% endif %}</p>
+              </div>
+              {% if doc.net_amount %}
+                <span class="text-sm font-semibold text-slate-600">{{ doc.net_amount }} €</span>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- ── Rechte Spalte: Metadaten ───────────────────────────────── -->
+  <div class="space-y-5">
+
+    <!-- Status + Typ -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Details</h3>
+      <dl class="space-y-2.5 text-sm">
+        <div class="flex justify-between">
+          <dt class="text-slate-500">Status</dt>
+          <dd>
+            {% with s=project.status %}
+              {% if s == "active" %}<span class="text-xs font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Aktiv</span>
+              {% elif s == "offer_sent" %}<span class="text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Angebot</span>
+              {% elif s == "lead" %}<span class="text-xs font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">Lead</span>
+              {% elif s == "on_hold" %}<span class="text-xs font-semibold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">Pausiert</span>
+              {% elif s == "completed" %}<span class="text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Abgeschlossen</span>
+              {% elif s == "cancelled" %}<span class="text-xs font-semibold bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Storniert</span>
+              {% endif %}
+            {% endwith %}
+          </dd>
+        </div>
+        {% if project.internal_reference %}
+          <div class="flex justify-between"><dt class="text-slate-500">Ref.</dt><dd class="font-mono text-slate-700">{{ project.internal_reference }}</dd></div>
+        {% endif %}
+        {% if project.start_date %}
+          <div class="flex justify-between"><dt class="text-slate-500">Start</dt><dd class="text-slate-700">{{ project.start_date|date:"d.m.Y" }}</dd></div>
+        {% endif %}
+        {% if project.end_date %}
+          <div class="flex justify-between"><dt class="text-slate-500">Ende</dt><dd class="text-slate-700">{{ project.end_date|date:"d.m.Y" }}</dd></div>
+        {% endif %}
+        {% if project.hourly_rate %}
+          <div class="flex justify-between"><dt class="text-slate-500">Stundensatz</dt><dd class="text-slate-700">{{ project.hourly_rate }} €</dd></div>
+        {% endif %}
+        {% if project.budget_amount %}
+          <div class="flex justify-between"><dt class="text-slate-500">Budget (€)</dt><dd class="text-slate-700">{{ project.budget_amount }} €</dd></div>
+        {% endif %}
+        {% if project.lexoffice_id %}
+          <div class="flex justify-between"><dt class="text-slate-500">Lexoffice</dt><dd class="font-mono text-xs text-slate-500 truncate max-w-32" title="{{ project.lexoffice_id }}">{{ project.lexoffice_id }}</dd></div>
+        {% endif %}
+        {% if project.storage_path %}
+          <div class="pt-2 border-t border-slate-100">
+            <dt class="text-xs text-slate-400 mb-1">Speicherpfad</dt>
+            <dd class="font-mono text-xs text-slate-600 break-all bg-slate-50 rounded p-2">{{ project.storage_path }}</dd>
+          </div>
+        {% endif %}
+      </dl>
+    </div>
+
+    <!-- Team -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Team</h3>
+      {% if project.team_lead %}
+        <div class="flex items-center gap-2 mb-3 pb-3 border-b border-slate-100">
+          <div class="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold">
+            {{ project.team_lead.first_name|first|upper }}{{ project.team_lead.last_name|first|upper }}
+          </div>
+          <div>
+            <p class="text-sm font-medium text-slate-700">{{ project.team_lead.get_full_name }}</p>
+            <p class="text-xs text-slate-400">Projektleiter</p>
+          </div>
+        </div>
+      {% endif %}
+      <div class="space-y-2">
+        {% for member in team_members %}
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-xs font-bold">
+              {{ member.first_name|first|upper }}{{ member.last_name|first|upper }}
+            </div>
+            <span class="text-sm text-slate-600">{{ member.get_full_name }}</span>
+          </div>
+        {% empty %}
+          <p class="text-xs text-slate-400">Keine Mitglieder zugewiesen.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,177 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}Freigaben{% endblock %}
+{% block page_heading %}Stundenfreigabe{% endblock %}
+{% block page_subheading %}{{ pending_count }} Buchung{{ pending_count|pluralize:",en" }} warten auf Freigabe{% endblock %}
+
+{% block topbar_actions %}
+  {% if groups %}
+    <!-- Alle auf einmal freigeben -->
+    <form method="post" action="{% url 'worktrack:approval_batch' %}"
+          onsubmit="return confirm('Alle {{ pending_count }} Buchungen freigeben?')">
+      {% csrf_token %}
+      {% for group in groups %}
+        {% for entry in group.entries %}
+          <input type="hidden" name="entry_ids" value="{{ entry.pk }}">
+        {% endfor %}
+      {% endfor %}
+      <button type="submit"
+              class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white
+                     font-medium text-sm px-4 py-2 rounded-lg transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        Alle freigeben
+      </button>
+    </form>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+
+{% if not groups %}
+  <!-- Leerer State -->
+  <div class="flex flex-col items-center justify-center py-24 text-center">
+    <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
+      <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      </svg>
+    </div>
+    <h2 class="text-lg font-semibold text-slate-700 mb-1">Alles erledigt</h2>
+    <p class="text-slate-400 text-sm">Keine ausstehenden Buchungen zur Freigabe.</p>
+  </div>
+
+{% else %}
+  <div class="space-y-6">
+    {% for group in groups %}
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+
+        <!-- Mitarbeiter-Header -->
+        <div class="flex items-center justify-between px-6 py-4 bg-slate-50 border-b border-slate-200">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-sm font-bold">
+              {{ group.user.first_name|first|upper }}{{ group.user.last_name|first|upper }}
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-slate-800">{{ group.user.get_full_name }}</p>
+              <p class="text-xs text-slate-400">{{ group.entries|length }} Buchung{{ group.entries|length|pluralize:",en" }} · {{ group.total|floatformat:2 }} h gesamt</p>
+            </div>
+          </div>
+
+          <!-- Alle des Mitarbeiters freigeben -->
+          <form method="post" action="{% url 'worktrack:approval_batch' %}">
+            {% csrf_token %}
+            {% for entry in group.entries %}
+              <input type="hidden" name="entry_ids" value="{{ entry.pk }}">
+            {% endfor %}
+            <button type="submit"
+                    class="text-xs bg-green-100 text-green-700 hover:bg-green-200 font-semibold
+                           px-3 py-1.5 rounded-lg transition">
+              Alle freigeben
+            </button>
+          </form>
+        </div>
+
+        <!-- Buchungs-Zeilen -->
+        <div class="divide-y divide-slate-50">
+          {% for entry in group.entries %}
+            <div class="flex items-start gap-4 px-6 py-4">
+              <!-- Datum -->
+              <div class="flex-shrink-0 w-16 text-center">
+                <p class="text-xs text-slate-400">{{ entry.date|date:"D" }}</p>
+                <p class="text-base font-bold text-slate-700">{{ entry.date|date:"j" }}</p>
+                <p class="text-xs text-slate-400">{{ entry.date|date:"M" }}</p>
+              </div>
+
+              <!-- Details -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-0.5">
+                  <p class="text-sm font-semibold text-slate-800">{{ entry.project.name }}</p>
+                  <span class="text-xs text-slate-400">· {{ entry.project.account.name }}</span>
+                  {% if not entry.is_billable %}
+                    <span class="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">intern</span>
+                  {% endif %}
+                  {% if entry.activity_type %}
+                    <span class="text-xs px-1.5 py-0.5 rounded font-medium"
+                          style="background: {{ entry.activity_type.color_hex }}22; color: {{ entry.activity_type.color_hex }};">
+                      {{ entry.activity_type.name }}
+                    </span>
+                  {% endif %}
+                </div>
+                <p class="text-sm text-slate-500">{{ entry.description }}</p>
+                {% if entry.start_time and entry.end_time %}
+                  <p class="text-xs text-slate-400 mt-0.5">{{ entry.start_time|time:"H:i" }} – {{ entry.end_time|time:"H:i" }} Uhr</p>
+                {% endif %}
+              </div>
+
+              <!-- Stunden -->
+              <div class="flex-shrink-0 text-right">
+                <p class="text-base font-bold text-slate-700">{{ entry.duration_hours }} h</p>
+              </div>
+
+              <!-- Aktions-Buttons -->
+              <div class="flex-shrink-0 flex items-center gap-2">
+                <form method="post" action="{% url 'worktrack:approval_action' entry.pk %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="approve">
+                  <button type="submit"
+                          class="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white
+                                 text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Freigeben
+                  </button>
+                </form>
+
+                <!-- Ablehnen-Dialog -->
+                <div x-data="{ open: false }" class="relative">
+                  <button onclick="this.closest('[data-reject]').classList.toggle('hidden')"
+                          data-reject-toggle="{{ entry.pk }}"
+                          class="flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-700
+                                 text-xs font-semibold px-3 py-1.5 rounded-lg transition border border-red-200">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    Ablehnen
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ablehnen-Panel (inline, toggle via JS) -->
+            <div id="reject-{{ entry.pk }}" class="hidden px-6 pb-4 bg-red-50 border-t border-red-100">
+              <form method="post" action="{% url 'worktrack:approval_action' entry.pk %}" class="flex gap-3 items-start pt-3">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="reject">
+                <div class="flex-1">
+                  {{ reject_form.review_note }}
+                </div>
+                <button type="submit"
+                        class="flex-shrink-0 bg-red-600 hover:bg-red-700 text-white text-xs
+                               font-semibold px-4 py-2.5 rounded-lg transition mt-0.5">
+                  Bestätigen
+                </button>
+              </form>
+            </div>
+
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<!-- Ablehnen-Toggle Script -->
+<script>
+  document.querySelectorAll('[data-reject-toggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id    = btn.getAttribute('data-reject-toggle');
+      const panel = document.getElementById('reject-' + id);
+      if (panel) panel.classList.toggle('hidden');
+    });
+  });
+</script>
+
+{% endblock %}

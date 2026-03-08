@@ -1,0 +1,77 @@
+{% extends "core/base_auth.html" %}
+{% load i18n %}
+
+{% block title %}2FA einrichten{% endblock %}
+
+{% block card_content %}
+  <h2 class="text-xl font-semibold text-slate-800 mb-1">2FA einrichten</h2>
+  <p class="text-slate-500 text-sm mb-6">
+    Scanne den QR-Code mit deiner Authenticator-App (z.&nbsp;B.&nbsp;Google Authenticator,
+    Authy oder 1Password).
+  </p>
+
+  <!-- Steps -->
+  <ol class="space-y-4 mb-6">
+    <!-- Step 1: QR-Code -->
+    <li class="flex gap-3">
+      <span class="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-600 text-white text-xs
+                   flex items-center justify-center font-bold mt-0.5">1</span>
+      <div class="flex-1">
+        <p class="text-sm font-medium text-slate-700 mb-2">QR-Code scannen</p>
+        <!-- QR-Code serverseitig generiert (Base64 Data-URI, kein externer Request) -->
+        <div class="bg-white border border-slate-200 rounded-xl p-3 inline-block shadow-sm">
+          <img
+            src="{{ qr_uri }}"
+            alt="TOTP QR-Code"
+            width="180" height="180"
+            class="block"
+          />
+        </div>
+        <p class="mt-2 text-xs text-slate-400">
+          Kein QR-Scanner? Gib diesen Code manuell ein:
+          <br>
+          <code class="font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-700 text-xs break-all">
+            {{ secret }}
+          </code>
+        </p>
+      </div>
+    </li>
+
+    <!-- Step 2: Code bestätigen -->
+    <li class="flex gap-3">
+      <span class="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-600 text-white text-xs
+                   flex items-center justify-center font-bold mt-0.5">2</span>
+      <div class="flex-1">
+        <p class="text-sm font-medium text-slate-700 mb-2">Code eingeben & bestätigen</p>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {{ form.code }}
+          {% if form.code.errors %}
+            <p class="mt-1 text-xs text-red-600">{{ form.code.errors|join:", " }}</p>
+          {% endif %}
+          <button type="submit"
+                  class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white
+                         font-semibold py-3 px-4 rounded-lg transition text-sm
+                         focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+            2FA aktivieren
+          </button>
+        </form>
+      </div>
+    </li>
+  </ol>
+
+  <!-- Security Note -->
+  <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+    <p class="text-xs text-amber-700 flex gap-2">
+      <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd"
+          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+          clip-rule="evenodd"/>
+      </svg>
+      <span>
+        Speichere deinen <strong>Secret-Key</strong> an einem sicheren Ort als Backup,
+        falls du den Zugang zu deiner Authenticator-App verlierst.
+      </span>
+    </p>
+  </div>
+{% endblock %}

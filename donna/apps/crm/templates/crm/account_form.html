@@ -1,0 +1,285 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_heading %}{{ page_title }}{% endblock %}
+{% block page_subheading %}{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'crm:account_list' %}" class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Zurück
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    <!-- Stammdaten -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Stammdaten</h3>
+      </div>
+      <div class="px-6 py-5 grid grid-cols-2 gap-4">
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.name.label }} <span class="text-red-500">*</span></label>
+          {{ form.name }}
+          {% if form.name.errors %}<p class="mt-1 text-xs text-red-600">{{ form.name.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.account_type.label }}</label>
+          {{ form.account_type }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.account_manager.label }}</label>
+          {{ form.account_manager }}
+        </div>
+        <div><label class="block text-sm font-medium text-slate-600 mb-1">{{ form.email.label }}</label>{{ form.email }}</div>
+        <div><label class="block text-sm font-medium text-slate-600 mb-1">{{ form.phone.label }}</label>{{ form.phone }}</div>
+        <div class="col-span-2"><label class="block text-sm font-medium text-slate-600 mb-1">{{ form.website.label }}</label>{{ form.website }}</div>
+        <div class="flex items-center gap-2 col-span-2 pt-1">
+          {{ form.is_active }}
+          <label for="{{ form.is_active.id_for_label }}" class="text-sm text-slate-600 cursor-pointer">{{ form.is_active.label }}</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Adresse -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-slate-700">Adresse</h3>
+        <span class="text-xs text-slate-400 flex items-center gap-1">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+          </svg>
+          OpenStreetMap
+        </span>
+      </div>
+      <div class="px-6 py-5 grid grid-cols-2 gap-4">
+
+        <!-- Adresszeile 1 mit eingebautem Autocomplete -->
+        <div class="col-span-2">
+          <label for="{{ form.address_line1.id_for_label }}"
+                 class="block text-sm font-medium text-slate-600 mb-1">
+            {{ form.address_line1.label }}
+            <span class="text-slate-400 font-normal">— Tippe für Vorschläge</span>
+          </label>
+          <div class="relative">
+            {{ form.address_line1 }}
+            <!-- Spinner -->
+            <svg id="address-spinner"
+                 class="hidden absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400 animate-spin pointer-events-none"
+                 fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+            </svg>
+            <!-- Dropdown direkt unter dem Feld -->
+            <div id="address-dropdown"
+                 class="hidden absolute left-0 right-0 top-full mt-1 z-50
+                        bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden">
+            </div>
+          </div>
+        </div>
+
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.address_line2.label }}</label>
+          {{ form.address_line2 }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.postal_code.label }}</label>
+          {{ form.postal_code }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.city.label }}</label>
+          {{ form.city }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.country.label }}</label>
+          {{ form.country }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Lexoffice & Notizen -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Integration & Notizen</h3>
+      </div>
+      <div class="px-6 py-5 space-y-4">
+        <div><label class="block text-sm font-medium text-slate-600 mb-1">{{ form.lexoffice_id.label }}</label>{{ form.lexoffice_id }}</div>
+        <div><label class="block text-sm font-medium text-slate-600 mb-1">{{ form.notes.label }}</label>{{ form.notes }}</div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between">
+      <a href="{% url 'crm:account_list' %}" class="text-sm text-slate-500 hover:text-slate-700 transition">Abbrechen</a>
+      <button type="submit"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm
+                     px-6 py-2.5 rounded-lg transition focus:outline-none focus:ring-2
+                     focus:ring-indigo-500 focus:ring-offset-2">
+        {{ submit_label }}
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+(function () {
+  const input    = document.getElementById('{{ form.address_line1.id_for_label }}');
+  const dropdown = document.getElementById('address-dropdown');
+  const spinner  = document.getElementById('address-spinner');
+
+  const fields = {
+    postal:  document.getElementById('{{ form.postal_code.id_for_label }}'),
+    city:    document.getElementById('{{ form.city.id_for_label }}'),
+    country: document.getElementById('{{ form.country.id_for_label }}'),
+  };
+
+  let debounceTimer = null;
+  let latestQuery   = '';
+  let skipNext      = false;   // nach Auswahl keine erneute Suche
+
+  input.setAttribute('autocomplete', 'off');
+
+  input.addEventListener('input', function () {
+    if (skipNext) { skipNext = false; return; }
+    const q = this.value.trim();
+    clearTimeout(debounceTimer);
+    hideDropdown();
+    if (q.length < 3) { spinner.classList.add('hidden'); return; }
+    latestQuery = q;
+    spinner.classList.remove('hidden');
+    debounceTimer = setTimeout(() => fetchSuggestions(q), 350);
+  });
+
+  async function fetchSuggestions(q) {
+    if (q !== latestQuery) return;
+    const url = new URL('https://nominatim.openstreetmap.org/search');
+    url.searchParams.set('q', q);
+    url.searchParams.set('format', 'json');
+    url.searchParams.set('addressdetails', '1');
+    url.searchParams.set('limit', '6');
+    url.searchParams.set('countrycodes', 'de,at,ch');
+    try {
+      const res  = await fetch(url, { headers: { 'Accept-Language': 'de' } });
+      const data = await res.json();
+      spinner.classList.add('hidden');
+      if (q !== latestQuery) return;
+      renderDropdown(data);
+    } catch {
+      spinner.classList.add('hidden');
+    }
+  }
+
+  function renderDropdown(results) {
+    if (!results.length) {
+      dropdown.innerHTML = '<div class="px-4 py-3 text-sm text-slate-400">Keine Ergebnisse.</div>';
+      dropdown.classList.remove('hidden');
+      return;
+    }
+    dropdown.innerHTML = results.map((r, i) => {
+      const addr  = r.address || {};
+      const line1 = buildLine1(addr);
+      const sub   = buildSub(addr);
+      return `<button type="button" data-index="${i}"
+                class="w-full text-left px-4 py-2.5 hover:bg-indigo-50 active:bg-indigo-100
+                       transition flex items-start gap-3 border-b border-slate-50 last:border-0">
+          <svg class="w-4 h-4 text-indigo-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-slate-800 truncate">${esc(line1)}</p>
+            ${sub ? `<p class="text-xs text-slate-400 truncate">${esc(sub)}</p>` : ''}
+          </div>
+        </button>`;
+    }).join('');
+    dropdown.classList.remove('hidden');
+    dropdown.querySelectorAll('button').forEach((btn, i) => {
+      btn.addEventListener('mousedown', e => {
+        e.preventDefault();
+        applyResult(results[i]);
+      });
+    });
+  }
+
+  function applyResult(r) {
+    const addr  = r.address || {};
+    const line1 = buildLine1(addr);
+    skipNext        = true;
+    input.value     = line1;
+    fields.postal.value  = addr.postcode || '';
+    fields.city.value    = addr.city || addr.town || addr.village || addr.municipality || '';
+    fields.country.value = addr.country || '';
+    hideDropdown();
+    // Felder kurz grün aufleuchten
+    [input, fields.postal, fields.city, fields.country].forEach(f => {
+      if (!f?.value) return;
+      f.classList.add('ring-2', 'ring-green-400', 'border-green-300');
+      setTimeout(() => f.classList.remove('ring-2', 'ring-green-400', 'border-green-300'), 1500);
+    });
+    input.focus();
+  }
+
+  function buildLine1(addr) {
+    const road   = addr.road || addr.pedestrian || addr.path || '';
+    const number = addr.house_number || '';
+    return road && number ? `${road} ${number}` : road;
+  }
+
+  function buildSub(addr) {
+    const parts = [];
+    if (addr.postcode) parts.push(addr.postcode);
+    const city = addr.city || addr.town || addr.village || '';
+    if (city) parts.push(city);
+    if (addr.country) parts.push(addr.country);
+    return parts.join(' · ');
+  }
+
+  function hideDropdown() {
+    dropdown.classList.add('hidden');
+    dropdown.innerHTML = '';
+  }
+
+  function esc(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Tastaturnavigation
+  input.addEventListener('keydown', e => {
+    const items  = [...dropdown.querySelectorAll('button')];
+    if (!items.length) return;
+    const active = dropdown.querySelector('button[data-active]');
+    const idx    = active ? items.indexOf(active) : -1;
+
+    if (e.key === 'Escape')    { hideDropdown(); return; }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const next = items[(idx + 1) % items.length];
+      active?.removeAttribute('data-active'); active?.classList.remove('bg-indigo-50');
+      next.setAttribute('data-active', '');   next.classList.add('bg-indigo-50');
+      next.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prev = items[(idx - 1 + items.length) % items.length];
+      active?.removeAttribute('data-active'); active?.classList.remove('bg-indigo-50');
+      prev.setAttribute('data-active', '');   prev.classList.add('bg-indigo-50');
+      prev.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter' && active) {
+      e.preventDefault();
+      active.dispatchEvent(new MouseEvent('mousedown'));
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if (!input.contains(e.target) && !dropdown.contains(e.target)) hideDropdown();
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,14 @@
+-r base.txt
+
+# Dev & Debug
+django-debug-toolbar==4.*
+django-extensions==3.*
+
+# Testing
+pytest==8.*
+pytest-django==4.*
+pytest-cov==5.*
+factory-boy==3.*                # Test-Fixtures / Model-Factories
+
+# Code Quality
+ruff==0.5.*                     # Linting + Formatting

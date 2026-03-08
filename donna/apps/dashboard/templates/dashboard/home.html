@@ -1,0 +1,309 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_heading %}Guten Tag, {{ request.user.first_name }} 👋{% endblock %}
+{% block page_subheading %}{{ now|date:"l, j. F Y" }}{% endblock %}
+
+{% block topbar_actions %}
+  {% if pending_entries_count > 0 %}
+    <a href="{% url 'worktrack:approval_list' %}"
+       class="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 hover:bg-amber-100 transition">
+      <svg class="w-4 h-4 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd"
+          d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+          clip-rule="evenodd"/>
+      </svg>
+      <span class="text-amber-700 text-sm font-medium">
+        {{ pending_entries_count }} Buchung{{ pending_entries_count|pluralize:",en" }} zur Freigabe
+      </span>
+    </a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+
+  <!-- KPI-Karten -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
+    <!-- Aktive Projekte -->
+    <a href="{% url 'crm:project_list' %}?status=active"
+       class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:border-indigo-300 hover:shadow-md transition group">
+      <div class="flex items-start justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Aktive Projekte</p>
+          <p class="text-3xl font-bold text-slate-800 group-hover:text-indigo-700 transition">{{ project_stats.active }}</p>
+          <p class="text-xs text-slate-400 mt-1">von {{ project_stats.total }} gesamt</p>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center">
+          <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+          </svg>
+        </div>
+      </div>
+    </a>
+
+    <!-- Zur Freigabe -->
+    <a href="{% url 'worktrack:approval_list' %}"
+       class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:border-amber-300 hover:shadow-md transition group">
+      <div class="flex items-start justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Zur Freigabe</p>
+          <p class="text-3xl font-bold text-slate-800 group-hover:text-amber-600 transition">{{ pending_entries_count }}</p>
+          <p class="text-xs text-slate-400 mt-1">Zeitbuchungen</p>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+          <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+      </div>
+    </a>
+
+    <!-- Eigene Stunden -->
+    <a href="{% url 'worktrack:list' %}"
+       class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:border-green-300 hover:shadow-md transition group">
+      <div class="flex items-start justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Stunden diese Woche</p>
+          <p class="text-3xl font-bold text-slate-800 group-hover:text-green-600 transition">{{ hours_this_week }}</p>
+          <p class="text-xs text-slate-400 mt-1">eigene gebuchte Stunden</p>
+        </div>
+        <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
+          <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+      </div>
+    </a>
+
+    <!-- 4. Karte: kontextabhängig -->
+    {% if request.user.is_admin %}
+      <a href="{% url 'crm:account_list' %}"
+         class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:border-purple-300 hover:shadow-md transition group">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Kunden</p>
+            <p class="text-3xl font-bold text-slate-800 group-hover:text-purple-700 transition">{{ account_stats.customer }}</p>
+            <p class="text-xs text-slate-400 mt-1">aktive Kunden-Accounts</p>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
+            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+          </div>
+        </div>
+      </a>
+    {% elif request.user.is_project_manager %}
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Team-Stunden</p>
+            <p class="text-3xl font-bold text-slate-800">{{ team_hours_this_week }}</p>
+            <p class="text-xs text-slate-400 mt-1">Team diese Woche</p>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
+            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <a href="{% url 'crm:project_list' %}"
+         class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:border-purple-300 hover:shadow-md transition group">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Meine Projekte</p>
+            <p class="text-3xl font-bold text-slate-800 group-hover:text-purple-700 transition">{{ project_stats.total }}</p>
+            <p class="text-xs text-slate-400 mt-1">zugewiesen</p>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
+            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+          </div>
+        </div>
+      </a>
+    {% endif %}
+
+  </div>
+
+  <!-- Hauptbereich -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Zeitbuchungen zur Freigabe / eigene Buchungen (2/3 Breite) -->
+    <div class="lg:col-span-2 space-y-6">
+
+      <!-- Stunden-Karte -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h2 class="font-semibold text-slate-800 text-sm">
+            {% if request.user.can_approve_time_entries %}
+              Stunden zur Freigabe
+            {% else %}
+              Meine eingereichten Buchungen
+            {% endif %}
+          </h2>
+          <a href="{% url 'worktrack:approval_list' %}" class="text-xs text-indigo-600 hover:text-indigo-800 transition">Alle →</a>
+        </div>
+        <div class="divide-y divide-slate-50">
+          {% for entry in pending_entries %}
+            <div class="px-6 py-3 flex items-center gap-3 hover:bg-slate-50 transition">
+              <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 text-xs font-bold text-indigo-700">
+                {{ entry.user.first_name|first|upper }}{{ entry.user.last_name|first|upper }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-slate-700 truncate">{{ entry.user.get_full_name }}</p>
+                <p class="text-xs text-slate-400 truncate">{{ entry.project.name }} · {{ entry.date|date:"j. M" }}</p>
+              </div>
+              <span class="flex-shrink-0 text-sm font-semibold text-indigo-700">{{ entry.duration_hours }} h</span>
+            </div>
+          {% empty %}
+            <div class="px-6 py-8 text-center text-slate-400 text-sm">Keine ausstehenden Buchungen.</div>
+          {% endfor %}
+        </div>
+        {% if pending_entries %}
+          <div class="px-6 py-3 border-t border-slate-100">
+            <a href="{% url 'worktrack:list' %}"
+               class="flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              Neue Buchung erfassen
+            </a>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Projektstatus-Übersicht -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h2 class="font-semibold text-slate-800 text-sm">Projektstatus</h2>
+          <a href="{% url 'crm:project_list' %}" class="text-xs text-indigo-600 hover:text-indigo-800 transition">Alle →</a>
+        </div>
+        <div class="px-6 py-5">
+          {% with total=project_stats.total %}
+          {% if total > 0 %}
+            <div class="space-y-3">
+              <!-- Aktiv -->
+              <div class="flex items-center gap-3">
+                <span class="w-20 text-xs text-slate-500 flex-shrink-0">Aktiv</span>
+                <div class="flex-1 bg-slate-100 rounded-full h-2">
+                  <div class="bg-green-400 h-2 rounded-full transition-all"
+                       style="width: {% widthratio project_stats.active total 100 %}%"></div>
+                </div>
+                <span class="w-8 text-xs font-semibold text-slate-700 text-right">{{ project_stats.active }}</span>
+              </div>
+              <!-- Pausiert -->
+              <div class="flex items-center gap-3">
+                <span class="w-20 text-xs text-slate-500 flex-shrink-0">Pausiert</span>
+                <div class="flex-1 bg-slate-100 rounded-full h-2">
+                  <div class="bg-purple-400 h-2 rounded-full transition-all"
+                       style="width: {% widthratio project_stats.on_hold total 100 %}%"></div>
+                </div>
+                <span class="w-8 text-xs font-semibold text-slate-700 text-right">{{ project_stats.on_hold }}</span>
+              </div>
+              <!-- Abgeschlossen -->
+              <div class="flex items-center gap-3">
+                <span class="w-20 text-xs text-slate-500 flex-shrink-0">Fertig</span>
+                <div class="flex-1 bg-slate-100 rounded-full h-2">
+                  <div class="bg-blue-400 h-2 rounded-full transition-all"
+                       style="width: {% widthratio project_stats.completed total 100 %}%"></div>
+                </div>
+                <span class="w-8 text-xs font-semibold text-slate-700 text-right">{{ project_stats.completed }}</span>
+              </div>
+            </div>
+          {% else %}
+            <p class="text-sm text-slate-400 text-center py-2">Noch keine Projekte.</p>
+          {% endif %}
+          {% endwith %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Rechte Spalte: Letzte Projekte + Schnellaktionen -->
+    <div class="space-y-6">
+
+      <!-- Schnellaktionen -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100">
+          <h2 class="font-semibold text-slate-800 text-sm">Schnellaktionen</h2>
+        </div>
+        <div class="p-4 grid grid-cols-2 gap-2">
+          <a href="{% url 'worktrack:create' %}"
+             class="flex flex-col items-center gap-2 p-3 rounded-lg border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50 transition text-center group">
+            <svg class="w-5 h-5 text-slate-400 group-hover:text-indigo-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span class="text-xs font-medium text-slate-600 group-hover:text-indigo-700 transition">Zeit buchen</span>
+          </a>
+          <a href="{% url 'crm:project_list' %}"
+             class="flex flex-col items-center gap-2 p-3 rounded-lg border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50 transition text-center group">
+            <svg class="w-5 h-5 text-slate-400 group-hover:text-indigo-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+            <span class="text-xs font-medium text-slate-600 group-hover:text-indigo-700 transition">Projekte</span>
+          </a>
+          {% if request.user.can_approve_time_entries %}
+            <a href="{% url 'worktrack:approval_list' %}"
+               class="flex flex-col items-center gap-2 p-3 rounded-lg border border-slate-100 hover:border-amber-200 hover:bg-amber-50 transition text-center group">
+              <svg class="w-5 h-5 text-slate-400 group-hover:text-amber-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span class="text-xs font-medium text-slate-600 group-hover:text-amber-700 transition">Freigaben</span>
+            </a>
+            <a href="{% url 'crm:account_list' %}"
+               class="flex flex-col items-center gap-2 p-3 rounded-lg border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50 transition text-center group">
+              <svg class="w-5 h-5 text-slate-400 group-hover:text-indigo-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+              </svg>
+              <span class="text-xs font-medium text-slate-600 group-hover:text-indigo-700 transition">Accounts</span>
+            </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Letzte Projekt-Updates -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h2 class="font-semibold text-slate-800 text-sm">Zuletzt aktualisiert</h2>
+          <a href="{% url 'crm:project_list' %}" class="text-xs text-indigo-600 hover:text-indigo-800 transition">Alle →</a>
+        </div>
+        <div class="divide-y divide-slate-50">
+          {% for project in recent_projects %}
+            <a href="{% url 'crm:project_detail' project.pk %}"
+               class="px-5 py-3 hover:bg-slate-50 transition flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-slate-700 truncate">{{ project.name }}</p>
+                <p class="text-xs text-slate-400 truncate">{{ project.account.name }}</p>
+              </div>
+              {% with s=project.status %}
+                {% if s == "active" %}<span class="flex-shrink-0 text-xs font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Aktiv</span>
+                {% elif s == "offer_sent" %}<span class="flex-shrink-0 text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Angebot</span>
+                {% elif s == "on_hold" %}<span class="flex-shrink-0 text-xs font-semibold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">Pausiert</span>
+                {% elif s == "completed" %}<span class="flex-shrink-0 text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Fertig</span>
+                {% else %}<span class="flex-shrink-0 text-xs font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{{ project.get_status_display }}</span>
+                {% endif %}
+              {% endwith %}
+            </a>
+          {% empty %}
+            <div class="px-6 py-8 text-center text-slate-400 text-sm">Noch keine Projekte vorhanden.</div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+{% endblock %}

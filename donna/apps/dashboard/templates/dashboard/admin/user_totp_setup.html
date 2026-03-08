@@ -1,0 +1,79 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}2FA einrichten – {{ target.get_full_name }}{% endblock %}
+{% block page_heading %}2FA einrichten{% endblock %}
+{% block page_subheading %}{{ target.get_full_name }} · {{ target.email }}{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'dashboard:user_edit' target.pk %}"
+     class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Zurück
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto">
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+      <h3 class="text-sm font-semibold text-slate-700">Authenticator-App einrichten</h3>
+    </div>
+    <div class="px-6 py-6 space-y-5">
+
+      <!-- Anleitung -->
+      <p class="text-sm text-slate-600">
+        Der Benutzer muss diesen QR-Code mit seiner Authenticator-App (z.B.
+        <strong>Google Authenticator</strong> oder <strong>Authy</strong>) scannen.
+        Anschließend den generierten 6-stelligen Code eingeben, um 2FA zu aktivieren.
+      </p>
+
+      <!-- QR-Code -->
+      <div class="flex justify-center">
+        <div class="p-4 bg-white border border-slate-200 rounded-xl shadow-sm inline-block">
+          <img src="{{ qr_uri }}" alt="QR-Code für TOTP" class="w-48 h-48 block">
+        </div>
+      </div>
+
+      <!-- Manueller Key -->
+      <div class="bg-slate-50 rounded-lg px-4 py-3">
+        <p class="text-xs font-medium text-slate-500 mb-1">Oder manuell eingeben:</p>
+        <p class="font-mono text-sm text-slate-800 tracking-widest break-all select-all">{{ secret }}</p>
+      </div>
+
+      <!-- Code-Bestätigung -->
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <label class="block text-sm font-medium text-slate-600 mb-1">
+          6-stelligen Code aus der App eingeben
+        </label>
+        <div class="flex gap-3">
+          <input type="text"
+                 name="code"
+                 inputmode="numeric"
+                 pattern="[0-9]{6}"
+                 maxlength="6"
+                 placeholder="000000"
+                 autofocus
+                 class="flex-1 px-4 py-3 rounded-lg border border-slate-200 bg-slate-50
+                        text-center font-mono text-lg tracking-widest
+                        focus:outline-none focus:ring-2 focus:ring-indigo-500 transition
+                        {% if code_error %}border-red-400 bg-red-50{% endif %}">
+          <button type="submit"
+                  class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm
+                         px-5 py-3 rounded-lg transition focus:outline-none
+                         focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+            Bestätigen
+          </button>
+        </div>
+        {% if code_error %}
+          <p class="mt-2 text-xs text-red-600">Der Code ist ungültig oder abgelaufen. Bitte erneut versuchen.</p>
+        {% endif %}
+      </form>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

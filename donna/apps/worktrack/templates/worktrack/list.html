@@ -1,0 +1,180 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}Zeiterfassung{% endblock %}
+
+{% block page_heading %}Zeiterfassung{% endblock %}
+{% block page_subheading %}
+  KW {{ monday|date:"W" }} — {{ monday|date:"j. M" }} bis {{ sunday|date:"j. M Y" }}
+{% endblock %}
+
+{% block topbar_actions %}
+  <!-- Woche navigieren -->
+  <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+    <a href="?week={{ prev_offset }}"
+       class="px-3 py-1.5 rounded-md text-sm text-slate-600 hover:bg-white hover:shadow-sm transition">
+      ‹
+    </a>
+    {% if not is_current_week %}
+      <a href="?week=0"
+         class="px-3 py-1.5 rounded-md text-xs text-slate-500 hover:bg-white hover:shadow-sm transition">
+        Heute
+      </a>
+    {% endif %}
+    <a href="?week={{ next_offset }}"
+       class="px-3 py-1.5 rounded-md text-sm text-slate-600 hover:bg-white hover:shadow-sm transition">
+      ›
+    </a>
+  </div>
+
+  <a href="{% url 'worktrack:create' %}"
+     class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white
+            font-medium text-sm px-4 py-2 rounded-lg transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    </svg>
+    Neue Buchung
+  </a>
+{% endblock %}
+
+{% block content %}
+
+  <!-- Wochen-KPIs -->
+  <div class="grid grid-cols-3 gap-4 mb-6">
+    <div class="bg-white rounded-xl border border-slate-200 p-4">
+      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Gesamt diese Woche</p>
+      <p class="text-2xl font-bold text-slate-800">{{ week_total|floatformat:2 }} h</p>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 p-4">
+      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Freigegeben</p>
+      <p class="text-2xl font-bold text-green-600">{{ approved_h|floatformat:2 }} h</p>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 p-4">
+      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Ausstehend</p>
+      <p class="text-2xl font-bold text-amber-600">{{ pending_h|floatformat:2 }} h</p>
+    </div>
+  </div>
+
+  <!-- Tages-Kacheln -->
+  <div class="space-y-3">
+    {% for day in days %}
+      <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+
+        <!-- Tages-Header -->
+        <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100
+                    {% if day.date == today %}bg-indigo-50{% endif %}">
+          <div class="flex items-center gap-3">
+            <div class="text-center w-10">
+              <p class="text-xs text-slate-400">{{ day.date|date:"D" }}</p>
+              <p class="text-lg font-bold {% if day.date == today %}text-indigo-600{% else %}text-slate-700{% endif %}">
+                {{ day.date|date:"j" }}
+              </p>
+            </div>
+            <span class="text-sm text-slate-400">{{ day.date|date:"F Y" }}</span>
+            {% if day.date == today %}
+              <span class="text-xs bg-indigo-100 text-indigo-700 font-semibold px-2 py-0.5 rounded-full">Heute</span>
+            {% endif %}
+          </div>
+          <div class="flex items-center gap-3">
+            {% if day.total > 0 %}
+              <span class="text-sm font-semibold text-slate-600">{{ day.total|floatformat:2 }} h</span>
+            {% endif %}
+            <a href="{% url 'worktrack:create' %}?date={{ day.date|date:'Y-m-d' }}"
+               class="text-slate-400 hover:text-indigo-600 transition p-1 rounded">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Einträge -->
+        {% if day.entries %}
+          <div class="divide-y divide-slate-50">
+            {% for entry in day.entries %}
+              <div class="flex items-center gap-4 px-5 py-3 hover:bg-slate-50 transition group">
+
+                <!-- Projekt-Info -->
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <p class="text-sm font-medium text-slate-700 truncate">{{ entry.project.name }}</p>
+                    <span class="text-xs text-slate-400 truncate hidden sm:block">· {{ entry.project.account.name }}</span>
+                  </div>
+                  <p class="text-xs text-slate-400 truncate mt-0.5">{{ entry.description|truncatechars:80 }}</p>
+                </div>
+
+                <!-- Fakturierbar -->
+                {% if not entry.is_billable %}
+                  <span class="flex-shrink-0 text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded">intern</span>
+                {% endif %}
+
+                <!-- Dauer -->
+                <span class="flex-shrink-0 text-sm font-semibold text-slate-700 w-14 text-right">
+                  {{ entry.duration_hours }} h
+                </span>
+
+                <!-- Status-Badge -->
+                <div class="flex-shrink-0 w-24 text-right">
+                  {% if entry.status == 'draft' %}
+                    <span class="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium">Entwurf</span>
+                  {% elif entry.status == 'submitted' %}
+                    <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">Eingereicht</span>
+                  {% elif entry.status == 'approved' %}
+                    <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Freigegeben</span>
+                  {% elif entry.status == 'rejected' %}
+                    <span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium" title="{{ entry.review_note }}">Abgelehnt</span>
+                  {% endif %}
+                </div>
+
+                <!-- Aktionen (nur für Entwurf) -->
+                <div class="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                  {% if entry.status == 'draft' %}
+                    <a href="{% url 'worktrack:edit' entry.pk %}"
+                       class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition"
+                       title="Bearbeiten">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                      </svg>
+                    </a>
+                    <form method="post" action="{% url 'worktrack:submit' entry.pk %}" class="inline">
+                      {% csrf_token %}
+                      <button type="submit"
+                              class="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition"
+                              title="Einreichen">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M5 13l4 4L19 7"/>
+                        </svg>
+                      </button>
+                    </form>
+                    <form method="post" action="{% url 'worktrack:delete' entry.pk %}" class="inline"
+                          onsubmit="return confirm('Buchung wirklich löschen?')">
+                      {% csrf_token %}
+                      <button type="submit"
+                              class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"
+                              title="Löschen">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                      </button>
+                    </form>
+                  {% elif entry.status == 'rejected' %}
+                    <a href="{% url 'worktrack:edit' entry.pk %}"
+                       class="text-xs text-red-600 hover:text-red-800 px-2 py-1 hover:bg-red-50 rounded transition">
+                      Korrigieren
+                    </a>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="px-5 py-4 text-sm text-slate-300 italic">Keine Buchungen</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+{% endblock %}

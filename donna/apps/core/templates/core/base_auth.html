@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="de" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Donna{% endblock %} — Donna Business OS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            donna: { DEFAULT: "#4f46e5", dark: "#3730a3", light: "#e0e7ff" }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="h-full bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex items-center justify-center p-4">
+
+  <div class="w-full max-w-md">
+    <!-- Logo / Brand -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600 shadow-lg mb-4">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-white tracking-tight">Donna</h1>
+      <p class="text-slate-400 text-sm mt-1">Business Operating System</p>
+    </div>
+
+    <!-- Card -->
+    <div class="bg-white rounded-2xl shadow-2xl p-8">
+      <!-- Messages -->
+      {% if messages %}
+        {% for message in messages %}
+          <div class="mb-4 px-4 py-3 rounded-lg text-sm font-medium
+            {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
+            {% elif message.tags == 'success' %}bg-green-50 text-green-700 border border-green-200
+            {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      {% block card_content %}{% endblock %}
+    </div>
+
+    <p class="text-center text-slate-500 text-xs mt-6">
+      &copy; {% now "Y" %} Donna Business OS — Intern & Vertraulich
+    </p>
+  </div>
+
+</body>
+</html>

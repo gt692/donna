@@ -1,0 +1,90 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}Accounts{% endblock %}
+{% block page_heading %}Accounts{% endblock %}
+{% block page_subheading %}Kunden & interne Einheiten{% endblock %}
+
+{% block topbar_actions %}
+  {% if request.user.can_approve_time_entries %}
+    <a href="{% url 'crm:account_create' %}"
+       class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Neuer Account
+    </a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+
+  <!-- Filter -->
+  <form method="get" class="flex items-center gap-3 mb-6">
+    <div class="flex-1 relative">
+      <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+           fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <input type="text" name="q" value="{{ q }}" placeholder="Account suchen …"
+             class="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 bg-white
+                    text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+    </div>
+    <select name="type"
+            class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer transition"
+            onchange="this.form.submit()">
+      <option value="">Alle Typen</option>
+      {% for val, label in account_types %}
+        <option value="{{ val }}" {% if type_filter == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    {% if q %}<button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition">Suchen</button>{% endif %}
+  </form>
+
+  <!-- Karten-Grid -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% for account in accounts %}
+      <a href="{% url 'crm:account_detail' account.pk %}"
+         class="bg-white rounded-xl border border-slate-200 shadow-sm p-5
+                hover:border-indigo-300 hover:shadow-md transition group">
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white text-sm font-bold flex-shrink-0
+            {% if account.account_type == 'customer' %}bg-indigo-500
+            {% elif account.account_type == 'internal' %}bg-purple-500
+            {% else %}bg-cyan-500{% endif %}">
+            {{ account.name|first|upper }}
+          </div>
+          <span class="text-xs font-semibold px-2 py-0.5 rounded-full
+            {% if account.account_type == 'customer' %}bg-indigo-100 text-indigo-700
+            {% elif account.account_type == 'internal' %}bg-purple-100 text-purple-700
+            {% else %}bg-cyan-100 text-cyan-700{% endif %}">
+            {{ account.get_account_type_display }}
+          </span>
+        </div>
+        <h3 class="font-semibold text-slate-800 group-hover:text-indigo-700 transition mb-1">
+          {{ account.name }}
+        </h3>
+        {% if account.city %}
+          <p class="text-xs text-slate-400 mb-2">{{ account.city }}{% if account.country %}, {{ account.country }}{% endif %}</p>
+        {% endif %}
+        <div class="flex items-center justify-between text-xs text-slate-400 pt-3 border-t border-slate-100">
+          <span>{{ account.project_count }} Projekt{{ account.project_count|pluralize:",e" }}</span>
+          {% if account.account_manager %}
+            <span>{{ account.account_manager.get_full_name }}</span>
+          {% endif %}
+        </div>
+      </a>
+    {% empty %}
+      <div class="col-span-3 py-16 text-center text-slate-400">
+        <p class="text-lg mb-2">Noch keine Accounts vorhanden.</p>
+        {% if request.user.can_approve_time_entries %}
+          <a href="{% url 'crm:account_create' %}" class="text-indigo-600 hover:text-indigo-800 font-medium transition">
+            Ersten Account anlegen →
+          </a>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+{% endblock %}

@@ -1,0 +1,40 @@
+{% comment %}
+Verwendung:
+  {% include "dashboard/_kpi_card.html" with label="..." value=42 color="indigo" sub="..." %}
+
+color: indigo | amber | green | purple | red
+{% endcomment %}
+
+{% with color_map="indigo:bg-indigo-50 text-indigo-600|amber:bg-amber-50 text-amber-600|green:bg-green-50 text-green-600|purple:bg-purple-50 text-purple-600|red:bg-red-50 text-red-600" %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+  <div class="flex items-start justify-between">
+    <div>
+      <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">{{ label }}</p>
+      <p class="text-3xl font-bold text-slate-800">{{ value }}</p>
+      {% if sub %}
+        <p class="text-xs text-slate-400 mt-1">{{ sub }}</p>
+      {% endif %}
+    </div>
+    <div class="w-10 h-10 rounded-lg flex items-center justify-center
+      {% if color == 'indigo' %}bg-indigo-50{% elif color == 'amber' %}bg-amber-50{% elif color == 'green' %}bg-green-50{% elif color == 'purple' %}bg-purple-50{% else %}bg-slate-50{% endif %}">
+      <svg class="w-5 h-5
+        {% if color == 'indigo' %}text-indigo-600{% elif color == 'amber' %}text-amber-600{% elif color == 'green' %}text-green-600{% elif color == 'purple' %}text-purple-600{% else %}text-slate-400{% endif %}"
+        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        {% if icon == "clock" or icon == "timer" %}
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        {% elif icon == "users" %}
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+        {% elif icon == "building" %}
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+        {% else %}
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+        {% endif %}
+      </svg>
+    </div>
+  </div>
+</div>
+{% endwith %}
