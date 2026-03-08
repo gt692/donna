@@ -1,0 +1,128 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}Kanban{% endblock %}
+{% block page_heading %}Kanban{% endblock %}
+{% block page_subheading %}Alle aktiven Projekte nach Status{% endblock %}
+
+{% block topbar_actions %}
+  {% if request.user.can_approve_time_entries %}
+    <a href="{% url 'crm:project_create' %}"
+       class="flex items-center gap-2 bg-[#1666b0] hover:bg-[#1255a0] text-white
+              font-medium text-sm px-4 py-2 rounded-lg transition">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Neues Projekt
+    </a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="flex gap-4 overflow-x-auto pb-4 items-start">
+
+  {% for col in columns %}
+  <div class="flex-shrink-0 w-72 flex flex-col gap-2">
+
+    <!-- Spalten-Header -->
+    <div class="flex items-center justify-between px-3 py-2.5 rounded-xl border
+      {% if col.status == 'active' %}bg-green-50 border-green-200
+      {% elif col.status == 'offer_sent' %}bg-amber-50 border-amber-200
+      {% elif col.status == 'on_hold' %}bg-purple-50 border-purple-200
+      {% elif col.status == 'invoiced' %}bg-teal-50 border-teal-200
+      {% else %}bg-slate-100 border-slate-200{% endif %}">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full
+          {% if col.status == 'active' %}bg-green-500
+          {% elif col.status == 'offer_sent' %}bg-amber-400
+          {% elif col.status == 'on_hold' %}bg-purple-400
+          {% elif col.status == 'invoiced' %}bg-teal-400
+          {% else %}bg-slate-400{% endif %}"></span>
+        <span class="text-sm font-semibold text-slate-700">{{ col.label }}</span>
+      </div>
+      <span class="text-xs font-bold px-2 py-0.5 rounded-full
+        {% if col.status == 'active' %}bg-green-200 text-green-700
+        {% elif col.status == 'offer_sent' %}bg-amber-200 text-amber-700
+        {% elif col.status == 'on_hold' %}bg-purple-200 text-purple-700
+        {% elif col.status == 'invoiced' %}bg-teal-200 text-teal-700
+        {% else %}bg-slate-200 text-slate-600{% endif %}">{{ col.count }}</span>
+    </div>
+
+    <!-- Projekt-Karten -->
+    <div class="flex flex-col gap-2">
+      {% for group in col.groups %}
+
+        {# Projektleiter-Trennzeile, wenn mehrere Gruppen #}
+        {% if col.groups|length > 1 %}
+        <div class="flex items-center gap-2 px-1 pt-1">
+          {% if group.lead %}
+            <div class="w-5 h-5 rounded-full bg-[#ddf1fb] flex items-center justify-center
+                        text-[#1666b0] text-xs font-bold flex-shrink-0">
+              {{ group.lead.first_name|first|upper }}{{ group.lead.last_name|first|upper }}
+            </div>
+            <span class="text-xs font-medium text-slate-500 truncate">{{ group.lead.get_full_name }}</span>
+          {% else %}
+            <span class="text-xs text-slate-400 italic">Kein Projektleiter</span>
+          {% endif %}
+          <div class="flex-1 h-px bg-slate-200"></div>
+        </div>
+        {% endif %}
+
+        {% for project in group.projects %}
+        <a href="{% url 'crm:project_detail' project.pk %}"
+           class="block bg-white rounded-xl border border-slate-200 shadow-sm p-3.5
+                  hover:border-[#14b0e4] hover:shadow-md transition group">
+
+          <!-- Projektnummer + Typ -->
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-mono text-xs text-slate-400">{{ project.project_number }}</span>
+            <span class="text-xs px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">
+              {{ project.get_project_type_display }}
+            </span>
+          </div>
+
+          <!-- Projektname -->
+          <p class="text-sm font-semibold text-slate-800 leading-snug mb-1
+                    group-hover:text-[#1255a0] transition">
+            {{ project.name }}
+          </p>
+
+          <!-- Account -->
+          <p class="text-xs text-slate-400 truncate mb-2.5">{{ project.account.name }}</p>
+
+          <!-- Footer: Projektleiter (nur wenn keine Gruppentrennzeile) + Datum -->
+          <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+            {% if group.lead and col.groups|length == 1 %}
+              <div class="flex items-center gap-1.5">
+                <div class="w-4 h-4 rounded-full bg-[#ddf1fb] flex items-center justify-center
+                            text-[#1666b0] text-xs font-bold">
+                  {{ group.lead.first_name|first|upper }}{{ group.lead.last_name|first|upper }}
+                </div>
+                <span class="text-xs text-slate-400">{{ group.lead.get_full_name }}</span>
+              </div>
+            {% else %}
+              <span></span>
+            {% endif %}
+            {% if project.end_date %}
+              <span class="text-xs text-slate-400">bis {{ project.end_date|date:"d.m.Y" }}</span>
+            {% elif project.start_date %}
+              <span class="text-xs text-slate-400">ab {{ project.start_date|date:"d.m.Y" }}</span>
+            {% else %}
+              <span></span>
+            {% endif %}
+          </div>
+        </a>
+        {% endfor %}
+
+      {% empty %}
+        <div class="bg-white rounded-xl border border-dashed border-slate-200 p-4 text-center">
+          <p class="text-xs text-slate-400">Keine Projekte</p>
+        </div>
+      {% endfor %}
+    </div>
+
+  </div>
+  {% endfor %}
+
+</div>
+{% endblock %}

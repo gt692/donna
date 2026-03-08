@@ -35,6 +35,20 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-slate-600 mb-1">
+            {{ form.company.label }} <span class="text-red-500">*</span>
+          </label>
+          {{ form.company }}
+          {% if form.company.errors %}<p class="mt-1 text-xs text-red-600">{{ form.company.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">
+            {{ form.project_type.label }} <span class="text-red-500">*</span>
+          </label>
+          {{ form.project_type }}
+          {% if form.project_type.errors %}<p class="mt-1 text-xs text-red-600">{{ form.project_type.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">
             {{ form.account.label }} <span class="text-red-500">*</span>
           </label>
           {{ form.account }}
@@ -60,26 +74,55 @@
       </div>
     </div>
 
-    <!-- Team -->
+    <!-- Team & Stundensätze -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
       <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
-        <h3 class="text-sm font-semibold text-slate-700">Team-Mitglieder</h3>
-        <p class="text-xs text-slate-400 mt-0.5">Nur zugewiesene Mitarbeiter können Stunden auf dieses Projekt buchen.</p>
+        <h3 class="text-sm font-semibold text-slate-700">Team-Mitglieder & Stundensätze</h3>
+        <p class="text-xs text-slate-400 mt-0.5">
+          Stundensätze werden nach Rolle voreingestellt und können pro Projekt angepasst werden.
+        </p>
       </div>
-      <div class="px-6 py-5">
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {% for checkbox in form.team_members %}
-            <label class="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200
-                          hover:bg-slate-50 cursor-pointer transition text-sm text-slate-700 has-[:checked]:border-indigo-300 has-[:checked]:bg-indigo-50">
-              {{ checkbox.tag }}
-              {{ checkbox.choice_label }}
-            </label>
-          {% endfor %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-200">
+              <th class="px-6 py-2.5 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Mitarbeiter</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Rolle</th>
+              <th class="px-6 py-2.5 text-right text-xs font-medium text-slate-500 uppercase tracking-wide">Stundensatz (€ netto)</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for checkbox in form.team_members %}
+            <tr class="hover:bg-slate-50 transition" data-user-id="{{ checkbox.data.value }}">
+              <td class="px-6 py-3">
+                <label class="flex items-center gap-3 cursor-pointer">
+                  {{ checkbox.tag }}
+                  <span class="text-slate-700">{{ checkbox.choice_label }}</span>
+                </label>
+              </td>
+              <td class="px-4 py-3">
+                <span class="member-role-badge text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500"></span>
+              </td>
+              <td class="px-6 py-3 text-right">
+                <div class="flex items-center justify-end gap-1">
+                  <input type="number"
+                         name="member_rate_{{ checkbox.data.value }}"
+                         class="w-28 px-2 py-1.5 text-right text-sm rounded-lg border border-slate-200 bg-white
+                                focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent transition"
+                         step="1" min="0" placeholder="—">
+                  <span class="text-xs text-slate-400">€/h</span>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if form.team_members.errors %}
+        <div class="px-6 py-2 border-t border-slate-100">
+          <p class="text-xs text-red-600">{{ form.team_members.errors|join:", " }}</p>
         </div>
-        {% if form.team_members.errors %}
-          <p class="mt-1 text-xs text-red-600">{{ form.team_members.errors|join:", " }}</p>
-        {% endif %}
-      </div>
+      {% endif %}
     </div>
 
     <!-- Zeitraum & Budget -->
@@ -99,10 +142,6 @@
         <div>
           <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.budget_hours.label }}</label>
           {{ form.budget_hours }}
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.hourly_rate.label }}</label>
-          {{ form.hourly_rate }}
         </div>
         <div>
           <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.budget_amount.label }}</label>
@@ -133,12 +172,74 @@
     <div class="flex items-center justify-between">
       <a href="{% url 'crm:project_list' %}" class="text-sm text-slate-500 hover:text-slate-700 transition">Abbrechen</a>
       <button type="submit"
-              class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm
+              class="bg-[#1666b0] hover:bg-[#1255a0] text-white font-medium text-sm
                      px-6 py-2.5 rounded-lg transition focus:outline-none focus:ring-2
-                     focus:ring-indigo-500 focus:ring-offset-2">
+                     focus:ring-[#1666b0] focus:ring-offset-2">
         {{ submit_label }}
       </button>
     </div>
   </form>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{{ member_rates_data|json_script:"member-rates-data" }}
+{{ project_types_by_company|json_script:"company-types-data" }}
+<script>
+(function () {
+  // ── Firmen → Projekttyp-Filter ──────────────────────────────────────────
+  const companyTypes = JSON.parse(document.getElementById('company-types-data').textContent);
+  const companySelect = document.getElementById('id_company');
+  const typeSelect    = document.getElementById('id_project_type');
+
+  // Alle Optionen einmalig sichern (außer dem leeren Placeholder)
+  const allOptions = Array.from(typeSelect.options).filter(o => o.value !== '');
+
+  function filterTypes() {
+    const allowed = companyTypes[companySelect.value] || null;
+    const current = typeSelect.value;
+    // Alle Optionen entfernen und gefiltert wieder einfügen
+    while (typeSelect.options.length > 0) typeSelect.remove(0);
+    if (!allowed) {
+      allOptions.forEach(o => typeSelect.add(o.cloneNode(true)));
+    } else {
+      allowed.forEach(val => {
+        const opt = allOptions.find(o => o.value === val);
+        if (opt) typeSelect.add(opt.cloneNode(true));
+      });
+    }
+    // Vorherige Auswahl beibehalten wenn noch gültig
+    if (Array.from(typeSelect.options).some(o => o.value === current)) {
+      typeSelect.value = current;
+    }
+  }
+
+  companySelect.addEventListener('change', filterTypes);
+  filterTypes(); // initial anwenden
+
+  // ── Stundensätze ────────────────────────────────────────────────────────
+  const data = JSON.parse(document.getElementById('member-rates-data').textContent);
+
+  document.querySelectorAll('tr[data-user-id]').forEach(function (row) {
+    const uid  = row.dataset.userId;
+    const info = data[uid];
+    if (!info) return;
+
+    // Rolle anzeigen
+    const badge = row.querySelector('.member-role-badge');
+    if (badge) badge.textContent = info.role;
+
+    // Stundensatz vorbelegen: bestehender Projektsatz > Rollen-Standard
+    const input = row.querySelector('input[type="number"]');
+    if (input && !input.value) {
+      const rate = (info.current_rate !== null && info.current_rate !== undefined)
+        ? info.current_rate
+        : info.default_rate;
+      if (rate !== null && rate !== undefined) {
+        input.value = Math.round(rate);
+      }
+    }
+  });
+})();
+</script>
 {% endblock %}

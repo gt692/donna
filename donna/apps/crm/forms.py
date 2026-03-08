@@ -56,16 +56,18 @@ class ProjectForm(forms.ModelForm):
     class Meta:
         model  = Project
         fields = [
-            "name", "account", "status", "description",
+            "company", "name", "project_type", "account", "status", "description",
             "team_lead", "team_members",
             "start_date", "end_date",
-            "budget_hours", "budget_amount", "hourly_rate",
+            "budget_hours", "budget_amount",
             "storage_path", "lexoffice_id", "internal_reference",
         ]
         widgets = {
-            "name":        forms.TextInput(attrs={"class": _INPUT, "placeholder": "Projektname"}),
-            "account":     forms.Select(attrs={"class": _SELECT}),
-            "status":      forms.Select(attrs={"class": _SELECT}),
+            "company":      forms.Select(attrs={"class": _SELECT, "id": "id_company"}),
+            "name":         forms.TextInput(attrs={"class": _INPUT, "placeholder": "Projektname"}),
+            "project_type": forms.Select(attrs={"class": _SELECT, "id": "id_project_type"}),
+            "account":      forms.Select(attrs={"class": _SELECT}),
+            "status":       forms.Select(attrs={"class": _SELECT}),
             "description": forms.Textarea(attrs={"class": _INPUT, "rows": 3,
                                                   "placeholder": "Kurze Projektbeschreibung …"}),
             "team_lead":   forms.Select(attrs={"class": _SELECT}),
@@ -74,7 +76,6 @@ class ProjectForm(forms.ModelForm):
             "end_date":    forms.DateInput(attrs={"class": _INPUT, "type": "date"}, format="%Y-%m-%d"),
             "budget_hours":  forms.NumberInput(attrs={"class": _INPUT, "step": "0.5", "placeholder": "z.B. 80"}),
             "budget_amount": forms.NumberInput(attrs={"class": _INPUT, "step": "0.01", "placeholder": "z.B. 9600.00"}),
-            "hourly_rate":   forms.NumberInput(attrs={"class": _INPUT, "step": "0.01", "placeholder": "z.B. 120.00"}),
             "storage_path":  forms.TextInput(attrs={"class": _INPUT,
                                                      "placeholder": r"\\srv01\projekte\2024\Kunde-X"}),
             "lexoffice_id":  forms.TextInput(attrs={"class": _INPUT, "placeholder": "UUID aus Lexoffice"}),
@@ -102,8 +103,11 @@ class ProjectForm(forms.ModelForm):
         ).order_by("last_name", "first_name")
         self.fields["team_members"].required = False
 
+        self.fields["company"].empty_label = "Unternehmen auswählen …"
+        self.fields["company"].required = True
+
         # Optionale Felder
-        for f in ("budget_hours", "budget_amount", "hourly_rate",
+        for f in ("budget_hours", "budget_amount",
                   "storage_path", "lexoffice_id", "internal_reference",
                   "start_date", "end_date", "description"):
             self.fields[f].required = False

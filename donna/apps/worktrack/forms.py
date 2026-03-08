@@ -5,7 +5,7 @@ from django import forms
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from .models import ActivityType, TimeEntry
+from .models import TimeEntry
 
 _INPUT = (
     "w-full px-3 py-2 rounded-lg border border-slate-200 bg-white "
@@ -44,7 +44,7 @@ class TimeEntryForm(forms.ModelForm):
             "end_time": forms.TimeInput(
                 attrs={"class": _INPUT, "type": "time"}, format="%H:%M"
             ),
-            "activity_type": forms.Select(attrs={"class": _SELECT}),
+            "activity_type": forms.Select(attrs={"class": _SELECT, "required": False}),
             "description": forms.Textarea(
                 attrs={
                     "class": _INPUT,
@@ -59,7 +59,6 @@ class TimeEntryForm(forms.ModelForm):
 
     def __init__(self, user, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Nur Projekte anzeigen, denen der User zugewiesen ist (+ Admin sieht alle)
         from apps.crm.models import Project
         if user.is_admin:
             qs = Project.objects.filter(
@@ -74,21 +73,39 @@ class TimeEntryForm(forms.ModelForm):
         self.fields["project"].label_from_instance = lambda p: f"{p.account.name} — {p.name}"
         self.fields["project"].empty_label = "Projekt auswählen …"
 
-        self.fields["activity_type"].queryset = ActivityType.objects.filter(is_active=True)
-        self.fields["activity_type"].empty_label = "Tätigkeitsart (optional)"
         self.fields["activity_type"].required = False
+        self.fields["activity_type"].choices = [("", "Tätigkeitsart (optional)")] + list(
+            TimeEntry.ActivityCategory.choices
+        )
 
-        # Datum vorbelegen mit heute
+        # duration_hours optional wenn Von/Bis gesetzt
+        self.fields["duration_hours"].required = False
+
         if not self.initial.get("date") and not self.data.get("date"):
             self.initial["date"] = timezone.now().date()
 
     def clean(self):
+        from decimal import Decimal, ROUND_HALF_UP
+        import datetime
         cleaned = super().clean()
         start = cleaned.get("start_time")
         end   = cleaned.get("end_time")
-        if start and end and end <= start:
+
+        if start and end:
+            if end <= start:
+                raise forms.ValidationError(
+                    _("Die Endzeit muss nach der Startzeit liegen."), code="invalid_times"
+                )
+            # Dauer automatisch berechnen (auf 0.25 runden)
+            delta = datetime.datetime.combine(datetime.date.today(), end) \
+                  - datetime.datetime.combine(datetime.date.today(), start)
+            hours = Decimal(str(delta.seconds / 3600)).quantize(Decimal("0.01"))
+            cleaned["duration_hours"] = hours
+
+        if not cleaned.get("duration_hours"):
             raise forms.ValidationError(
-                _("Die Endzeit muss nach der Startzeit liegen."), code="invalid_times"
+                _("Bitte entweder Von/Bis-Zeiten oder die Dauer in Stunden angeben."),
+                code="missing_duration",
             )
         return cleaned
 

@@ -71,13 +71,22 @@ class TimeEntry(models.Model):
     # Beschreibung der Tätigkeit
     description = models.TextField(verbose_name=_("Tätigkeit"))
 
-    # Tätigkeitsart (optional, für spätere Auswertungen)
-    activity_type = models.ForeignKey(
-        "ActivityType",
-        null=True,
+    # Tätigkeitsart
+    class ActivityCategory(models.TextChoices):
+        AG_RUECKSPRACHE  = "ag_ruecksprache",   _("AG Rücksprache")
+        AKQUISE          = "akquise",           _("Akquise")
+        BEARBEITUNG      = "bearbeitung",       _("Bearbeitung des Projekts")
+        BESPRECHUNG      = "besprechung",       _("Besprechung")
+        ERHEBUNGEN       = "erhebungen",        _("Erhebungen")
+        MAILS_TELEFONATE = "mails_telefonate",  _("Mails-Telefonate")
+        ORTSTERMIN       = "ortstermin",        _("Ortstermin")
+        PROJEKTABLAGE    = "projektablage",     _("Projektablage")
+
+    activity_type = models.CharField(
+        max_length=30,
+        choices=ActivityCategory.choices,
         blank=True,
-        on_delete=models.SET_NULL,
-        related_name="time_entries",
+        default="",
         verbose_name=_("Tätigkeitsart"),
     )
 

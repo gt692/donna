@@ -57,7 +57,7 @@ class TimeEntryListView(WorktrackMixin, TemplateView):
         entries = (
             TimeEntry.objects
             .filter(user=user, date__range=(monday, sunday))
-            .select_related("project", "project__account", "activity_type")
+            .select_related("project", "project__account")
             .order_by("date", "start_time")
         )
 
@@ -199,7 +199,7 @@ class ApprovalListView(WorktrackMixin, UserPassesTestMixin, TemplateView):
         pending = (
             TimeEntry.objects
             .filter(status=TimeEntry.Status.SUBMITTED, user__in=approvable_users)
-            .select_related("user", "project", "project__account", "activity_type")
+            .select_related("user", "project", "project__account")
             .order_by("date", "user__last_name")
         )
 

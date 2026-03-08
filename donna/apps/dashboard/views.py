@@ -260,6 +260,35 @@ class UserDeleteView(AdminRequiredMixin, View):
         return redirect("dashboard:user_list")
 
 
+class UserResendInvitationView(AdminRequiredMixin, View):
+    """POST-only: generiert neuen Einladungslink und sendet ihn erneut."""
+
+    def post(self, request, pk):
+        target = get_object_or_404(User, pk=pk)
+        token = target.generate_invitation_token()
+        invitation_path = reverse("core:invitation_accept", kwargs={"token": token})
+        invitation_url  = request.build_absolute_uri(invitation_path)
+        subject = "Deine Einladung zu Donna Business OS"
+        body = (
+            f"Hallo {target.first_name or target.email},\n\n"
+            f"Du wurdest von {request.user.get_full_name()} zu Donna Business OS eingeladen.\n\n"
+            f"Klicke auf den folgenden Link, um dein Passwort zu setzen und deinen Account zu aktivieren:\n\n"
+            f"{invitation_url}\n\n"
+            f"Der Link ist 7 Tage gültig.\n\n"
+            f"Falls du diese Einladung nicht erwartet hast, ignoriere diese E-Mail.\n\n"
+            f"Donna Business OS"
+        )
+        send_mail(
+            subject=subject,
+            message=body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[target.email],
+            fail_silently=True,
+        )
+        messages.success(request, f"Einladung wurde erneut an {target.email} gesendet.")
+        return redirect("dashboard:user_edit", pk=pk)
+
+
 # ---------------------------------------------------------------------------
 # 2FA-Verwaltung (Admin)
 # ---------------------------------------------------------------------------

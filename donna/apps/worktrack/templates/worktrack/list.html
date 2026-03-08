@@ -28,7 +28,7 @@
   </div>
 
   <a href="{% url 'worktrack:create' %}"
-     class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white
+     class="flex items-center gap-2 bg-[#1666b0] hover:bg-[#1255a0] text-white
             font-medium text-sm px-4 py-2 rounded-lg transition">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -62,17 +62,17 @@
 
         <!-- Tages-Header -->
         <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100
-                    {% if day.date == today %}bg-indigo-50{% endif %}">
+                    {% if day.date == today %}bg-[#f0f9fe]{% endif %}">
           <div class="flex items-center gap-3">
             <div class="text-center w-10">
               <p class="text-xs text-slate-400">{{ day.date|date:"D" }}</p>
-              <p class="text-lg font-bold {% if day.date == today %}text-indigo-600{% else %}text-slate-700{% endif %}">
+              <p class="text-lg font-bold {% if day.date == today %}text-[#1666b0]{% else %}text-slate-700{% endif %}">
                 {{ day.date|date:"j" }}
               </p>
             </div>
             <span class="text-sm text-slate-400">{{ day.date|date:"F Y" }}</span>
             {% if day.date == today %}
-              <span class="text-xs bg-indigo-100 text-indigo-700 font-semibold px-2 py-0.5 rounded-full">Heute</span>
+              <span class="text-xs bg-[#ddf1fb] text-[#1255a0] font-semibold px-2 py-0.5 rounded-full">Heute</span>
             {% endif %}
           </div>
           <div class="flex items-center gap-3">
@@ -80,7 +80,7 @@
               <span class="text-sm font-semibold text-slate-600">{{ day.total|floatformat:2 }} h</span>
             {% endif %}
             <a href="{% url 'worktrack:create' %}?date={{ day.date|date:'Y-m-d' }}"
-               class="text-slate-400 hover:text-indigo-600 transition p-1 rounded">
+               class="text-slate-400 hover:text-[#1666b0] transition p-1 rounded">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
               </svg>
@@ -130,7 +130,7 @@
                 <div class="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
                   {% if entry.status == 'draft' %}
                     <a href="{% url 'worktrack:edit' entry.pk %}"
-                       class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition"
+                       class="p-1.5 text-slate-400 hover:text-[#1666b0] hover:bg-[#f0f9fe] rounded transition"
                        title="Bearbeiten">
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

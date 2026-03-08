@@ -16,7 +16,7 @@
       Bearbeiten
     </a>
     <a href="{% url 'crm:project_create' %}?account={{ account.pk }}"
-       class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition">
+       class="flex items-center gap-2 bg-[#1666b0] hover:bg-[#1255a0] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
       </svg>
@@ -39,7 +39,7 @@
           <div class="flex items-center gap-4 px-5 py-3 hover:bg-slate-50 transition">
             <div class="flex-1 min-w-0">
               <a href="{% url 'crm:project_detail' project.pk %}"
-                 class="text-sm font-medium text-slate-800 hover:text-indigo-600 transition">
+                 class="text-sm font-medium text-slate-800 hover:text-[#1666b0] transition">
                 {{ project.name }}
               </a>
               {% if project.internal_reference %}
@@ -71,14 +71,14 @@
       <dl class="space-y-2 text-sm">
         {% if account.email %}
           <div><dt class="text-xs text-slate-400">E-Mail</dt>
-          <dd><a href="mailto:{{ account.email }}" class="text-indigo-600 hover:text-indigo-800 transition">{{ account.email }}</a></dd></div>
+          <dd><a href="mailto:{{ account.email }}" class="text-[#1666b0] hover:text-[#0d4f8c] transition">{{ account.email }}</a></dd></div>
         {% endif %}
         {% if account.phone %}
           <div><dt class="text-xs text-slate-400">Telefon</dt><dd class="text-slate-700">{{ account.phone }}</dd></div>
         {% endif %}
         {% if account.website %}
           <div><dt class="text-xs text-slate-400">Website</dt>
-          <dd><a href="{{ account.website }}" target="_blank" rel="noopener" class="text-indigo-600 hover:text-indigo-800 transition truncate block">{{ account.website }}</a></dd></div>
+          <dd><a href="{{ account.website }}" target="_blank" rel="noopener" class="text-[#1666b0] hover:text-[#0d4f8c] transition truncate block">{{ account.website }}</a></dd></div>
         {% endif %}
         {% if account.city %}
           <div><dt class="text-xs text-slate-400">Adresse</dt>

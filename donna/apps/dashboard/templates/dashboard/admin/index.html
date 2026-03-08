@@ -7,7 +7,7 @@
 
 {% block topbar_actions %}
   <a href="{% url 'dashboard:user_create' %}"
-     class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition">
+     class="flex items-center gap-2 bg-[#1666b0] hover:bg-[#1255a0] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
     </svg>
@@ -21,9 +21,9 @@
   <!-- KPI-Karten -->
   <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
     <a href="{% url 'dashboard:user_list' %}"
-       class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:border-indigo-300 hover:shadow-md transition group">
+       class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:border-[#14b0e4] hover:shadow-md transition group">
       <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Gesamt aktiv</p>
-      <p class="text-3xl font-bold text-slate-800 group-hover:text-indigo-700 transition">{{ user_count }}</p>
+      <p class="text-3xl font-bold text-slate-800 group-hover:text-[#1255a0] transition">{{ user_count }}</p>
       <p class="text-xs text-slate-400 mt-1">Benutzer</p>
     </a>
     <a href="{% url 'dashboard:user_list' %}?role=admin"
@@ -64,8 +64,8 @@
       <div class="divide-y divide-slate-50">
         <a href="{% url 'dashboard:user_list' %}"
            class="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition">
-          <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
-            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="w-10 h-10 rounded-lg bg-[#f0f9fe] flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-[#1666b0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
@@ -118,7 +118,7 @@
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
         <h2 class="font-semibold text-slate-800 text-sm">Zuletzt angelegt</h2>
-        <a href="{% url 'dashboard:user_list' %}" class="text-xs text-indigo-600 hover:text-indigo-800 transition">Alle →</a>
+        <a href="{% url 'dashboard:user_list' %}" class="text-xs text-[#1666b0] hover:text-[#0d4f8c] transition">Alle →</a>
       </div>
       <div class="divide-y divide-slate-50">
         {% for u in recent_users %}

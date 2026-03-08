@@ -136,6 +136,18 @@ class User(AbstractUser):
         """Projektleiter und Admins dürfen Stundeneinträge freigeben."""
         return self.role in (Role.ADMIN, Role.PROJECT_MANAGER)
 
+    # Standard-Stundensätze (netto) je Rolle
+    _ROLE_HOURLY_RATES = {
+        Role.PROJECT_MANAGER:   255,
+        Role.EMPLOYEE:          155,
+        Role.PROJECT_ASSISTANT: 85,
+    }
+
+    @property
+    def default_hourly_rate(self):
+        """Gibt den Standard-Stundensatz (netto) für diese Rolle zurück, oder None für Admins."""
+        return self._ROLE_HOURLY_RATES.get(self.role)
+
     # ------------------------------------------------------------------
     # Einladungs-Hilfsmethoden
     # ------------------------------------------------------------------

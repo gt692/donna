@@ -10,27 +10,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from .models import ActivityType, TimeEntry, TimeEntryBulkApproval
-
-
-# ---------------------------------------------------------------------------
-# ActivityType
-# ---------------------------------------------------------------------------
-
-@admin.register(ActivityType)
-class ActivityTypeAdmin(admin.ModelAdmin):
-    list_display  = ("color_dot", "name", "is_billable_default", "is_active")
-    list_filter   = ("is_billable_default", "is_active")
-    search_fields = ("name",)
-    ordering      = ("name",)
-
-    @admin.display(description="")
-    def color_dot(self, obj: ActivityType) -> str:
-        return format_html(
-            '<span style="display:inline-block;width:12px;height:12px;'
-            'border-radius:50%;background:{color};"></span>',
-            color=obj.color_hex or "#6366f1",
-        )
+from .models import TimeEntry, TimeEntryBulkApproval
 
 
 # ---------------------------------------------------------------------------
@@ -44,8 +24,8 @@ class TimeEntryAdmin(admin.ModelAdmin):
         "activity_type", "is_billable", "status_badge", "reviewed_by",
     )
     list_filter   = (
-        "status", "is_billable", "date",
-        "project__account", "activity_type",
+        "status", "is_billable", "date", "activity_type",
+        "project__account",
     )
     search_fields = (
         "user__username", "user__first_name", "user__last_name",
@@ -53,8 +33,8 @@ class TimeEntryAdmin(admin.ModelAdmin):
     )
     ordering       = ("-date", "-created_at")
     date_hierarchy  = "date"
-    autocomplete_fields = ("user", "project", "activity_type", "reviewed_by")
-    list_select_related = ("user", "project", "project__account", "reviewed_by", "activity_type")
+    autocomplete_fields = ("user", "project", "reviewed_by")
+    list_select_related = ("user", "project", "project__account", "reviewed_by")
 
     fieldsets = (
         (

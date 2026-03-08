@@ -6,9 +6,18 @@
 {% block page_subheading %}{{ paginator.count }} Projekt{{ paginator.count|pluralize:",e" }} gesamt{% endblock %}
 
 {% block topbar_actions %}
+  <a href="{% url 'crm:project_archive' %}"
+     class="flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-medium text-sm px-4 py-2 rounded-lg transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+    </svg>
+    Archiv
+    {% if archive_count %}<span class="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">{{ archive_count }}</span>{% endif %}
+  </a>
   {% if request.user.can_approve_time_entries %}
     <a href="{% url 'crm:project_create' %}"
-       class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition">
+       class="flex items-center gap-2 bg-[#1666b0] hover:bg-[#1255a0] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
       </svg>
@@ -29,17 +38,17 @@
       </svg>
       <input type="text" name="q" value="{{ q }}" placeholder="Projekt oder Kunde suchen …"
              class="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 bg-white
-                    text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                    text-sm focus:outline-none focus:ring-2 focus:ring-[#1666b0] transition">
     </div>
     <select name="status"
-            class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition cursor-pointer"
+            class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1666b0] transition cursor-pointer"
             onchange="this.form.submit()">
       <option value="">Alle Status</option>
       {% for val, label in status_choices %}
         <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
       {% endfor %}
     </select>
-    {% if q %}<button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition">Suchen</button>{% endif %}
+    {% if q %}<button type="submit" class="bg-[#1666b0] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#1255a0] transition">Suchen</button>{% endif %}
   </form>
 
   <!-- Tabelle -->
@@ -61,16 +70,17 @@
           <tr class="hover:bg-slate-50 transition">
             <td class="px-5 py-3">
               <a href="{% url 'crm:project_detail' project.pk %}"
-                 class="font-medium text-slate-800 hover:text-indigo-600 transition">
+                 class="font-medium text-slate-800 hover:text-[#1666b0] transition">
                 {{ project.name }}
               </a>
-              {% if project.internal_reference %}
-                <span class="text-xs text-slate-400 ml-1">{{ project.internal_reference }}</span>
-              {% endif %}
+              <div class="flex items-center gap-2 mt-0.5">
+                <span class="text-xs text-slate-400 font-mono">{{ project.project_number }}</span>
+                <span class="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">{{ project.get_project_type_display }}</span>
+              </div>
             </td>
             <td class="px-4 py-3">
               <a href="{% url 'crm:account_detail' project.account.pk %}"
-                 class="text-slate-600 hover:text-indigo-600 transition">{{ project.account.name }}</a>
+                 class="text-slate-600 hover:text-[#1666b0] transition">{{ project.account.name }}</a>
             </td>
             <td class="px-4 py-3">
               {% with s=project.status %}
@@ -78,6 +88,7 @@
                 {% elif s == "offer_sent" %}<span class="text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Angebot</span>
                 {% elif s == "lead" %}<span class="text-xs font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">Lead</span>
                 {% elif s == "on_hold" %}<span class="text-xs font-semibold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">Pausiert</span>
+                {% elif s == "invoiced" %}<span class="text-xs font-semibold bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full">Rechnung</span>
                 {% elif s == "completed" %}<span class="text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Abgeschlossen</span>
                 {% elif s == "cancelled" %}<span class="text-xs font-semibold bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Storniert</span>
                 {% endif %}
@@ -102,7 +113,7 @@
             <td class="px-2 py-3">
               {% if request.user.can_approve_time_entries %}
                 <a href="{% url 'crm:project_edit' project.pk %}"
-                   class="text-slate-400 hover:text-indigo-600 p-1 rounded transition"
+                   class="text-slate-400 hover:text-[#1666b0] p-1 rounded transition"
                    title="Bearbeiten">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

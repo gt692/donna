@@ -28,6 +28,14 @@ class Account(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
+    account_number = models.CharField(
+        max_length=20,
+        unique=True,
+        blank=True,
+        verbose_name=_("Kundennummer"),
+        help_text=_("Wird automatisch vergeben, z.B. KD-00001"),
+    )
+
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     account_type = models.CharField(
         max_length=20,
@@ -78,8 +86,24 @@ class Account(models.Model):
         verbose_name_plural = _("Accounts")
         ordering = ["name"]
 
+    def save(self, *args, **kwargs):
+        if not self.account_number:
+            from django.db import transaction
+            with transaction.atomic():
+                last = (
+                    Account.objects
+                    .select_for_update()
+                    .filter(account_number__regex=r"^KD-\d+$")
+                    .order_by("-account_number")
+                    .values_list("account_number", flat=True)
+                    .first()
+                )
+                num = (int(last.split("-")[1]) + 1) if last else 1
+                self.account_number = f"KD-{num:05d}"
+        super().save(*args, **kwargs)
+
     def __str__(self) -> str:
-        return f"{self.name} ({self.get_account_type_display()})"
+        return f"{self.account_number} · {self.name}"
 
 
 # ---------------------------------------------------------------------------
@@ -97,17 +121,66 @@ class Project(models.Model):
     - storage_path für Laufwerk-Integration
     - lexoffice_id für spätere Rechnungs-Synchronisation
     """
+    class Company(models.TextChoices):
+        DIRESO     = "direso",     _("DIRESO")
+        GT_IMMO    = "gt_immo",    _("GT Immo")
+        GT_PROJEKT = "gt_projekt", _("GT Projekt")
+
+    class ProjectType(models.TextChoices):
+        CONSULTING          = "consulting",          _("Beratung")
+        DEVELOPER           = "developer",           _("Erschließungsträger")
+        APPRAISAL           = "appraisal",           _("Gutachten")
+        PLATFORM            = "platform",            _("Plattform")
+        PROJECT_MANAGEMENT  = "project_management",  _("Projektmanagement")
+        SCAN                = "scan",                _("Scan")
+        SALE                = "sale",                _("Verkauf")
+        RENTAL              = "rental",              _("Vermietung")
+
+    # Welche Projekttypen sind je Firma erlaubt (alphabetisch nach Label)
+    PROJECT_TYPES_BY_COMPANY = {
+        Company.DIRESO:     ["platform", "scan"],
+        Company.GT_IMMO:    ["consulting", "appraisal", "project_management", "sale", "rental"],
+        Company.GT_PROJEKT: ["consulting", "developer", "project_management"],
+    }
+
     class Status(models.TextChoices):
         LEAD       = "lead",       _("Lead")
         OFFER_SENT = "offer_sent", _("Angebot versendet")
         ACTIVE     = "active",     _("Aktiv")
         ON_HOLD    = "on_hold",    _("Pausiert")
-        COMPLETED  = "completed",  _("Abgeschlossen")
-        CANCELLED  = "cancelled",  _("Storniert")
+        INVOICED    = "invoiced",    _("Rechnung")
+        COMPLETED   = "completed",  _("Abgeschlossen")
+        CANCELLED   = "cancelled",  _("Storniert")
+        OFFER_LOST  = "offer_lost", _("Angebot nicht beauftragt")
+
+    # Status-Gruppen für Archivierung
+    ARCHIVED_STATUSES = {Status.COMPLETED, Status.CANCELLED, Status.OFFER_LOST}
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
+    company = models.CharField(
+        max_length=20,
+        choices=Company.choices,
+        blank=True,
+        default="",
+        verbose_name=_("Unternehmen"),
+    )
+
+    project_number = models.CharField(
+        max_length=20,
+        unique=True,
+        blank=True,
+        verbose_name=_("Projektnummer"),
+        help_text=_("Wird automatisch vergeben, z.B. PRJ-00001"),
+    )
+
     name = models.CharField(max_length=255, verbose_name=_("Projektname"))
+    project_type = models.CharField(
+        max_length=20,
+        choices=ProjectType.choices,
+        default=ProjectType.CONSULTING,
+        verbose_name=_("Projekttyp"),
+    )
     account = models.ForeignKey(
         Account,
         on_delete=models.PROTECT,
@@ -207,8 +280,24 @@ class Project(models.Model):
         verbose_name_plural = _("Projekte")
         ordering = ["-created_at"]
 
+    def save(self, *args, **kwargs):
+        if not self.project_number:
+            from django.db import transaction
+            with transaction.atomic():
+                last = (
+                    Project.objects
+                    .select_for_update()
+                    .filter(project_number__regex=r"^PRJ-\d+$")
+                    .order_by("-project_number")
+                    .values_list("project_number", flat=True)
+                    .first()
+                )
+                num = (int(last.split("-")[1]) + 1) if last else 1
+                self.project_number = f"PRJ-{num:05d}"
+        super().save(*args, **kwargs)
+
     def __str__(self) -> str:
-        return f"{self.name} [{self.get_status_display()}]"
+        return f"{self.project_number} · {self.name}"
 
     def get_logged_hours(self) -> float:
         """Gibt die Summe aller genehmigten Stunden zurück."""
@@ -222,6 +311,77 @@ class Project(models.Model):
         if self.budget_hours is None:
             return False
         return self.get_logged_hours() > float(self.budget_hours)
+
+
+# ---------------------------------------------------------------------------
+# ProjectMemberRate — Stundensatz je Teammitglied
+# ---------------------------------------------------------------------------
+
+class ProjectMemberRate(models.Model):
+    """
+    Speichert den projektspezifischen Stundensatz (netto) eines Teammitglieds.
+    Wird beim Anlegen/Bearbeiten eines Projekts gesetzt und kann vom
+    rollenbasierten Standardsatz abweichen.
+    """
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="member_rates",
+        verbose_name=_("Projekt"),
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="project_rates",
+        verbose_name=_("Mitarbeiter"),
+    )
+    hourly_rate = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        verbose_name=_("Stundensatz (€ netto)"),
+    )
+
+    class Meta:
+        unique_together = [("project", "user")]
+        verbose_name = _("Projektmitglied-Stundensatz")
+        verbose_name_plural = _("Projektmitglied-Stundensätze")
+        ordering = ["user__last_name", "user__first_name"]
+
+    def __str__(self) -> str:
+        return f"{self.user} @ {self.project}: {self.hourly_rate} €/h"
+
+
+# ---------------------------------------------------------------------------
+# ProjectBudgetExtension — Nachträgliche Budget-Freigaben durch den Kunden
+# ---------------------------------------------------------------------------
+
+class ProjectBudgetExtension(models.Model):
+    """
+    Protokolliert eine Budgeterweiterung, die der Kunde nachträglich freigegeben hat.
+    Das Gesamtbudget ergibt sich aus project.budget_amount + Summe aller Erweiterungen.
+    """
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="budget_extensions",
+        verbose_name=_("Projekt"),
+    )
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        verbose_name=_("Betrag (€ netto)"),
+    )
+    approved_at = models.DateField(verbose_name=_("Freigabedatum"))
+    note = models.TextField(blank=True, verbose_name=_("Anmerkung"))
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Budget-Erweiterung")
+        verbose_name_plural = _("Budget-Erweiterungen")
+        ordering = ["approved_at"]
+
+    def __str__(self) -> str:
+        return f"{self.project} +{self.amount} € ({self.approved_at})"
 
 
 # ---------------------------------------------------------------------------
