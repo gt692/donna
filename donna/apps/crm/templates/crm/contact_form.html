@@ -1,0 +1,155 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_heading %}{{ page_title }}{% endblock %}
+{% block page_subheading %}{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'crm:contact_list' %}"
+     class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Zur Kontaktliste
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    <!-- Stammdaten -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Stammdaten</h3>
+      </div>
+      <div class="px-6 py-5 grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">
+            {{ form.first_name.label }} <span class="text-red-500">*</span>
+          </label>
+          {{ form.first_name }}
+          {% if form.first_name.errors %}<p class="mt-1 text-xs text-red-600">{{ form.first_name.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">
+            {{ form.last_name.label }} <span class="text-red-500">*</span>
+          </label>
+          {{ form.last_name }}
+          {% if form.last_name.errors %}<p class="mt-1 text-xs text-red-600">{{ form.last_name.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.company_name.label }}</label>
+          {{ form.company_name }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.role.label }}</label>
+          {{ form.role }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Kontakt -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Kontaktdaten</h3>
+      </div>
+      <div class="px-6 py-5 grid grid-cols-2 gap-4">
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.email.label }}</label>
+          {{ form.email }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.phone.label }}</label>
+          {{ form.phone }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.mobile.label }}</label>
+          {{ form.mobile }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Adresse -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Adresse</h3>
+      </div>
+      <div class="px-6 py-5 grid grid-cols-2 gap-4">
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.address_line1.label }}</label>
+          {{ form.address_line1 }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.postal_code.label }}</label>
+          {{ form.postal_code }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.city.label }}</label>
+          {{ form.city }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.country.label }}</label>
+          {{ form.country }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Verknüpfungen -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Verknüpfungen</h3>
+        <p class="text-xs text-slate-400 mt-0.5">Diesem Kontakt zugeordnete Projekte und Accounts</p>
+      </div>
+      <div class="px-6 py-5 grid grid-cols-2 gap-6">
+        <div>
+          <p class="text-sm font-medium text-slate-600 mb-2">{{ form.projects.label }}</p>
+          <div class="space-y-1 max-h-48 overflow-y-auto">
+            {% for checkbox in form.projects %}
+              <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer hover:text-[#1666b0]">
+                {{ checkbox.tag }}
+                {{ checkbox.choice_label }}
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-slate-600 mb-2">{{ form.accounts.label }}</p>
+          <div class="space-y-1 max-h-48 overflow-y-auto">
+            {% for checkbox in form.accounts %}
+              <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer hover:text-[#1666b0]">
+                {{ checkbox.tag }}
+                {{ checkbox.choice_label }}
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notizen -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Notizen</h3>
+      </div>
+      <div class="px-6 py-5">
+        {{ form.notes }}
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="flex items-center justify-between">
+      <a href="{% url 'crm:contact_list' %}"
+         class="text-sm text-slate-500 hover:text-slate-700 transition">Abbrechen</a>
+      <button type="submit"
+              class="bg-[#1666b0] hover:bg-[#1255a0] text-white font-medium text-sm
+                     px-6 py-2.5 rounded-lg transition focus:outline-none focus:ring-2
+                     focus:ring-[#1666b0] focus:ring-offset-2">
+        {{ submit_label }}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

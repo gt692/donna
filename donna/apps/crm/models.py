@@ -22,9 +22,10 @@ class Account(models.Model):
     Repräsentiert einen Kunden oder eine interne Einheit (z.B. Abteilung).
     """
     class AccountType(models.TextChoices):
-        CUSTOMER = "customer", _("Kunde")
+        PRIVATE  = "private",  _("Privatperson")
+        COMPANY  = "company",  _("Unternehmen")
+        ESTATE   = "estate",   _("Erbengemeinschaft")
         INTERNAL = "internal", _("Intern")
-        PARTNER  = "partner",  _("Partner")
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
@@ -40,7 +41,7 @@ class Account(models.Model):
     account_type = models.CharField(
         max_length=20,
         choices=AccountType.choices,
-        default=AccountType.CUSTOMER,
+        default=AccountType.COMPANY,
         verbose_name=_("Typ"),
     )
 
@@ -56,6 +57,13 @@ class Account(models.Model):
     city          = models.CharField(max_length=100, blank=True, verbose_name=_("Stadt"))
     country       = models.CharField(max_length=100, blank=True, default="Deutschland", verbose_name=_("Land"))
 
+    # Rechnungsversand
+    billing_email = models.EmailField(
+        blank=True,
+        verbose_name=_("Rechnungs-E-Mail"),
+        help_text=_("Empfängeradresse für den automatischen Rechnungsversand"),
+    )
+
     # Lexoffice-Vorbereitung
     lexoffice_id = models.CharField(
         max_length=100,
@@ -67,7 +75,7 @@ class Account(models.Model):
     # Interne Notizen
     notes = models.TextField(blank=True, verbose_name=_("Notizen"))
 
-    # Account-Manager (Hauptverantwortlicher)
+    # Account-Manager (Hauptverantwortlicher intern)
     account_manager = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -75,6 +83,16 @@ class Account(models.Model):
         on_delete=models.SET_NULL,
         related_name="managed_accounts",
         verbose_name=_("Account-Manager"),
+    )
+
+    # Primärer externer Ansprechpartner (Kontakt-Objekt)
+    primary_contact = models.ForeignKey(
+        "Contact",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="primary_for_accounts",
+        verbose_name=_("Ansprechpartner"),
     )
 
     is_active = models.BooleanField(default=True, verbose_name=_("Aktiv"))
@@ -183,6 +201,8 @@ class Project(models.Model):
     )
     account = models.ForeignKey(
         Account,
+        null=True,
+        blank=True,
         on_delete=models.PROTECT,
         related_name="projects",
         verbose_name=_("Account"),
@@ -212,6 +232,14 @@ class Project(models.Model):
         verbose_name=_("Team-Mitglieder"),
     )
 
+    predecessor_projects = models.ManyToManyField(
+        "self",
+        blank=True,
+        symmetrical=False,
+        related_name="successor_projects",
+        verbose_name=_("Vorgängerprojekte"),
+    )
+
     # Zeitraum
     start_date = models.DateField(null=True, blank=True, verbose_name=_("Startdatum"))
     end_date   = models.DateField(null=True, blank=True, verbose_name=_("Enddatum"))
@@ -231,6 +259,26 @@ class Project(models.Model):
         max_digits=8, decimal_places=2,
         null=True, blank=True,
         verbose_name=_("Stundensatz (€)"),
+    )
+
+    # -----------------------------------------------------------------------
+    # Verkaufsprojekt – Maklerprovisionsfelder
+    # -----------------------------------------------------------------------
+    purchase_price = models.DecimalField(
+        max_digits=14, decimal_places=2,
+        null=True, blank=True,
+        verbose_name=_("Not. Kaufpreis (€)"),
+        help_text=_("Notarieller Kaufpreis in EUR (Basis für Provisionsberechnung)."),
+    )
+    commission_inner = models.DecimalField(
+        max_digits=5, decimal_places=2,
+        null=True, blank=True,
+        verbose_name=_("Innenprovision (% netto)"),
+    )
+    commission_outer = models.DecimalField(
+        max_digits=5, decimal_places=2,
+        null=True, blank=True,
+        verbose_name=_("Außenprovision (% netto)"),
     )
 
     # -----------------------------------------------------------------------
@@ -385,6 +433,65 @@ class ProjectBudgetExtension(models.Model):
 
 
 # ---------------------------------------------------------------------------
+# Contact — Projektkontakte (Käufer, Architekten, Notare, …)
+# ---------------------------------------------------------------------------
+
+class Contact(models.Model):
+    class Role(models.TextChoices):
+        ARCHITECT   = "architect",   _("Architekt")
+        AUTHORITY   = "authority",   _("Behörde")
+        BANK        = "bank",        _("Bank / Finanzierer")
+        BROKER      = "broker",      _("Makler")
+        BUYER       = "buyer",       _("Käufer")
+        LAWYER      = "lawyer",      _("Anwalt")
+        NOTARY      = "notary",      _("Notar")
+        PM          = "pm",          _("Projektentwickler")
+        SELLER      = "seller",      _("Verkäufer")
+        TAX_ADVISOR = "tax_advisor", _("Steuerberater")
+        OTHER       = "other",       _("Sonstiges")
+
+    id         = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    first_name = models.CharField(max_length=100, verbose_name=_("Vorname"))
+    last_name  = models.CharField(max_length=100, verbose_name=_("Nachname"))
+    company_name = models.CharField(max_length=255, blank=True, verbose_name=_("Firma"))
+    role = models.CharField(
+        max_length=20, choices=Role.choices, blank=True, verbose_name=_("Rolle")
+    )
+
+    email  = models.EmailField(blank=True, verbose_name=_("E-Mail"))
+    phone  = models.CharField(max_length=50, blank=True, verbose_name=_("Telefon"))
+    mobile = models.CharField(max_length=50, blank=True, verbose_name=_("Mobil"))
+
+    address_line1 = models.CharField(max_length=255, blank=True, verbose_name=_("Straße / Nr."))
+    postal_code   = models.CharField(max_length=20,  blank=True, verbose_name=_("PLZ"))
+    city          = models.CharField(max_length=100, blank=True, verbose_name=_("Stadt"))
+    country       = models.CharField(max_length=100, blank=True, default="Deutschland", verbose_name=_("Land"))
+
+    notes = models.TextField(blank=True, verbose_name=_("Notizen"))
+
+    projects = models.ManyToManyField(
+        "Project", blank=True, related_name="contacts", verbose_name=_("Projekte")
+    )
+    accounts = models.ManyToManyField(
+        "Account", blank=True, related_name="contacts", verbose_name=_("Accounts")
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name        = _("Kontakt")
+        verbose_name_plural = _("Kontakte")
+        ordering            = ["last_name", "first_name"]
+
+    def __str__(self) -> str:
+        return f"{self.first_name} {self.last_name}".strip()
+
+    def get_full_name(self) -> str:
+        return str(self)
+
+
+# ---------------------------------------------------------------------------
 # Document — Pfad-Speicherung für Angebote und Rechnungen
 # ---------------------------------------------------------------------------
 
@@ -399,6 +506,7 @@ class Document(models.Model):
     """
     class DocumentType(models.TextChoices):
         OFFER        = "offer",        _("Angebot")
+        COMMISSION   = "commission",   _("Beauftragung")
         INVOICE      = "invoice",      _("Rechnung")
         CONTRACT     = "contract",     _("Vertrag")
         DELIVERY     = "delivery",     _("Lieferschein")
@@ -419,9 +527,18 @@ class Document(models.Model):
     )
     title = models.CharField(max_length=255, verbose_name=_("Titel"))
 
+    # Hochgeladene Datei (PDF-Upload)
+    file = models.FileField(
+        upload_to="project_documents/",
+        null=True,
+        blank=True,
+        verbose_name=_("Datei"),
+    )
+
     # Primärer Pfad auf dem Netzlaufwerk / Azure Blob
     file_path = models.CharField(
         max_length=1024,
+        blank=True,
         verbose_name=_("Dateipfad"),
         help_text=_(
             "Vollständiger Pfad zur Datei auf dem Netzlaufwerk oder "

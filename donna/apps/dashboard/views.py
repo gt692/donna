@@ -96,7 +96,7 @@ class DashboardHomeView(LoginRequiredMixin, TemplateView):
             ctx["account_stats"] = {
                 "total":    Account.objects.filter(is_active=True).count(),
                 "customer": Account.objects.filter(
-                    account_type=Account.AccountType.CUSTOMER, is_active=True
+                    account_type=Account.AccountType.COMPANY, is_active=True
                 ).count(),
             }
             ctx["user_count"] = User.objects.filter(is_active=True).count()

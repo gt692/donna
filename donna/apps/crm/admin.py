@@ -93,9 +93,10 @@ class AccountAdmin(admin.ModelAdmin):
     @admin.display(description=_("Typ"), ordering="account_type")
     def account_type_badge(self, obj: Account) -> str:
         colors = {
-            "customer": ("#2563eb", "#dbeafe"),
+            "private":  ("#1666b0", "#ddf1fb"),
+            "company":  ("#2563eb", "#dbeafe"),
+            "estate":   ("#0891b2", "#cffafe"),
             "internal": ("#7c3aed", "#ede9fe"),
-            "partner":  ("#0891b2", "#cffafe"),
         }
         fg, bg = colors.get(obj.account_type, ("#6b7280", "#f3f4f6"))
         return format_html(

@@ -1,0 +1,155 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}Kontakte{% endblock %}
+{% block page_heading %}Kontakte{% endblock %}
+{% block page_subheading %}Alle Projektkontakte{% endblock %}
+
+{% block topbar_actions %}
+  <!-- vCard Import -->
+  <label class="flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50
+                text-slate-600 font-medium text-sm px-4 py-2 rounded-lg transition cursor-pointer">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+    </svg>
+    vCard importieren
+    <form id="import-form" method="post" action="{% url 'crm:contact_import' %}" enctype="multipart/form-data" class="hidden">
+      {% csrf_token %}
+      <input type="file" name="vcf_file" accept=".vcf,text/vcard"
+             onchange="this.closest('form').submit()">
+    </form>
+  </label>
+  <a href="{% url 'crm:contact_create' %}"
+     class="flex items-center gap-2 bg-[#1666b0] hover:bg-[#1255a0] text-white
+            font-medium text-sm px-4 py-2 rounded-lg transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    </svg>
+    Neuer Kontakt
+  </a>
+{% endblock %}
+
+{% block content %}
+<!-- Filter -->
+<div class="flex gap-3 mb-5">
+  <form method="get" class="flex gap-3 flex-1">
+    <input type="text" name="q" value="{{ q }}" placeholder="Name, Firma oder E-Mail …"
+           class="flex-1 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm
+                  focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent">
+    <select name="role"
+            class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm cursor-pointer
+                   focus:outline-none focus:ring-2 focus:ring-[#1666b0]">
+      <option value="">Alle Rollen</option>
+      {% for val, label in role_choices %}
+        <option value="{{ val }}" {% if role_filter == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit"
+            class="px-4 py-2 bg-slate-800 text-white text-sm rounded-lg hover:bg-slate-700 transition">
+      Suchen
+    </button>
+    {% if q or role_filter %}
+      <a href="{% url 'crm:contact_list' %}"
+         class="px-4 py-2 border border-slate-200 text-slate-500 text-sm rounded-lg hover:bg-slate-50 transition">
+        Zurücksetzen
+      </a>
+    {% endif %}
+  </form>
+</div>
+
+<!-- Tabelle -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="border-b border-slate-200 bg-slate-50">
+        <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Name</th>
+        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Rolle</th>
+        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Firma</th>
+        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Kontakt</th>
+        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Projekte</th>
+        <th class="px-4 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for contact in contacts %}
+      <tr class="hover:bg-slate-50 transition">
+        <td class="px-5 py-3">
+          <a href="{% url 'crm:contact_detail' contact.pk %}"
+             class="font-medium text-slate-800 hover:text-[#1666b0] transition">
+            {{ contact.last_name }}, {{ contact.first_name }}
+          </a>
+        </td>
+        <td class="px-4 py-3">
+          {% if contact.role %}
+            <span class="text-xs px-2 py-0.5 rounded-full bg-[#ddf1fb] text-[#1255a0] font-medium">
+              {{ contact.get_role_display }}
+            </span>
+          {% else %}
+            <span class="text-slate-300">—</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 text-slate-500">{{ contact.company_name|default:"—" }}</td>
+        <td class="px-4 py-3">
+          <div class="space-y-0.5">
+            {% if contact.email %}
+              <a href="mailto:{{ contact.email }}" class="block text-[#1666b0] hover:underline truncate max-w-48">{{ contact.email }}</a>
+            {% endif %}
+            {% if contact.phone %}
+              <a href="tel:{{ contact.phone }}" class="block text-slate-500 text-xs">{{ contact.phone }}</a>
+            {% endif %}
+          </div>
+        </td>
+        <td class="px-4 py-3 text-slate-500">
+          {% with cnt=contact.projects.count %}
+            {% if cnt %}
+              <span class="text-xs">{{ cnt }} Projekt{{ cnt|pluralize:"e" }}</span>
+            {% else %}
+              <span class="text-slate-300">—</span>
+            {% endif %}
+          {% endwith %}
+        </td>
+        <td class="px-4 py-3 text-right">
+          <a href="{% url 'crm:contact_vcard_export' contact.pk %}"
+             title="vCard exportieren"
+             class="text-slate-300 hover:text-[#1666b0] transition text-xs mr-2">↓ vcf</a>
+          <a href="{% url 'crm:contact_edit' contact.pk %}"
+             class="text-slate-400 hover:text-slate-700 transition text-xs">Bearbeiten</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" class="px-5 py-10 text-center text-slate-400 text-sm">
+          Keine Kontakte gefunden.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if page_obj.has_other_pages %}
+<div class="flex items-center justify-between mt-4">
+  <p class="text-sm text-slate-400">{{ page_obj.paginator.count }} Kontakte</p>
+  <div class="flex gap-2">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}"
+         class="px-3 py-1.5 text-sm border border-slate-200 rounded-lg hover:bg-slate-50 transition">← Zurück</a>
+    {% endif %}
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}"
+         class="px-3 py-1.5 text-sm border border-slate-200 rounded-lg hover:bg-slate-50 transition">Weiter →</a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Datei-Input triggern wenn Label geklickt
+document.querySelector('label[for]') // nur sicherheitshalber
+document.querySelector('#import-form input[type=file]')?.closest('label') // noop
+// der Label-Click öffnet automatisch den file-input durch das verschachtelte input
+</script>
+{% endblock %}

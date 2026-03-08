@@ -38,9 +38,54 @@
           <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.account_manager.label }}</label>
           {{ form.account_manager }}
         </div>
-        <div><label class="block text-sm font-medium text-slate-600 mb-1">{{ form.email.label }}</label>{{ form.email }}</div>
-        <div><label class="block text-sm font-medium text-slate-600 mb-1">{{ form.phone.label }}</label>{{ form.phone }}</div>
-        <div class="col-span-2"><label class="block text-sm font-medium text-slate-600 mb-1">{{ form.website.label }}</label>{{ form.website }}</div>
+
+        <!-- Zentralkontakt: nur bei Unternehmen -->
+        <div id="section-zentrale" class="col-span-2 grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-slate-600 mb-1">{{ form.email.label }}</label>{{ form.email }}</div>
+          <div><label class="block text-sm font-medium text-slate-600 mb-1">{{ form.phone.label }}</label>{{ form.phone }}</div>
+          <div class="col-span-2"><label class="block text-sm font-medium text-slate-600 mb-1">{{ form.website.label }}</label>{{ form.website }}</div>
+        </div>
+
+        <!-- Adresse -->
+        <div class="col-span-2 border-t border-slate-100 pt-4 mt-1 grid grid-cols-2 gap-4">
+          <div class="col-span-2">
+            <label for="{{ form.address_line1.id_for_label }}"
+                   class="block text-sm font-medium text-slate-600 mb-1">
+              {{ form.address_line1.label }}
+              <span class="text-slate-400 font-normal">— Tippe für Vorschläge</span>
+            </label>
+            <div class="relative">
+              {{ form.address_line1 }}
+              <svg id="address-spinner"
+                   class="hidden absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#14b0e4] animate-spin pointer-events-none"
+                   fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+              <div id="address-dropdown"
+                   class="hidden absolute left-0 right-0 top-full mt-1 z-50
+                          bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden">
+              </div>
+            </div>
+          </div>
+          <div class="col-span-2">
+            <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.address_line2.label }}</label>
+            {{ form.address_line2 }}
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.postal_code.label }}</label>
+            {{ form.postal_code }}
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.city.label }}</label>
+            {{ form.city }}
+          </div>
+          <div class="col-span-2">
+            <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.country.label }}</label>
+            {{ form.country }}
+          </div>
+        </div>
+
         <div class="flex items-center gap-2 col-span-2 pt-1">
           {{ form.is_active }}
           <label for="{{ form.is_active.id_for_label }}" class="text-sm text-slate-600 cursor-pointer">{{ form.is_active.label }}</label>
@@ -48,60 +93,69 @@
       </div>
     </div>
 
-    <!-- Adresse -->
+    <!-- Ansprechpartner -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
       <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-slate-700">Adresse</h3>
-        <span class="text-xs text-slate-400 flex items-center gap-1">
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-          </svg>
-          OpenStreetMap
-        </span>
+        <h3 class="text-sm font-semibold text-slate-700">Ansprechpartner</h3>
+        <div class="flex rounded-lg overflow-hidden border border-slate-200 text-xs font-medium">
+          <button type="button" id="btn-contact-existing"
+                  class="px-3 py-1.5 bg-[#1666b0] text-white transition">Bestehenden wählen</button>
+          <button type="button" id="btn-contact-new"
+                  class="px-3 py-1.5 bg-white text-slate-500 hover:bg-slate-50 transition">Neu anlegen</button>
+        </div>
       </div>
-      <div class="px-6 py-5 grid grid-cols-2 gap-4">
+      <div class="px-6 py-5">
 
-        <!-- Adresszeile 1 mit eingebautem Autocomplete -->
-        <div class="col-span-2">
-          <label for="{{ form.address_line1.id_for_label }}"
-                 class="block text-sm font-medium text-slate-600 mb-1">
-            {{ form.address_line1.label }}
-            <span class="text-slate-400 font-normal">— Tippe für Vorschläge</span>
-          </label>
-          <div class="relative">
-            {{ form.address_line1 }}
-            <!-- Spinner -->
-            <svg id="address-spinner"
-                 class="hidden absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#14b0e4] animate-spin pointer-events-none"
-                 fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-            </svg>
-            <!-- Dropdown direkt unter dem Feld -->
-            <div id="address-dropdown"
-                 class="hidden absolute left-0 right-0 top-full mt-1 z-50
-                        bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden">
-            </div>
+        <!-- Bestehenden Kontakt wählen -->
+        <div id="section-contact-existing">
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.primary_contact.label }}</label>
+          {{ form.primary_contact }}
+        </div>
+
+        <!-- Neuen Kontakt inline anlegen -->
+        <div id="section-contact-new" class="hidden grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Vorname</label>
+            <input type="text" name="new_contact_first_name"
+                   class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent transition"
+                   placeholder="Vorname">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Nachname</label>
+            <input type="text" name="new_contact_last_name"
+                   class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent transition"
+                   placeholder="Nachname">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Rolle</label>
+            <select name="new_contact_role"
+                    class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#1666b0] transition">
+              <option value="">— Rolle —</option>
+              {% for val, label in contact_role_choices %}
+                <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">E-Mail</label>
+            <input type="email" name="new_contact_email"
+                   class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent transition"
+                   placeholder="max@beispiel.de">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Telefon</label>
+            <input type="text" name="new_contact_phone"
+                   class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent transition"
+                   placeholder="+49 30 …">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Mobil</label>
+            <input type="text" name="new_contact_mobile"
+                   class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent transition"
+                   placeholder="+49 170 …">
           </div>
         </div>
 
-        <div class="col-span-2">
-          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.address_line2.label }}</label>
-          {{ form.address_line2 }}
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.postal_code.label }}</label>
-          {{ form.postal_code }}
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.city.label }}</label>
-          {{ form.city }}
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.country.label }}</label>
-          {{ form.country }}
-        </div>
       </div>
     </div>
 
@@ -111,6 +165,13 @@
         <h3 class="text-sm font-semibold text-slate-700">Integration & Notizen</h3>
       </div>
       <div class="px-6 py-5 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">
+            {{ form.billing_email.label }}
+            <span class="text-slate-400 font-normal text-xs ml-1">— für Rechnungsversand</span>
+          </label>
+          {{ form.billing_email }}
+        </div>
         <div><label class="block text-sm font-medium text-slate-600 mb-1">{{ form.lexoffice_id.label }}</label>{{ form.lexoffice_id }}</div>
         <div><label class="block text-sm font-medium text-slate-600 mb-1">{{ form.notes.label }}</label>{{ form.notes }}</div>
       </div>
@@ -128,7 +189,71 @@
   </form>
 </div>
 
+{{ contact_emails|json_script:"contact-emails-data" }}
+
 <script>
+// ── Account-Typ: Zentralkontakt-Felder ein-/ausblenden ──────────────────────
+(function () {
+  const typeSelect  = document.getElementById('{{ form.account_type.id_for_label }}');
+  const sectionZent = document.getElementById('section-zentrale');
+
+  function toggleZentrale() {
+    if (typeSelect.value === 'company') {
+      sectionZent.classList.remove('hidden');
+    } else {
+      sectionZent.classList.add('hidden');
+    }
+  }
+  typeSelect.addEventListener('change', toggleZentrale);
+  toggleZentrale();
+})();
+
+// ── Ansprechpartner-Toggle ───────────────────────────────────────────────────
+(function () {
+  const btnExisting = document.getElementById('btn-contact-existing');
+  const btnNew      = document.getElementById('btn-contact-new');
+  const secExisting = document.getElementById('section-contact-existing');
+  const secNew      = document.getElementById('section-contact-new');
+
+  function showExisting() {
+    secExisting.classList.remove('hidden');
+    secNew.classList.add('hidden');
+    btnExisting.classList.add('bg-[#1666b0]', 'text-white');
+    btnExisting.classList.remove('bg-white', 'text-slate-500');
+    btnNew.classList.remove('bg-[#1666b0]', 'text-white');
+    btnNew.classList.add('bg-white', 'text-slate-500');
+  }
+  function showNew() {
+    secNew.classList.remove('hidden');
+    secExisting.classList.add('hidden');
+    btnNew.classList.add('bg-[#1666b0]', 'text-white');
+    btnNew.classList.remove('bg-white', 'text-slate-500');
+    btnExisting.classList.remove('bg-[#1666b0]', 'text-white');
+    btnExisting.classList.add('bg-white', 'text-slate-500');
+  }
+
+  btnExisting.addEventListener('click', showExisting);
+  btnNew.addEventListener('click', showNew);
+
+  // Rechnungsmail-Autofill
+  const billingEmail    = document.getElementById('id_billing_email');
+  const newContactEmail = document.querySelector('[name="new_contact_email"]');
+  const existingSelect  = document.getElementById('{{ form.primary_contact.id_for_label }}');
+  const contactEmails   = JSON.parse(document.getElementById('contact-emails-data').textContent);
+
+  // Beim Tippen in neues Kontakt-E-Mail-Feld → Rechnungsmail befüllen (wenn noch leer)
+  newContactEmail?.addEventListener('input', function () {
+    if (!billingEmail.value) billingEmail.value = this.value;
+  });
+
+  // Beim Wählen eines bestehenden Kontakts → Rechnungsmail befüllen (wenn noch leer)
+  existingSelect?.addEventListener('change', function () {
+    const email = contactEmails[this.value];
+    if (email && !billingEmail.value) billingEmail.value = email;
+  });
+})();
+
+// ── Adress-Autocomplete ──────────────────────────────────────────────────────
 (function () {
   const input    = document.getElementById('{{ form.address_line1.id_for_label }}');
   const dropdown = document.getElementById('address-dropdown');

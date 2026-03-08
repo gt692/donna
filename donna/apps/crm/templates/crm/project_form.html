@@ -47,6 +47,98 @@
           {{ form.project_type }}
           {% if form.project_type.errors %}<p class="mt-1 text-xs text-red-600">{{ form.project_type.errors|join:", " }}</p>{% endif %}
         </div>
+        <!-- Account-Feld: Suche oder Neuanlage (nur beim Erstellen) -->
+        {% if is_create %}
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-600 mb-1">
+            Kunde / Account <span class="text-red-500">*</span>
+          </label>
+
+          <!-- Toggle-Tabs -->
+          <div class="flex gap-1 mb-2">
+            <button type="button" id="tab-search"
+                    onclick="switchAccountTab('search')"
+                    class="tab-btn text-xs px-3 py-1.5 rounded-lg font-medium transition
+                           bg-[#1666b0] text-white">
+              Bestehenden suchen
+            </button>
+            <button type="button" id="tab-new"
+                    onclick="switchAccountTab('new')"
+                    class="tab-btn text-xs px-3 py-1.5 rounded-lg font-medium transition
+                           bg-slate-100 text-slate-600 hover:bg-slate-200">
+              Neuen anlegen
+            </button>
+          </div>
+
+          <!-- Suche -->
+          <div id="account-search-panel">
+            <div class="relative">
+              <input type="text" id="account-search-input"
+                     placeholder="Name tippen um zu suchen …"
+                     autocomplete="off"
+                     class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white
+                            focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent
+                            text-sm transition">
+              <div id="account-search-dropdown"
+                   class="hidden absolute z-20 w-full bg-white border border-slate-200 rounded-lg
+                          shadow-lg max-h-56 overflow-y-auto text-sm mt-1">
+              </div>
+            </div>
+            <!-- gewählter Account als Chip -->
+            <div id="account-chip" class="mt-2 hidden">
+              <span id="account-chip-label"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ddf1fb]
+                           text-[#1255a0] text-xs font-medium">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+                <span id="account-chip-text"></span>
+                <button type="button" onclick="clearAccount()"
+                        class="hover:text-red-500 transition leading-none ml-0.5">✕</button>
+              </span>
+            </div>
+            <input type="hidden" name="account" id="id_account_hidden">
+          </div>
+
+          <!-- Neu anlegen -->
+          <div id="account-new-panel" class="hidden">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="col-span-2">
+                <input type="text" name="new_account_name" id="new-account-name"
+                       placeholder="Kundenname *"
+                       class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white
+                              focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent
+                              text-sm transition">
+              </div>
+              <div>
+                <select name="new_account_type"
+                        class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white
+                               focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent
+                               text-sm cursor-pointer transition">
+                  {% for val, label in account_types %}
+                    <option value="{{ val }}"{% if val == "company" %} selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="flex items-center">
+                <p class="text-xs text-slate-400">Weitere Details beim Erhalt der Beauftragung ergänzen.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status: bei Neuanlage immer Lead, nur Info-Badge -->
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Status</label>
+          <div class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-500 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+            Lead
+          </div>
+          <input type="hidden" name="status" value="lead">
+          <p class="mt-1 text-xs text-slate-400">Neue Projekte starten immer als Lead</p>
+        </div>
+        {% else %}
         <div>
           <label class="block text-sm font-medium text-slate-600 mb-1">
             {{ form.account.label }} <span class="text-red-500">*</span>
@@ -58,11 +150,16 @@
           <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.status.label }}</label>
           {{ form.status }}
         </div>
+        {% endif %}
+        {% if object.project_number %}
         <div>
-          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.internal_reference.label }}</label>
-          {{ form.internal_reference }}
-          <p class="mt-1 text-xs text-slate-400">Interne Projektnummer, z.B. P-2024-042</p>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Projektnummer</label>
+          <div class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm font-mono text-slate-600 select-all">
+            {{ object.project_number }}
+          </div>
+          <p class="mt-1 text-xs text-slate-400">Vom System vergeben, unveränderlich</p>
         </div>
+        {% endif %}
         <div>
           <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.team_lead.label }}</label>
           {{ form.team_lead }}
@@ -70,6 +167,29 @@
         <div class="col-span-2">
           <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.description.label }}</label>
           {{ form.description }}
+        </div>
+
+        <!-- Vorgängerprojekte -->
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-600 mb-1">Vorgängerprojekte</label>
+          <div class="relative">
+            <input type="text" id="predecessor-search" placeholder="Projekt suchen …"
+                   autocomplete="off"
+                   class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white
+                          focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent
+                          text-sm transition mb-1">
+            <div id="predecessor-dropdown"
+                 class="hidden absolute z-20 w-full bg-white border border-slate-200 rounded-lg
+                        shadow-lg max-h-48 overflow-y-auto text-sm">
+            </div>
+          </div>
+          <!-- gewählte Chips -->
+          <div id="predecessor-chips" class="flex flex-wrap gap-1.5 mt-1 min-h-[1.5rem]"></div>
+          <!-- versteckte Multiselect (wird per JS befüllt, damit Django-Form es versteht) -->
+          <select name="predecessor_projects" id="id_predecessor_projects" multiple class="hidden">
+            {% for p in form.predecessor_projects %}{{ p }}{% endfor %}
+          </select>
+          <p class="mt-1 text-xs text-slate-400">Projekte aus denen dieses Projekt hervorgegangen ist</p>
         </div>
       </div>
     </div>
@@ -143,9 +263,47 @@
           <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.budget_hours.label }}</label>
           {{ form.budget_hours }}
         </div>
-        <div>
+        {# budget_amount nur bei Nicht-Verkauf-Projekten #}
+        <div id="field-budget-amount">
           <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.budget_amount.label }}</label>
           {{ form.budget_amount }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Maklerprovision (nur Projekttyp "Verkauf") -->
+    <div id="section-commission"
+         class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4 hidden">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Maklerprovision</h3>
+        <p class="text-xs text-slate-400 mt-0.5">Alle Angaben netto. Brutto-Provision wird automatisch berechnet (USt. 19 %).</p>
+      </div>
+      <div class="px-6 py-5 grid grid-cols-3 gap-4">
+        <div class="col-span-3">
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.purchase_price.label }}</label>
+          <div class="relative">
+            {{ form.purchase_price }}
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">€</span>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.commission_inner.label }}</label>
+          <div class="relative">
+            {{ form.commission_inner }}
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">%</span>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.commission_outer.label }}</label>
+          <div class="relative">
+            {{ form.commission_outer }}
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">%</span>
+          </div>
+        </div>
+        <div class="flex items-end">
+          <div id="commission-preview" class="text-sm text-slate-500 pb-2 hidden">
+            Gesamt: <span id="commission-total-pct" class="font-semibold text-slate-700"></span> %
+          </div>
         </div>
       </div>
     </div>
@@ -185,6 +343,8 @@
 {% block extra_js %}
 {{ member_rates_data|json_script:"member-rates-data" }}
 {{ project_types_by_company|json_script:"company-types-data" }}
+{{ all_projects_json|json_script:"all-projects-data" }}
+{{ selected_predecessors_json|json_script:"selected-predecessors-data" }}
 <script>
 (function () {
   // ── Firmen → Projekttyp-Filter ──────────────────────────────────────────
@@ -217,6 +377,38 @@
   companySelect.addEventListener('change', filterTypes);
   filterTypes(); // initial anwenden
 
+  // ── Verkauf: Provisions-Felder ein-/ausblenden ───────────────────────────
+  const sectionCommission = document.getElementById('section-commission');
+  const fieldBudgetAmount = document.getElementById('field-budget-amount');
+  const inputInner        = document.getElementById('id_commission_inner');
+  const inputOuter        = document.getElementById('id_commission_outer');
+  const commissionPreview = document.getElementById('commission-preview');
+  const commissionTotalEl = document.getElementById('commission-total-pct');
+
+  function toggleSaleFields() {
+    const isSale = typeSelect.value === 'sale';
+    sectionCommission.classList.toggle('hidden', !isSale);
+    fieldBudgetAmount.classList.toggle('hidden', isSale);
+    updateCommissionPreview();
+  }
+
+  function updateCommissionPreview() {
+    const inner = parseFloat(inputInner.value) || 0;
+    const outer = parseFloat(inputOuter.value) || 0;
+    const total = inner + outer;
+    if (total > 0) {
+      commissionTotalEl.textContent = total.toFixed(2);
+      commissionPreview.classList.remove('hidden');
+    } else {
+      commissionPreview.classList.add('hidden');
+    }
+  }
+
+  typeSelect.addEventListener('change', toggleSaleFields);
+  inputInner.addEventListener('input', updateCommissionPreview);
+  inputOuter.addEventListener('input', updateCommissionPreview);
+  toggleSaleFields(); // initial anwenden
+
   // ── Stundensätze ────────────────────────────────────────────────────────
   const data = JSON.parse(document.getElementById('member-rates-data').textContent);
 
@@ -240,6 +432,164 @@
       }
     }
   });
+
+  // ── Vorgängerprojekte Suchfeld ───────────────────────────────────────────
+  const allProjects  = JSON.parse(document.getElementById('all-projects-data').textContent);
+  const selectedPred = JSON.parse(document.getElementById('selected-predecessors-data').textContent);
+  const searchInput  = document.getElementById('predecessor-search');
+  const dropdown     = document.getElementById('predecessor-dropdown');
+  const chipsEl      = document.getElementById('predecessor-chips');
+  const hiddenSelect = document.getElementById('id_predecessor_projects');
+
+  if (searchInput) {
+    const selected = new Map(); // id → label
+
+    function syncHidden() {
+      Array.from(hiddenSelect.options).forEach(o => hiddenSelect.remove(o));
+      selected.forEach((label, id) => {
+        const opt = document.createElement('option');
+        opt.value = id; opt.selected = true; opt.textContent = label;
+        hiddenSelect.appendChild(opt);
+      });
+    }
+
+    function renderChips() {
+      chipsEl.innerHTML = '';
+      selected.forEach((label, id) => {
+        const chip = document.createElement('span');
+        chip.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#ddf1fb] text-[#1255a0] text-xs font-medium';
+        chip.innerHTML = `${label} <button type="button" data-id="${id}" class="hover:text-red-500 transition leading-none">✕</button>`;
+        chip.querySelector('button').addEventListener('click', () => {
+          selected.delete(id); renderChips(); syncHidden();
+        });
+        chipsEl.appendChild(chip);
+      });
+    }
+
+    function showDropdown(query) {
+      const q = query.toLowerCase();
+      const results = allProjects.filter(p =>
+        !selected.has(p.id) && p.label.toLowerCase().includes(q)
+      ).slice(0, 8);
+      dropdown.innerHTML = '';
+      if (!results.length) { dropdown.classList.add('hidden'); return; }
+      results.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'px-3 py-2 cursor-pointer hover:bg-[#f0f9fe] transition text-slate-700';
+        item.textContent = p.label;
+        item.addEventListener('mousedown', e => {
+          e.preventDefault();
+          selected.set(p.id, p.label);
+          renderChips(); syncHidden();
+          searchInput.value = '';
+          dropdown.classList.add('hidden');
+        });
+        dropdown.appendChild(item);
+      });
+      dropdown.classList.remove('hidden');
+    }
+
+    searchInput.addEventListener('input', () => showDropdown(searchInput.value));
+    searchInput.addEventListener('focus', () => { if (searchInput.value) showDropdown(searchInput.value); });
+    searchInput.addEventListener('blur', () => setTimeout(() => dropdown.classList.add('hidden'), 150));
+
+    // Vorauswahl aus Kontext laden
+    selectedPred.forEach(p => selected.set(p.id, p.label));
+    renderChips(); syncHidden();
+  }
+
+  // ── Account-Suche (nur beim Anlegen) ────────────────────────────────────
+  const ACCOUNT_SEARCH_URL = '{% url "crm:account_search" %}';
+  const acSearchInput   = document.getElementById('account-search-input');
+  const acDropdown      = document.getElementById('account-search-dropdown');
+  const acChip          = document.getElementById('account-chip');
+  const acChipText      = document.getElementById('account-chip-text');
+  const acHidden        = document.getElementById('id_account_hidden');
+  const newAccountName  = document.getElementById('new-account-name');
+
+  if (acSearchInput) {
+    let acSearchTimer = null;
+
+    acSearchInput.addEventListener('input', () => {
+      clearTimeout(acSearchTimer);
+      const q = acSearchInput.value.trim();
+      if (!q) { acDropdown.classList.add('hidden'); return; }
+      acSearchTimer = setTimeout(async () => {
+        const res = await fetch(`${ACCOUNT_SEARCH_URL}?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        acDropdown.innerHTML = '';
+        if (!data.results.length) {
+          acDropdown.innerHTML = '<div class="px-3 py-2 text-slate-400 text-xs">Keine Treffer — wechsle zu „Neuen anlegen"</div>';
+        } else {
+          data.results.forEach(a => {
+            const item = document.createElement('div');
+            item.className = 'px-3 py-2.5 cursor-pointer hover:bg-[#f0f9fe] transition';
+            item.innerHTML = `<span class="text-sm text-slate-700 font-medium">${a.name}</span> <span class="text-xs text-slate-400 ml-1">${a.type}</span>`;
+            item.addEventListener('mousedown', e => {
+              e.preventDefault();
+              selectAccount(a.id, a.name);
+            });
+            acDropdown.appendChild(item);
+          });
+        }
+        acDropdown.classList.remove('hidden');
+      }, 200);
+    });
+
+    acSearchInput.addEventListener('blur', () => setTimeout(() => acDropdown.classList.add('hidden'), 150));
+
+    window.selectAccount = function(id, name) {
+      acHidden.value = id;
+      acChipText.textContent = name;
+      acChip.classList.remove('hidden');
+      acSearchInput.value = '';
+      acSearchInput.classList.add('hidden');
+      acDropdown.classList.add('hidden');
+    };
+
+    window.clearAccount = function() {
+      acHidden.value = '';
+      acChip.classList.add('hidden');
+      acSearchInput.classList.remove('hidden');
+      acSearchInput.value = '';
+      acSearchInput.focus();
+    };
+  }
+
+  window.switchAccountTab = function(tab) {
+    const searchPanel = document.getElementById('account-search-panel');
+    const newPanel    = document.getElementById('account-new-panel');
+    const btnSearch   = document.getElementById('tab-search');
+    const btnNew      = document.getElementById('tab-new');
+    if (!searchPanel) return;
+
+    const activeClass   = ['bg-[#1666b0]', 'text-white'];
+    const inactiveClass = ['bg-slate-100', 'text-slate-600', 'hover:bg-slate-200'];
+
+    if (tab === 'search') {
+      searchPanel.classList.remove('hidden');
+      newPanel.classList.add('hidden');
+      if (newAccountName) newAccountName.removeAttribute('name');
+      if (acHidden) acHidden.setAttribute('name', 'account');
+      activeClass.forEach(c => btnSearch.classList.add(c));
+      inactiveClass.forEach(c => btnSearch.classList.remove(c));
+      inactiveClass.forEach(c => btnNew.classList.add(c));
+      activeClass.forEach(c => btnNew.classList.remove(c));
+    } else {
+      searchPanel.classList.add('hidden');
+      newPanel.classList.remove('hidden');
+      if (newAccountName) newAccountName.setAttribute('name', 'new_account_name');
+      if (acHidden) acHidden.removeAttribute('name');
+      activeClass.forEach(c => btnNew.classList.add(c));
+      inactiveClass.forEach(c => btnNew.classList.remove(c));
+      inactiveClass.forEach(c => btnSearch.classList.add(c));
+      activeClass.forEach(c => btnSearch.classList.remove(c));
+    }
+  };
+  // Initialer Zustand: name-Attribut nur aktiv wenn Suche aktiv ist
+  if (acHidden) acHidden.setAttribute('name', 'account');
+  if (newAccountName) newAccountName.removeAttribute('name');
+
 })();
 </script>
 {% endblock %}
