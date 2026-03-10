@@ -1,0 +1,54 @@
+/* Donna Admin — Primärfarbe #1666b0 passend zur App */
+
+:root {
+    --primary: #1666b0;
+    --primary-dark: #1255a0;
+    --accent: #14b0e4;
+}
+
+/* Sidebar Hintergrund (passend zu slate-900 der App) */
+.main-sidebar, .main-sidebar .sidebar {
+    background-color: #0f172a !important;
+}
+
+/* Aktiver Nav-Link */
+.nav-sidebar .nav-item > .nav-link.active,
+.nav-sidebar .nav-item > .nav-link:hover {
+    background-color: #1666b0 !important;
+    color: #fff !important;
+}
+
+/* Navbar oben */
+.main-header.navbar {
+    background-color: #0f172a !important;
+    border-bottom: 1px solid #1e293b !important;
+}
+
+.main-header .navbar-brand {
+    color: #fff !important;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: #1666b0 !important;
+    border-color: #1666b0 !important;
+}
+.btn-primary:hover {
+    background-color: #1255a0 !important;
+    border-color: #1255a0 !important;
+}
+
+/* Links */
+a:not(.btn):not(.nav-link) {
+    color: #1666b0;
+}
+a:not(.btn):not(.nav-link):hover {
+    color: #14b0e4;
+}
+
+/* Breadcrumb & Seitentitel */
+.content-header .breadcrumb-item.active {
+    color: #1666b0;
+}

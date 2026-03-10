@@ -169,20 +169,81 @@ STORAGE_BASE_PATH = env("STORAGE_BASE_PATH", default="")
 
 # ── Jazzmin Admin-Theme ────────────────────────────────────────────────────
 JAZZMIN_SETTINGS = {
-    "site_title":        "Donna Admin",
+    # Branding
+    "site_title":        "Donna",
     "site_header":       "Donna",
     "site_brand":        "Donna",
     "welcome_sign":      "Willkommen bei Donna",
     "copyright":         "Donna Business OS",
-    "show_ui_builder":   False,
-    "navigation_expanded": True,
+
+    # Layout
+    "show_ui_builder":      False,
+    "navigation_expanded":  True,
+    "order_with_respect_to": ["core", "crm", "worktrack"],
+
+    # Link zurück zur App
+    "topmenu_links": [
+        {"name": "Zur App", "url": "/dashboard/", "new_window": False},
+    ],
+    "usermenu_links": [
+        {"name": "Zur App", "url": "/dashboard/"},
+    ],
+
+    # Icons
     "icons": {
+        "auth":                         "fas fa-shield-alt",
+        "auth.Group":                   "fas fa-users-cog",
+        "core":                         "fas fa-cog",
         "core.User":                    "fas fa-users",
         "core.NotificationTemplate":    "fas fa-bell",
+        "crm":                          "fas fa-briefcase",
         "crm.Account":                  "fas fa-building",
+        "crm.Contact":                  "fas fa-address-book",
         "crm.Project":                  "fas fa-project-diagram",
         "crm.Document":                 "fas fa-file-alt",
+        "worktrack":                    "fas fa-clock",
         "worktrack.TimeEntry":          "fas fa-clock",
         "worktrack.ActivityType":       "fas fa-tags",
+    },
+    "default_icon_parents":  "fas fa-folder",
+    "default_icon_children": "fas fa-circle",
+
+    # Formulare
+    "related_modal_active": True,
+    "changeform_format":    "horizontal_tabs",
+
+    # Custom CSS
+    "custom_css": "admin/css/custom.css",
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text":        False,
+    "footer_small_text":        False,
+    "body_small_text":          False,
+    "brand_small_text":         False,
+    "brand_colour":             False,
+    "accent":                   "accent-primary",
+    "navbar":                   "navbar-dark",
+    "no_navbar_border":         True,
+    "navbar_fixed":             True,
+    "layout_boxed":             False,
+    "footer_fixed":             False,
+    "sidebar_fixed":            True,
+    "sidebar":                  "sidebar-dark-primary",
+    "sidebar_nav_small_text":   False,
+    "sidebar_disable_expand":   False,
+    "sidebar_nav_child_indent": True,
+    "sidebar_nav_compact_style":  False,
+    "sidebar_nav_legacy_style":   False,
+    "sidebar_nav_flat_style":     False,
+    "theme":                    "default",
+    "dark_mode_theme":          None,
+    "button_classes": {
+        "primary":   "btn-primary",
+        "secondary": "btn-secondary",
+        "info":      "btn-info",
+        "warning":   "btn-warning",
+        "danger":    "btn-danger",
+        "success":   "btn-success",
     },
 }

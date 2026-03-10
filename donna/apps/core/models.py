@@ -258,6 +258,64 @@ class NotificationSubscription(models.Model):
         return f"{self.user} → {self.get_event_display()}{project_label}"
 
 
+# ---------------------------------------------------------------------------
+# Lookup — Admin-editierbare Auswahloptionen
+# ---------------------------------------------------------------------------
+
+class Lookup(models.Model):
+    """
+    Zentrale Tabelle für alle admin-editierbaren Auswahloptionen.
+    Ermöglicht dem Admin das Pflegen von Kontaktrollen, Projekttypen etc.
+    ohne Code-Änderungen.
+    """
+    class Category(models.TextChoices):
+        CONTACT_ROLE = "contact_role", _("Kontaktrolle")
+        PROJECT_TYPE = "project_type", _("Projekttyp")
+        COMPANY      = "company",      _("Unternehmen")
+
+    category = models.CharField(
+        max_length=30,
+        choices=Category.choices,
+        verbose_name=_("Kategorie"),
+    )
+    label = models.CharField(
+        max_length=100,
+        verbose_name=_("Bezeichnung"),
+        help_text=_("Angezeigter Text im Dropdown, z.B. 'Architekt'"),
+    )
+    value = models.CharField(
+        max_length=50,
+        verbose_name=_("Wert"),
+        help_text=_("Interner Schlüssel, z.B. 'architect'. Kleinbuchstaben, keine Leerzeichen."),
+    )
+    order = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name=_("Reihenfolge"),
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name=_("Aktiv"),
+    )
+
+    class Meta:
+        verbose_name        = _("Auswahloption")
+        verbose_name_plural = _("Auswahloptionen")
+        ordering            = ["category", "order", "label"]
+        unique_together     = [("category", "value")]
+
+    def __str__(self) -> str:
+        return f"{self.get_category_display()} · {self.label}"
+
+    @classmethod
+    def choices_for(cls, category: str):
+        """Gibt eine Liste von (value, label) Tuples für ein Formular-Feld zurück."""
+        return list(
+            cls.objects.filter(category=category, is_active=True)
+            .order_by("order", "label")
+            .values_list("value", "label")
+        )
+
+
 class NotificationLog(models.Model):
     """
     Protokolliert jede versendete Benachrichtigung für Audit-Zwecke.
