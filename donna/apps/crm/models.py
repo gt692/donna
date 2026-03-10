@@ -178,7 +178,6 @@ class Project(models.Model):
 
     company = models.CharField(
         max_length=20,
-        choices=Company.choices,
         blank=True,
         default="",
         verbose_name=_("Unternehmen"),
@@ -195,7 +194,6 @@ class Project(models.Model):
     name = models.CharField(max_length=255, verbose_name=_("Projektname"))
     project_type = models.CharField(
         max_length=20,
-        choices=ProjectType.choices,
         default=ProjectType.CONSULTING,
         verbose_name=_("Projekttyp"),
     )
@@ -455,7 +453,7 @@ class Contact(models.Model):
     last_name  = models.CharField(max_length=100, verbose_name=_("Nachname"))
     company_name = models.CharField(max_length=255, blank=True, verbose_name=_("Firma"))
     role = models.CharField(
-        max_length=20, choices=Role.choices, blank=True, verbose_name=_("Rolle")
+        max_length=20, blank=True, verbose_name=_("Rolle")
     )
 
     email  = models.EmailField(blank=True, verbose_name=_("E-Mail"))
