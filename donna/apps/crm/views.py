@@ -28,7 +28,7 @@ from django.http import HttpResponse, JsonResponse
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView, View
 
 from .forms import AccountForm, ContactForm, ProjectForm
-from .models import Account, Contact, Document, Project, ProjectBudgetExtension, ProjectMemberRate
+from .models import Account, CompanyProjectTypeMapping, Contact, Document, Project, ProjectBudgetExtension, ProjectMemberRate
 
 
 # ---------------------------------------------------------------------------
@@ -315,7 +315,7 @@ class ProjectCreateView(AdminOrLeadMixin, CreateView):
         form = kwargs.get("form") or ctx.get("form")
         if form:
             ctx["member_rates_data"] = _member_rates_data(form, project=None)
-        ctx["project_types_by_company"] = Project.PROJECT_TYPES_BY_COMPANY
+        ctx["project_types_by_company"] = CompanyProjectTypeMapping.get_types_by_company()
         ctx["all_projects_json"] = _all_projects_list()
         ctx["selected_predecessors_json"] = []
         return ctx
@@ -440,7 +440,7 @@ class ProjectUpdateView(AdminOrLeadMixin, UpdateView):
         form = kwargs.get("form") or ctx.get("form")
         if form:
             ctx["member_rates_data"] = _member_rates_data(form, project=self.object)
-        ctx["project_types_by_company"] = Project.PROJECT_TYPES_BY_COMPANY
+        ctx["project_types_by_company"] = CompanyProjectTypeMapping.get_types_by_company()
         ctx["all_projects_json"] = _all_projects_list(exclude_pk=self.object.pk)
         ctx["selected_predecessors_json"] = [
             {"id": str(p.pk), "label": str(p)}

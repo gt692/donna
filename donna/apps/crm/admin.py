@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from .models import Account, Document, Project
+from .models import Account, CompanyProjectTypeMapping, Document, Project
 
 
 # ---------------------------------------------------------------------------
@@ -184,6 +184,8 @@ class ProjectAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Kunde"), ordering="account__name")
     def account_link(self, obj: Project) -> str:
+        if not obj.account:
+            return format_html('<span style="color:#9ca3af;">—</span>')
         url = reverse("admin:crm_account_change", args=[obj.account.pk])
         return format_html('<a href="{url}">{name}</a>', url=url, name=obj.account.name)
 
@@ -229,6 +231,37 @@ class ProjectAdmin(admin.ModelAdmin):
             '</div>',
             pct=pct, color=color, logged=logged, budget=budget,
         )
+
+
+# ---------------------------------------------------------------------------
+# CompanyProjectTypeMapping Admin
+# ---------------------------------------------------------------------------
+
+@admin.register(CompanyProjectTypeMapping)
+class CompanyProjectTypeMappingAdmin(admin.ModelAdmin):
+    list_display  = ("company", "project_type")
+    list_filter   = ("company",)
+    ordering      = ("company", "project_type")
+    fieldsets = (
+        (None, {
+            "fields": ("company", "project_type"),
+            "description": _(
+                "Trage hier ein, welche Projekttypen für ein Unternehmen auswählbar sein sollen. "
+                "Werte müssen mit den internen Werten der Auswahloptionen übereinstimmen, "
+                "z.B. 'gt_immo' und 'consulting'."
+            ),
+        }),
+    )
+
+    def get_form(self, request, obj=None, **kwargs):
+        from django import forms as dj_forms
+        from apps.core.models import Lookup
+        form = super().get_form(request, obj, **kwargs)
+        company_choices = [("", "---------")] + Lookup.choices_for("company")
+        pt_choices      = [("", "---------")] + Lookup.choices_for("project_type")
+        form.base_fields["company"].widget      = dj_forms.Select(choices=company_choices)
+        form.base_fields["project_type"].widget = dj_forms.Select(choices=pt_choices)
+        return form
 
 
 # ---------------------------------------------------------------------------

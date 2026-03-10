@@ -360,6 +360,44 @@ class Project(models.Model):
 
 
 # ---------------------------------------------------------------------------
+# CompanyProjectTypeMapping — Admin-editierbare Projekttyp-Zuweisungen
+# ---------------------------------------------------------------------------
+
+class CompanyProjectTypeMapping(models.Model):
+    """
+    Steuert, welche Projekttypen für ein bestimmtes Unternehmen auswählbar sind.
+    Ersetzt das hardcodierte PROJECT_TYPES_BY_COMPANY-Dict im Project-Model.
+    """
+    company = models.CharField(
+        max_length=50,
+        verbose_name=_("Unternehmen"),
+        help_text=_("Interner Wert des Unternehmens, z.B. 'gt_immo'."),
+    )
+    project_type = models.CharField(
+        max_length=50,
+        verbose_name=_("Projekttyp"),
+        help_text=_("Interner Wert des Projekttyps, z.B. 'consulting'."),
+    )
+
+    class Meta:
+        unique_together     = [("company", "project_type")]
+        verbose_name        = _("Projekttyp-Zuweisung")
+        verbose_name_plural = _("Projekttyp-Zuweisungen")
+        ordering            = ["company", "project_type"]
+
+    def __str__(self) -> str:
+        return f"{self.company} → {self.project_type}"
+
+    @classmethod
+    def get_types_by_company(cls) -> dict:
+        """Gibt {company_value: [project_type_value, ...]} zurück — Ersatz für PROJECT_TYPES_BY_COMPANY."""
+        result: dict = {}
+        for mapping in cls.objects.all():
+            result.setdefault(mapping.company, []).append(mapping.project_type)
+        return result
+
+
+# ---------------------------------------------------------------------------
 # ProjectMemberRate — Stundensatz je Teammitglied
 # ---------------------------------------------------------------------------
 

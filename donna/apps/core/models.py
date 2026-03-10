@@ -57,7 +57,6 @@ class User(AbstractUser):
 
     role = models.CharField(
         max_length=30,
-        choices=Role.choices,
         default=Role.EMPLOYEE,
         verbose_name=_("Rolle"),
     )
@@ -136,17 +135,13 @@ class User(AbstractUser):
         """Projektleiter und Admins dürfen Stundeneinträge freigeben."""
         return self.role in (Role.ADMIN, Role.PROJECT_MANAGER)
 
-    # Standard-Stundensätze (netto) je Rolle
-    _ROLE_HOURLY_RATES = {
-        Role.PROJECT_MANAGER:   255,
-        Role.EMPLOYEE:          155,
-        Role.PROJECT_ASSISTANT: 85,
-    }
-
     @property
     def default_hourly_rate(self):
-        """Gibt den Standard-Stundensatz (netto) für diese Rolle zurück, oder None für Admins."""
-        return self._ROLE_HOURLY_RATES.get(self.role)
+        """Gibt den admin-pflegbaren Standard-Stundensatz (netto) für diese Rolle zurück."""
+        try:
+            return RoleHourlyRate.objects.get(role=self.role).hourly_rate
+        except RoleHourlyRate.DoesNotExist:
+            return None
 
     # ------------------------------------------------------------------
     # Einladungs-Hilfsmethoden
@@ -272,6 +267,7 @@ class Lookup(models.Model):
         CONTACT_ROLE = "contact_role", _("Kontaktrolle")
         PROJECT_TYPE = "project_type", _("Projekttyp")
         COMPANY      = "company",      _("Unternehmen")
+        USER_ROLE    = "user_role",    _("Benutzerrolle")
 
     category = models.CharField(
         max_length=30,
@@ -356,3 +352,33 @@ class NotificationLog(models.Model):
 
     def __str__(self) -> str:
         return f"{self.event} → {self.recipient} [{self.status}] {self.created_at:%Y-%m-%d %H:%M}"
+
+
+# ---------------------------------------------------------------------------
+# RoleHourlyRate — Admin-editierbare Standard-Stundensätze je Rolle
+# ---------------------------------------------------------------------------
+
+class RoleHourlyRate(models.Model):
+    """
+    Speichert den Standard-Netto-Stundensatz für eine User-Rolle.
+    Wird beim Anlegen von ProjectMemberRates als Vorschlagswert genutzt.
+    """
+    role = models.CharField(
+        max_length=30,
+        choices=Role.choices,
+        unique=True,
+        verbose_name=_("Rolle"),
+    )
+    hourly_rate = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        verbose_name=_("Stundensatz (€ netto)"),
+    )
+
+    class Meta:
+        verbose_name = _("Rollen-Stundensatz")
+        verbose_name_plural = _("Rollen-Stundensätze")
+        ordering = ["role"]
+
+    def __str__(self) -> str:
+        return f"{self.get_role_display()} — {self.hourly_rate} €/h"
