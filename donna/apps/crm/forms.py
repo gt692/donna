@@ -4,6 +4,7 @@ crm/forms.py
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
+from apps.core.models import Lookup
 from .models import Account, Contact, Project
 
 _INPUT = (
@@ -86,6 +87,7 @@ class ContactForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["role"].choices = [("", "— Rolle auswählen —")] + Lookup.choices_for("contact_role")
         self.fields["role"].required = False
         self.fields["company_name"].required = False
         self.fields["email"].required = False
@@ -167,8 +169,9 @@ class ProjectForm(forms.ModelForm):
         self.fields["predecessor_projects"].queryset = predecessors_qs
         self.fields["predecessor_projects"].required = False
 
-        self.fields["company"].empty_label = "Unternehmen auswählen …"
+        self.fields["company"].choices = [("", "Unternehmen auswählen …")] + Lookup.choices_for("company")
         self.fields["company"].required = True
+        self.fields["project_type"].choices = Lookup.choices_for("project_type")
 
         # primary_contact ist optional im AccountForm
 
