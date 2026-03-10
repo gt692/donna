@@ -18,8 +18,7 @@ djangorestframework==3.14.*     # REST-API für späteres Frontend / Mobile
 djangorestframework-simplejwt==5.3.*  # JWT-Auth für API
 
 # Datenbank
-# SQLite ist Django-Standard (für Prototyping bereits enthalten)
-# psycopg2-binary==2.9.*        # Aktivieren für PostgreSQL-Produktivbetrieb
+psycopg2-binary==2.9.*          # PostgreSQL-Treiber (lokal + Produktion)
 
 # Admin-Erweiterungen
 django-jazzmin==3.*             # Modernisiertes Admin-Interface
