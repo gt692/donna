@@ -150,12 +150,13 @@ REST_FRAMEWORK = {
 
 # ── E-Mail ─────────────────────────────────────────────────────────────────
 EMAIL_BACKEND      = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
-EMAIL_HOST         = env("EMAIL_HOST", default="")
-EMAIL_PORT         = env.int("EMAIL_PORT", default=587)
-EMAIL_USE_TLS      = env.bool("EMAIL_USE_TLS", default=True)
-EMAIL_HOST_USER    = env("EMAIL_HOST_USER", default="")
-EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Donna <noreply@example.com>")
+
+# Microsoft Graph API (OAuth2) — wird genutzt wenn EMAIL_BACKEND auf GraphAPIEmailBackend gesetzt
+MS_CLIENT_ID     = env("MS_CLIENT_ID", default="")
+MS_TENANT_ID     = env("MS_TENANT_ID", default="")
+MS_CLIENT_SECRET = env("MS_CLIENT_SECRET", default="")
+MS_SENDER_EMAIL  = env("MS_SENDER_EMAIL", default="donna@direso.de")
 
 
 # ── Externe Dienste ────────────────────────────────────────────────────────

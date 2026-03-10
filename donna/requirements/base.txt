@@ -20,6 +20,9 @@ djangorestframework-simplejwt==5.3.*  # JWT-Auth für API
 # Datenbank
 psycopg2-binary==2.9.*          # PostgreSQL-Treiber (lokal + Produktion)
 
+# E-Mail via Microsoft Graph API (OAuth2)
+msal==1.35.*                    # Microsoft Authentication Library
+
 # Admin-Erweiterungen
 django-jazzmin==3.*             # Modernisiertes Admin-Interface
 
