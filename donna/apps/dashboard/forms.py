@@ -8,7 +8,7 @@ from __future__ import annotations
 from django import forms
 from django.core.exceptions import ValidationError
 
-from apps.core.models import Role, User
+from apps.core.models import Lookup, Role, User
 
 _TW = (
     "w-full px-3 py-2 border border-slate-200 rounded-lg text-sm "
@@ -43,6 +43,7 @@ class UserCreateForm(forms.ModelForm):
         self.fields["reporting_to"].queryset = User.objects.filter(is_active=True).order_by(
             "last_name", "first_name"
         )
+        self.fields["role"].widget.choices = [("", "— Rolle auswählen —")] + Lookup.choices_for("user_role")
 
     def clean_email(self):
         email = self.cleaned_data.get("email", "").lower().strip()
@@ -86,6 +87,7 @@ class UserEditForm(forms.ModelForm):
         if exclude_pk:
             qs = qs.exclude(pk=exclude_pk)
         self.fields["reporting_to"].queryset = qs
+        self.fields["role"].widget.choices = [("", "— Rolle auswählen —")] + Lookup.choices_for("user_role")
 
     def clean_email(self):
         email = self.cleaned_data.get("email", "").lower().strip()
