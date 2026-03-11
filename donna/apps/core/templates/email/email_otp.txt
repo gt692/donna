@@ -1,0 +1,12 @@
+Hallo {{ user.first_name|default:user.email }},
+
+dein Einmal-Code für die Anmeldung lautet:
+
+  {{ code }}
+
+Der Code ist 10 Minuten gültig und kann nur einmal verwendet werden.
+
+Falls du dich nicht anmelden möchtest, ignoriere diese E-Mail.
+
+Mit freundlichen Grüßen,
+Donna Business OS

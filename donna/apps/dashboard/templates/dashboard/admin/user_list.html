@@ -86,7 +86,7 @@
                 {% elif u.role == 'project_manager' %}bg-amber-100 text-amber-700
                 {% elif u.role == 'project_assistant' %}bg-violet-100 text-violet-700
                 {% else %}bg-slate-100 text-slate-600{% endif %}">
-                {{ u.get_role_display }}
+                {{ u.role }}
               </span>
             </td>
             <td class="px-5 py-3 text-slate-500 hidden md:table-cell">

@@ -1,0 +1,107 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}Sicherheitseinstellungen{% endblock %}
+{% block page_heading %}Sicherheitseinstellungen{% endblock %}
+{% block page_subheading %}Verwalte deine Anmelde- und MFA-Einstellungen{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+
+  <!-- TOTP-Status -->
+  <div class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+    <h3 class="text-base font-semibold text-slate-800 mb-1">Authenticator-App (TOTP)</h3>
+    <p class="text-sm text-slate-500 mb-4">
+      Zeitbasierte Einmalcodes über eine Authenticator-App (z.B. Google Authenticator, Authy).
+    </p>
+    <div class="flex items-center gap-3">
+      {% if user.totp_enabled %}
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+          </svg>
+          Aktiviert
+        </span>
+      {% else %}
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
+          Nicht aktiviert
+        </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- E-Mail-MFA -->
+  <div class="bg-white rounded-xl border border-slate-200 p-6">
+    <h3 class="text-base font-semibold text-slate-800 mb-1">E-Mail-MFA</h3>
+    <p class="text-sm text-slate-500 mb-4">
+      Erhalte einen 6-stelligen Einmal-Code per E-Mail als alternative oder zusätzliche
+      Anmeldemethode.
+    </p>
+
+    <div class="flex items-center gap-3 mb-6">
+      {% if user.email_mfa_enabled %}
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+          </svg>
+          Aktiviert
+        </span>
+      {% else %}
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
+          Deaktiviert
+        </span>
+      {% endif %}
+    </div>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <!-- Checkbox -->
+      <div class="flex items-start gap-3 mb-6">
+        {{ form.enable_email_mfa }}
+        <div>
+          <label for="{{ form.enable_email_mfa.id_for_label }}"
+                 class="block text-sm font-medium text-slate-700">
+            E-Mail-MFA aktivieren
+          </label>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Beim nächsten Login kannst du wählen: Authenticator-App oder Code per E-Mail.
+          </p>
+          {% if form.enable_email_mfa.errors %}
+            <p class="mt-1 text-xs text-red-600">{{ form.enable_email_mfa.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- TOTP-Code zur Bestätigung -->
+      <div class="mb-6">
+        <label for="{{ form.totp_code.id_for_label }}"
+               class="block text-sm font-medium text-slate-700 mb-1">
+          {{ form.totp_code.label }}
+        </label>
+        {{ form.totp_code }}
+        {% if form.totp_code.errors %}
+          <p class="mt-1 text-xs text-red-600">{{ form.totp_code.errors|join:", " }}</p>
+        {% endif %}
+        <p class="mt-2 text-xs text-slate-400">
+          Zur Sicherheit musst du deinen aktuellen Authenticator-Code eingeben.
+        </p>
+      </div>
+
+      {% if form.non_field_errors %}
+        <div class="mb-4 px-4 py-3 rounded-lg bg-red-50 text-red-700 border border-red-200 text-sm">
+          {{ form.non_field_errors|join:" " }}
+        </div>
+      {% endif %}
+
+      <button type="submit"
+              class="bg-[#1666b0] hover:bg-[#1255a0] active:bg-[#0d4f8c]
+                     text-white font-semibold py-2.5 px-6 rounded-lg transition
+                     focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:ring-offset-2 text-sm">
+        Einstellungen speichern
+      </button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

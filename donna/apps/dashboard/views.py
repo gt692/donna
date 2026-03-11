@@ -13,7 +13,7 @@ from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.views.generic import CreateView, ListView, TemplateView, UpdateView, View
 
-from apps.core.models import Role, User
+from apps.core.models import Lookup, Role, RoleHourlyRate, User
 from apps.crm.models import Account, Project
 from apps.worktrack.models import TimeEntry
 
@@ -379,3 +379,116 @@ class UserTOTPDisableView(AdminRequiredMixin, View):
             f"2FA für {target.get_full_name()} wurde deaktiviert.",
         )
         return redirect("dashboard:user_edit", pk=pk)
+
+
+# ---------------------------------------------------------------------------
+# Lookup-Verwaltung
+# ---------------------------------------------------------------------------
+
+class LookupListView(AdminRequiredMixin, TemplateView):
+    template_name = "dashboard/admin/lookup_list.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        lookups = Lookup.objects.order_by("category", "order", "label")
+        ctx["lookups"] = lookups
+        ctx["categories"] = (
+            Lookup.objects.values_list("category", flat=True)
+            .distinct()
+            .order_by("category")
+        )
+        ctx["category_filter"] = self.request.GET.get("category", "")
+        if ctx["category_filter"]:
+            ctx["lookups"] = lookups.filter(category=ctx["category_filter"])
+        return ctx
+
+
+class LookupCreateView(AdminRequiredMixin, CreateView):
+    model = Lookup
+    fields = ["category", "label", "value", "order", "is_active"]
+    template_name = "dashboard/admin/lookup_form.html"
+    success_url = reverse_lazy("dashboard:lookup_list")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"] = "Neuer Lookup-Eintrag"
+        ctx["submit_label"] = "Eintrag anlegen"
+        ctx["existing_categories"] = (
+            Lookup.objects.values_list("category", flat=True)
+            .distinct()
+            .order_by("category")
+        )
+        return ctx
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "Lookup-Eintrag wurde angelegt.")
+        return response
+
+
+class LookupUpdateView(AdminRequiredMixin, UpdateView):
+    model = Lookup
+    fields = ["category", "label", "value", "order", "is_active"]
+    template_name = "dashboard/admin/lookup_form.html"
+    success_url = reverse_lazy("dashboard:lookup_list")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"] = f"Lookup bearbeiten: {self.object.label}"
+        ctx["submit_label"] = "Änderungen speichern"
+        ctx["existing_categories"] = (
+            Lookup.objects.values_list("category", flat=True)
+            .distinct()
+            .order_by("category")
+        )
+        return ctx
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "Lookup-Eintrag wurde aktualisiert.")
+        return response
+
+
+class LookupDeleteView(AdminRequiredMixin, View):
+    """POST-only: löscht einen Lookup-Eintrag."""
+
+    def post(self, request, pk):
+        lookup = get_object_or_404(Lookup, pk=pk)
+        label = lookup.label
+        lookup.delete()
+        messages.success(request, f"Lookup-Eintrag '{label}' wurde gelöscht.")
+        return redirect("dashboard:lookup_list")
+
+
+# ---------------------------------------------------------------------------
+# RoleHourlyRate-Verwaltung
+# ---------------------------------------------------------------------------
+
+class HourlyRateListView(AdminRequiredMixin, TemplateView):
+    template_name = "dashboard/admin/hourly_rate_list.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["rates"] = RoleHourlyRate.objects.order_by("role")
+        return ctx
+
+
+class HourlyRateUpdateView(AdminRequiredMixin, UpdateView):
+    model = RoleHourlyRate
+    fields = ["hourly_rate"]
+    template_name = "dashboard/admin/hourly_rate_form.html"
+    success_url = reverse_lazy("dashboard:hourly_rate_list")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"] = f"Stundensatz: {self.object.get_role_display()}"
+        ctx["submit_label"] = "Speichern"
+        return ctx
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(
+            self.request,
+            f"Stundensatz für {self.object.get_role_display()} wurde aktualisiert.",
+        )
+        return response

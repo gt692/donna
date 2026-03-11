@@ -1,9 +1,13 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="de" class="h-full">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Donna{% endblock %} — Donna Business OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rufina:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -11,6 +15,9 @@
         extend: {
           colors: {
             donna: { DEFAULT: "#1666b0", dark: "#1255a0", light: "#e0e7ff" }
+          },
+          fontFamily: {
+            donna: ['"Rufina"', 'Georgia', 'serif']
           }
         }
       }
@@ -21,15 +28,14 @@
 
   <div class="w-full max-w-md">
     <!-- Logo / Brand -->
-    <div class="text-center mb-8">
-      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#1666b0] shadow-lg mb-4">
-        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-        </svg>
+    <div class="flex items-center justify-center gap-4 mb-8">
+      <img src="{% static 'images/logo.png' %}"
+           alt="Donna"
+           class="w-16 h-16 rounded-full object-cover object-top border-2 border-slate-600 shadow-lg flex-shrink-0">
+      <div>
+        <h1 class="font-donna text-3xl text-white tracking-wide">Donna</h1>
+        <p class="text-slate-400 text-sm mt-0.5">Business Operating System</p>
       </div>
-      <h1 class="text-2xl font-bold text-white tracking-tight">Donna</h1>
-      <p class="text-slate-400 text-sm mt-1">Business Operating System</p>
     </div>
 
     <!-- Card -->

@@ -2,8 +2,8 @@
 {% load i18n %}
 
 {% block title %}Dashboard{% endblock %}
-{% block page_heading %}Guten Tag, {{ request.user.first_name }} 👋{% endblock %}
-{% block page_subheading %}{{ now|date:"l, j. F Y" }}{% endblock %}
+{% block page_heading %}Hey {{ request.user.first_name }}, was kann ich für dich tun?{% endblock %}
+{% block page_subheading %}{% endblock %}
 
 {% block topbar_actions %}
   {% if pending_entries_count > 0 %}

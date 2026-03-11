@@ -10,6 +10,7 @@ import secrets
 import uuid
 from datetime import timedelta
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
@@ -87,6 +88,12 @@ class User(AbstractUser):
         ),
     )
 
+    # E-Mail-MFA
+    email_mfa_enabled = models.BooleanField(
+        default=False,
+        verbose_name=_("E-Mail-MFA aktiviert"),
+    )
+
     # Benachrichtigungs-Präferenzen
     notify_by_email = models.BooleanField(default=True, verbose_name=_("E-Mail-Benachrichtigungen"))
 
@@ -109,7 +116,7 @@ class User(AbstractUser):
         ordering = ["last_name", "first_name"]
 
     def __str__(self) -> str:
-        return f"{self.get_full_name() or self.username} ({self.get_role_display()})"
+        return f"{self.get_full_name() or self.username} ({self.role})"
 
     # ------------------------------------------------------------------
     # Convenience-Properties
@@ -357,6 +364,34 @@ class NotificationLog(models.Model):
 # ---------------------------------------------------------------------------
 # RoleHourlyRate — Admin-editierbare Standard-Stundensätze je Rolle
 # ---------------------------------------------------------------------------
+
+class EmailOTPCode(models.Model):
+    """
+    Einmaliger 6-stelliger Code für die E-Mail-basierte MFA.
+    Gültig für 10 Minuten; wird nach Verwendung als used=True markiert.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="email_otp_codes",
+        verbose_name=_("Benutzer"),
+    )
+    code = models.CharField(max_length=6, verbose_name=_("Code"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Erstellt am"))
+    expires_at = models.DateTimeField(verbose_name=_("Läuft ab am"))
+    used = models.BooleanField(default=False, verbose_name=_("Verwendet"))
+
+    class Meta:
+        verbose_name = _("E-Mail-OTP-Code")
+        verbose_name_plural = _("E-Mail-OTP-Codes")
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"OTP für {self.user.email} ({self.created_at:%Y-%m-%d %H:%M})"
+
+    def is_valid(self) -> bool:
+        return not self.used and timezone.now() < self.expires_at
+
 
 class RoleHourlyRate(models.Model):
     """
