@@ -2,6 +2,10 @@ from django.urls import path
 
 from .views import (
     AdminIndexView,
+    CompanyCredentialCreateView,
+    CompanyCredentialDeleteView,
+    CompanyCredentialListView,
+    CompanyCredentialUpdateView,
     DashboardHomeView,
     HourlyRateListView,
     HourlyRateUpdateView,
@@ -9,6 +13,13 @@ from .views import (
     LookupDeleteView,
     LookupListView,
     LookupUpdateView,
+    ProjectTypeMappingCreateView,
+    ProjectTypeMappingDeleteView,
+    ProjectTypeMappingListView,
+    RevenueTargetCreateView,
+    RevenueTargetDeleteView,
+    RevenueTargetListView,
+    RevenueTargetUpdateView,
     UserCreateView,
     UserDeleteView,
     UserListView,
@@ -44,4 +55,21 @@ urlpatterns = [
     # Stundensätze
     path("admin/hourly-rates/",             HourlyRateListView.as_view(),  name="hourly_rate_list"),
     path("admin/hourly-rates/<int:pk>/edit/", HourlyRateUpdateView.as_view(), name="hourly_rate_edit"),
+
+    # Umsatzziele
+    path("admin/revenue-targets/",              RevenueTargetListView.as_view(),   name="revenue_target_list"),
+    path("admin/revenue-targets/new/",          RevenueTargetCreateView.as_view(), name="revenue_target_create"),
+    path("admin/revenue-targets/<int:pk>/edit/", RevenueTargetUpdateView.as_view(), name="revenue_target_edit"),
+    path("admin/revenue-targets/<int:pk>/delete/", RevenueTargetDeleteView.as_view(), name="revenue_target_delete"),
+
+    # Projekttyp-Zuweisungen
+    path("admin/project-type-mappings/",              ProjectTypeMappingListView.as_view(),   name="project_type_mapping_list"),
+    path("admin/project-type-mappings/new/",          ProjectTypeMappingCreateView.as_view(), name="project_type_mapping_create"),
+    path("admin/project-type-mappings/<int:pk>/delete/", ProjectTypeMappingDeleteView.as_view(), name="project_type_mapping_delete"),
+
+    # Firmen-Zugangsdaten (Lexoffice)
+    path("admin/credentials/",                  CompanyCredentialListView.as_view(),   name="company_credential_list"),
+    path("admin/credentials/new/",              CompanyCredentialCreateView.as_view(), name="company_credential_create"),
+    path("admin/credentials/<int:pk>/edit/",    CompanyCredentialUpdateView.as_view(), name="company_credential_edit"),
+    path("admin/credentials/<int:pk>/delete/",  CompanyCredentialDeleteView.as_view(), name="company_credential_delete"),
 ]

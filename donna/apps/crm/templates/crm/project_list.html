@@ -1,5 +1,5 @@
 {% extends "dashboard/base.html" %}
-{% load i18n %}
+{% load i18n donna_filters %}
 
 {% block title %}Projekte{% endblock %}
 {% block page_heading %}Projekte{% endblock %}
@@ -48,6 +48,17 @@
         <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
       {% endfor %}
     </select>
+    <label class="flex items-center gap-2 cursor-pointer select-none px-3 py-2 rounded-lg border transition
+                  {% if mine_filter == '1' %}border-[#1666b0] bg-[#f0f9fe] text-[#1255a0]{% else %}border-slate-200 bg-white text-slate-500 hover:border-slate-300{% endif %}">
+      <input type="checkbox" name="mine" value="1" class="hidden"
+             {% if mine_filter == '1' %}checked{% endif %}
+             onchange="this.form.submit()">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+      </svg>
+      <span class="text-sm font-medium whitespace-nowrap">Meine Projekte</span>
+    </label>
     {% if q %}<button type="submit" class="bg-[#1666b0] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#1255a0] transition">Suchen</button>{% endif %}
   </form>
 
@@ -74,6 +85,10 @@
                 {{ project.name }}
               </a>
               <div class="flex items-center gap-2 mt-0.5">
+                {% with co_color=company_colors|get_item:project.company %}
+                  <span class="w-2 h-2 rounded-full flex-shrink-0"
+                        style="background-color: {{ co_color|default:'#94a3b8' }};"></span>
+                {% endwith %}
                 <span class="text-xs text-slate-400 font-mono">{{ project.project_number }}</span>
                 <span class="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">{{ project.get_project_type_display }}</span>
               </div>
@@ -138,12 +153,12 @@
   {% if is_paginated %}
     <div class="flex justify-center gap-1 mt-6">
       {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}&q={{ q }}&status={{ status_filter }}"
+        <a href="?page={{ page_obj.previous_page_number }}&q={{ q }}&status={{ status_filter }}{% if mine_filter == '1' %}&mine=1{% endif %}"
            class="px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition">‹</a>
       {% endif %}
       <span class="px-3 py-1.5 text-sm text-slate-500">Seite {{ page_obj.number }} von {{ page_obj.paginator.num_pages }}</span>
       {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}&q={{ q }}&status={{ status_filter }}"
+        <a href="?page={{ page_obj.next_page_number }}&q={{ q }}&status={{ status_filter }}{% if mine_filter == '1' %}&mine=1{% endif %}"
            class="px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition">›</a>
       {% endif %}
     </div>

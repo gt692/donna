@@ -6,7 +6,7 @@ from .views import (
     DocumentDeleteView, DocumentServeView, DocumentUploadView,
     KanbanView, ProjectKanbanMoveView,
     ProjectArchiveView, ProjectBudgetExtensionCreateView, ProjectBudgetExtensionDeleteView,
-    ProjectCreateView, ProjectDetailView, ProjectListView, ProjectUpdateView,
+    ProjectCreateView, ProjectDetailView, ProjectInvoiceCreateView, ProjectListView, ProjectUpdateView,
 )
 
 app_name = "crm"
@@ -33,6 +33,7 @@ urlpatterns = [
     path("projects/new/",          ProjectCreateView.as_view(), name="project_create"),
     path("projects/<uuid:pk>/",    ProjectDetailView.as_view(), name="project_detail"),
     path("projects/<uuid:pk>/edit/", ProjectUpdateView.as_view(), name="project_edit"),
+    path("projects/<uuid:pk>/invoice/", ProjectInvoiceCreateView.as_view(), name="project_invoice_create"),
 
     # Kanban
     path("kanban/",      KanbanView.as_view(),            name="kanban"),

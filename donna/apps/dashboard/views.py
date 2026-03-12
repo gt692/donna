@@ -13,8 +13,10 @@ from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.views.generic import CreateView, ListView, TemplateView, UpdateView, View
 
-from apps.core.models import Lookup, Role, RoleHourlyRate, User
-from apps.crm.models import Account, Project
+from decimal import Decimal
+
+from apps.core.models import CompanyCredential, Lookup, Role, RoleHourlyRate, User
+from apps.crm.models import Account, CompanyProjectTypeMapping, Project, RevenueTarget
 from apps.worktrack.models import TimeEntry
 
 from .forms import UserCreateForm, UserEditForm
@@ -110,6 +112,96 @@ class DashboardHomeView(LoginRequiredMixin, TemplateView):
                     date__gte=week_start,
                 ).aggregate(total=Sum("duration_hours"))["total"] or 0
             )
+
+        # ── Finanz-KPIs (Admin + Projektleiter) ───────────────────────────────
+        if user.is_admin or user.is_project_manager:
+            ctx["show_finance_kpis"] = True
+
+            # Verfügbare Unternehmen aus Lookup (inkl. Farbe)
+            companies = Lookup.entries_for("company")  # [{value, label, color}, ...]
+            ctx["finance_companies"] = companies
+
+            # Ausgewähltes Unternehmen (GET-Param oder erstes verfügbares)
+            selected = self.request.GET.get("company", "")
+            valid_values = [c["value"] for c in companies]
+            if selected not in valid_values and valid_values:
+                selected = valid_values[0]
+            ctx["finance_company"] = selected
+
+            # Label + Farbe des ausgewählten Unternehmens
+            selected_entry = next((c for c in companies if c["value"] == selected), {})
+            ctx["finance_company_label"] = selected_entry.get("label", selected)
+            ctx["finance_company_color"] = selected_entry.get("color", "#1666b0")
+
+            current_year = now.year
+            current_month = now.month
+
+            # Fakturierter Umsatz YTD (Rechnungen für dieses Unternehmen)
+            from apps.crm.models import Document
+            invoice_qs = Document.objects.filter(
+                document_type="invoice",
+                document_date__year=current_year,
+                project__company=selected,
+            )
+            invoiced_ytd = invoice_qs.aggregate(
+                total=Sum("net_amount")
+            )["total"] or Decimal("0")
+            ctx["invoiced_ytd"] = invoiced_ytd
+
+            # Auftragsvolumen (aktive + laufende Projekte)
+            active_statuses = ["active", "on_hold", "invoiced"]
+            active_volume = (
+                Project.objects.filter(
+                    company=selected,
+                    status__in=active_statuses,
+                ).aggregate(total=Sum("budget_amount"))["total"] or Decimal("0")
+            )
+            ctx["active_volume"] = active_volume
+
+            # Pipeline (Angebot + Lead)
+            pipeline_volume = (
+                Project.objects.filter(
+                    company=selected,
+                    status__in=["offer_sent", "lead"],
+                ).aggregate(total=Sum("budget_amount"))["total"] or Decimal("0")
+            )
+            ctx["pipeline_volume"] = pipeline_volume
+
+            # Jahres-Ziel
+            try:
+                revenue_target = RevenueTarget.objects.get(
+                    company=selected, year=current_year
+                )
+                target_amount = revenue_target.target_amount
+                target_pct = min(int(invoiced_ytd / target_amount * 100), 100) if target_amount else 0
+                ctx["target_amount"]    = target_amount
+                ctx["target_pct"]       = target_pct
+                ctx["target_remaining"] = max(target_amount - invoiced_ytd, Decimal("0"))
+            except RevenueTarget.DoesNotExist:
+                ctx["target_amount"]    = None
+                ctx["target_pct"]       = 0
+                ctx["target_remaining"] = None
+
+            # Genehmigte Stunden diesen Monat (unternehmensübergreifend)
+            ctx["hours_this_month"] = (
+                TimeEntry.objects.filter(
+                    project__company=selected,
+                    status=TimeEntry.Status.APPROVED,
+                    date__year=current_year,
+                    date__month=current_month,
+                ).aggregate(total=Sum("duration_hours"))["total"] or 0
+            )
+
+            # Aktive Projekte für dieses Unternehmen
+            ctx["company_active_projects"] = (
+                Project.objects.filter(
+                    company=selected,
+                    status=Project.Status.ACTIVE,
+                ).count()
+            )
+
+        else:
+            ctx["show_finance_kpis"] = False
 
         return ctx
 
@@ -492,3 +584,233 @@ class HourlyRateUpdateView(AdminRequiredMixin, UpdateView):
             f"Stundensatz für {self.object.get_role_display()} wurde aktualisiert.",
         )
         return response
+
+
+# ---------------------------------------------------------------------------
+# Umsatzziele-Verwaltung
+# ---------------------------------------------------------------------------
+
+class RevenueTargetListView(AdminRequiredMixin, TemplateView):
+    template_name = "dashboard/admin/revenue_target_list.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["targets"] = RevenueTarget.objects.order_by("-year", "company")
+        ctx["companies"] = Lookup.entries_for("company")
+        return ctx
+
+
+class RevenueTargetCreateView(AdminRequiredMixin, CreateView):
+    model = RevenueTarget
+    fields = ["company", "year", "target_amount"]
+    template_name = "dashboard/admin/revenue_target_form.html"
+    success_url = reverse_lazy("dashboard:revenue_target_list")
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        from django import forms as dj_forms
+        company_choices = [("", "— Unternehmen wählen —")] + Lookup.choices_for("company")
+        form.fields["company"].widget = dj_forms.Select(choices=company_choices)
+        form.fields["year"].initial = __import__("datetime").date.today().year
+        return form
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"] = "Neues Umsatzziel"
+        ctx["submit_label"] = "Ziel anlegen"
+        return ctx
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "Umsatzziel wurde angelegt.")
+        return response
+
+
+class RevenueTargetUpdateView(AdminRequiredMixin, UpdateView):
+    model = RevenueTarget
+    fields = ["company", "year", "target_amount"]
+    template_name = "dashboard/admin/revenue_target_form.html"
+    success_url = reverse_lazy("dashboard:revenue_target_list")
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        from django import forms as dj_forms
+        company_choices = [("", "— Unternehmen wählen —")] + Lookup.choices_for("company")
+        form.fields["company"].widget = dj_forms.Select(choices=company_choices)
+        return form
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"] = f"Umsatzziel bearbeiten"
+        ctx["submit_label"] = "Speichern"
+        return ctx
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "Umsatzziel wurde aktualisiert.")
+        return response
+
+
+class RevenueTargetDeleteView(AdminRequiredMixin, View):
+    def post(self, request, pk):
+        target = get_object_or_404(RevenueTarget, pk=pk)
+        target.delete()
+        messages.success(request, "Umsatzziel wurde gelöscht.")
+        return redirect("dashboard:revenue_target_list")
+
+
+# ---------------------------------------------------------------------------
+# Firmen-Zugangsdaten (Lexoffice API-Keys)
+# ---------------------------------------------------------------------------
+
+_INPUT_CSS = (
+    "w-full px-3 py-2 rounded-lg border border-slate-200 bg-white "
+    "focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent "
+    "text-sm transition"
+)
+
+
+class CompanyCredentialListView(AdminRequiredMixin, TemplateView):
+    template_name = "dashboard/admin/company_credential_list.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["credentials"] = CompanyCredential.objects.order_by("company")
+        ctx["companies"] = Lookup.entries_for("company")
+        ctx["company_colors"] = {e["value"]: e["color"] for e in ctx["companies"]}
+        return ctx
+
+
+class CompanyCredentialCreateView(AdminRequiredMixin, CreateView):
+    model = CompanyCredential
+    fields = ["company", "lexoffice_api_key"]
+    template_name = "dashboard/admin/company_credential_form.html"
+    success_url = reverse_lazy("dashboard:company_credential_list")
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        from django import forms as dj_forms
+        company_choices = [("", "— Unternehmen wählen —")] + Lookup.choices_for("company")
+        form.fields["company"].widget = dj_forms.Select(
+            attrs={"class": _INPUT_CSS + " cursor-pointer"},
+            choices=company_choices,
+        )
+        form.fields["lexoffice_api_key"].widget = dj_forms.TextInput(
+            attrs={"class": _INPUT_CSS, "placeholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"},
+        )
+        return form
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"] = "Neuer Firmen-Zugang"
+        ctx["submit_label"] = "Speichern"
+        return ctx
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "Zugangsdaten wurden gespeichert.")
+        return response
+
+
+class CompanyCredentialUpdateView(AdminRequiredMixin, UpdateView):
+    model = CompanyCredential
+    fields = ["company", "lexoffice_api_key"]
+    template_name = "dashboard/admin/company_credential_form.html"
+    success_url = reverse_lazy("dashboard:company_credential_list")
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        from django import forms as dj_forms
+        company_choices = [("", "— Unternehmen wählen —")] + Lookup.choices_for("company")
+        form.fields["company"].widget = dj_forms.Select(
+            attrs={"class": _INPUT_CSS + " cursor-pointer"},
+            choices=company_choices,
+        )
+        form.fields["lexoffice_api_key"].widget = dj_forms.TextInput(
+            attrs={"class": _INPUT_CSS, "placeholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"},
+        )
+        return form
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"] = "Zugangsdaten bearbeiten"
+        ctx["submit_label"] = "Speichern"
+        return ctx
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "Zugangsdaten wurden aktualisiert.")
+        return response
+
+
+class CompanyCredentialDeleteView(AdminRequiredMixin, View):
+    def post(self, request, pk):
+        cred = get_object_or_404(CompanyCredential, pk=pk)
+        cred.delete()
+        messages.success(request, "Zugangsdaten wurden gelöscht.")
+        return redirect("dashboard:company_credential_list")
+
+
+# ---------------------------------------------------------------------------
+# Projekttyp-Zuweisungen (CompanyProjectTypeMapping)
+# ---------------------------------------------------------------------------
+
+class ProjectTypeMappingListView(AdminRequiredMixin, TemplateView):
+    template_name = "dashboard/admin/project_type_mapping_list.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        company_labels = {e["value"]: e["label"] for e in Lookup.entries_for("company")}
+        company_colors = {e["value"]: e["color"] for e in Lookup.entries_for("company")}
+        type_labels    = {e["value"]: e["label"] for e in Lookup.entries_for("project_type")}
+
+        # Gruppiert nach Unternehmen
+        groups: dict = {}
+        for m in CompanyProjectTypeMapping.objects.order_by("company", "project_type"):
+            groups.setdefault(m.company, []).append(m)
+
+        ctx["groups"]         = groups
+        ctx["company_labels"] = company_labels
+        ctx["company_colors"] = company_colors
+        ctx["type_labels"]    = type_labels
+        ctx["total_count"]    = CompanyProjectTypeMapping.objects.count()
+        return ctx
+
+
+class ProjectTypeMappingCreateView(AdminRequiredMixin, CreateView):
+    model = CompanyProjectTypeMapping
+    fields = ["company", "project_type"]
+    template_name = "dashboard/admin/project_type_mapping_form.html"
+    success_url = reverse_lazy("dashboard:project_type_mapping_list")
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        from django import forms as dj_forms
+        company_choices = [("", "— Unternehmen wählen —")] + Lookup.choices_for("company")
+        type_choices    = [("", "— Projekttyp wählen —")] + Lookup.choices_for("project_type")
+        form.fields["company"].widget = dj_forms.Select(
+            attrs={"class": _INPUT_CSS + " cursor-pointer"}, choices=company_choices,
+        )
+        form.fields["project_type"].widget = dj_forms.Select(
+            attrs={"class": _INPUT_CSS + " cursor-pointer"}, choices=type_choices,
+        )
+        return form
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"]   = "Neue Projekttyp-Zuweisung"
+        ctx["submit_label"] = "Zuweisung anlegen"
+        return ctx
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "Zuweisung wurde angelegt.")
+        return response
+
+
+class ProjectTypeMappingDeleteView(AdminRequiredMixin, View):
+    def post(self, request, pk):
+        mapping = get_object_or_404(CompanyProjectTypeMapping, pk=pk)
+        mapping.delete()
+        messages.success(request, "Zuweisung wurde gelöscht.")
+        return redirect("dashboard:project_type_mapping_list")

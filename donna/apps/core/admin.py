@@ -8,7 +8,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from .models import Lookup, NotificationLog, NotificationSubscription, NotificationTemplate, RoleHourlyRate, User
+from .models import CompanyCredential, Lookup, NotificationLog, NotificationSubscription, NotificationTemplate, RoleHourlyRate, User
 
 
 # ---------------------------------------------------------------------------
@@ -248,3 +248,28 @@ class NotificationLogAdmin(admin.ModelAdmin):
             'border-radius:4px;font-size:11px;font-weight:600;">{label}</span>',
             bg=bg, fg=fg, label=obj.get_status_display(),
         )
+
+
+# ---------------------------------------------------------------------------
+# CompanyCredential Admin
+# ---------------------------------------------------------------------------
+
+@admin.register(CompanyCredential)
+class CompanyCredentialAdmin(admin.ModelAdmin):
+    list_display  = ("company", "lexoffice_key_status")
+    ordering      = ("company",)
+
+    def get_form(self, request, obj=None, **kwargs):
+        from django import forms as dj_forms
+        form = super().get_form(request, obj, **kwargs)
+        company_choices = [("", "---------")] + Lookup.choices_for("company")
+        form.base_fields["company"].widget = dj_forms.Select(choices=company_choices)
+        return form
+
+    @admin.display(description="Lexoffice API-Key")
+    def lexoffice_key_status(self, obj: CompanyCredential) -> str:
+        if obj.lexoffice_api_key:
+            return format_html(
+                '<span style="color:#16a34a;font-weight:600;">✓ konfiguriert</span>'
+            )
+        return format_html('<span style="color:#9ca3af;">— nicht gesetzt</span>')

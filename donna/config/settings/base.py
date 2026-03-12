@@ -179,7 +179,12 @@ JAZZMIN_SETTINGS = {
     # Layout
     "show_ui_builder":      False,
     "navigation_expanded":  True,
-    "order_with_respect_to": ["core", "crm", "worktrack"],
+    "order_with_respect_to": [
+        "core", "core.User",
+        "crm", "crm.Account", "crm.Contact", "crm.Project", "crm.Document",
+        "crm.RevenueTarget", "crm.CompanyProjectTypeMapping",
+        "worktrack",
+    ],
 
     # Link zurück zur App
     "topmenu_links": [
@@ -201,6 +206,7 @@ JAZZMIN_SETTINGS = {
         "crm.Contact":                  "fas fa-address-book",
         "crm.Project":                  "fas fa-project-diagram",
         "crm.Document":                 "fas fa-file-alt",
+        "crm.RevenueTarget":            "fas fa-bullseye",
         "worktrack":                    "fas fa-clock",
         "worktrack.TimeEntry":          "fas fa-clock",
         "worktrack.ActivityType":       "fas fa-tags",

@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from .models import Account, CompanyProjectTypeMapping, Document, Project
+from .models import Account, CompanyProjectTypeMapping, Document, Project, RevenueTarget
 
 
 # ---------------------------------------------------------------------------
@@ -231,6 +231,26 @@ class ProjectAdmin(admin.ModelAdmin):
             '</div>',
             pct=pct, color=color, logged=logged, budget=budget,
         )
+
+
+# ---------------------------------------------------------------------------
+# RevenueTarget Admin
+# ---------------------------------------------------------------------------
+
+@admin.register(RevenueTarget)
+class RevenueTargetAdmin(admin.ModelAdmin):
+    list_display  = ("company", "year", "target_amount")
+    list_editable = ("target_amount",)
+    list_filter   = ("company", "year")
+    ordering      = ("-year", "company")
+
+    def get_form(self, request, obj=None, **kwargs):
+        from django import forms as dj_forms
+        from apps.core.models import Lookup
+        form = super().get_form(request, obj, **kwargs)
+        company_choices = [("", "---------")] + Lookup.choices_for("company")
+        form.base_fields["company"].widget = dj_forms.Select(choices=company_choices)
+        return form
 
 
 # ---------------------------------------------------------------------------

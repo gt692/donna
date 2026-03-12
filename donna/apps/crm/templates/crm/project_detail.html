@@ -1,5 +1,5 @@
 {% extends "dashboard/base.html" %}
-{% load i18n %}
+{% load i18n donna_filters %}
 
 {% block title %}{{ project.name }}{% endblock %}
 {% block page_heading %}{{ project.name }}{% endblock %}
@@ -7,6 +7,17 @@
 
 {% block topbar_actions %}
   {% if request.user.can_approve_time_entries %}
+    {% if project.status == "invoiced" %}
+      <a href="{% url 'crm:project_invoice_create' project.pk %}"
+         class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white
+                font-medium text-sm px-4 py-2 rounded-lg transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        Rechnung stellen
+      </a>
+    {% endif %}
     <a href="{% url 'crm:project_edit' project.pk %}"
        class="flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50
               text-slate-700 font-medium text-sm px-4 py-2 rounded-lg transition">
@@ -28,6 +39,25 @@
 {% endblock %}
 
 {% block content %}
+
+{% if project.status == "invoiced" and request.user.can_approve_time_entries %}
+<div class="mb-5 flex items-center gap-4 bg-emerald-50 border border-emerald-200 rounded-xl px-5 py-4">
+  <svg class="w-6 h-6 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+  </svg>
+  <div class="flex-1">
+    <p class="text-sm font-semibold text-emerald-800">Projekt ist zur Abrechnung bereit</p>
+    <p class="text-xs text-emerald-600 mt-0.5">Rechnung stellen, PDF ablegen und Projekt abschließen. Der Nettobetrag wird dem Jahresziel angerechnet.</p>
+  </div>
+  <a href="{% url 'crm:project_invoice_create' project.pk %}"
+     class="flex-shrink-0 flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white
+            font-medium text-sm px-4 py-2 rounded-lg transition">
+    Rechnung stellen →
+  </a>
+</div>
+{% endif %}
+
 <div class="grid grid-cols-3 gap-6">
 
   <!-- ── Linke Spalte: Details + Zeiteinträge ──────────────────── -->
@@ -146,7 +176,8 @@
           <div class="grid grid-cols-2 gap-3 mb-3">
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Typ</label>
-              <select name="document_type"
+              <select name="document_type" id="upload-doc-type"
+                      onchange="document.getElementById('upload-net-amount-row').classList.toggle('hidden', this.value !== 'invoice')"
                       class="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 bg-white
                              focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent cursor-pointer">
                 <option value="offer">Angebot</option>
@@ -159,6 +190,12 @@
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Bezeichnung (optional)</label>
               <input type="text" name="title" placeholder="Wird aus Dateiname übernommen"
+                     class="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 bg-white
+                            focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent">
+            </div>
+            <div id="upload-net-amount-row" class="col-span-2 hidden">
+              <label class="block text-xs font-medium text-slate-600 mb-1">Nettobetrag (€)</label>
+              <input type="text" name="net_amount" placeholder="z.B. 9600"
                      class="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 bg-white
                             focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent">
             </div>
@@ -260,6 +297,18 @@
             {% endwith %}
           </dd>
         </div>
+        {% if project.company %}
+        <div class="flex justify-between items-center">
+          <dt class="text-slate-500">Unternehmen</dt>
+          <dd class="flex items-center gap-1.5">
+            {% with co_color=company_colors|get_item:project.company %}
+              <span class="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                    style="background-color: {{ co_color|default:'#94a3b8' }};"></span>
+            {% endwith %}
+            {% for co in companies %}{% if co.value == project.company %}<span class="text-slate-700 font-medium text-xs">{{ co.label }}</span>{% endif %}{% endfor %}
+          </dd>
+        </div>
+        {% endif %}
         <div class="flex justify-between">
           <dt class="text-slate-500">Typ</dt>
           <dd class="text-slate-700 font-medium">{{ project.get_project_type_display }}</dd>

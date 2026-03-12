@@ -360,6 +360,35 @@ class Project(models.Model):
 
 
 # ---------------------------------------------------------------------------
+# RevenueTarget — Admin-pflegbares Umsatzziel pro Unternehmen & Jahr
+# ---------------------------------------------------------------------------
+
+class RevenueTarget(models.Model):
+    """Jahresziel für ein bestimmtes internes Unternehmen (z.B. 'gt_immo')."""
+
+    company = models.CharField(
+        max_length=50,
+        verbose_name=_("Unternehmen"),
+        help_text=_("Interner Wert, z.B. 'gt_immo'."),
+    )
+    year = models.IntegerField(verbose_name=_("Jahr"))
+    target_amount = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        verbose_name=_("Jahresziel (€ netto)"),
+    )
+
+    class Meta:
+        unique_together     = [("company", "year")]
+        verbose_name        = _("Umsatzziel")
+        verbose_name_plural = _("Umsatzziele")
+        ordering            = ["-year", "company"]
+
+    def __str__(self) -> str:
+        return f"Umsatzziel {self.company} {self.year}: {self.target_amount:,.0f} €"
+
+
+# ---------------------------------------------------------------------------
 # CompanyProjectTypeMapping — Admin-editierbare Projekttyp-Zuweisungen
 # ---------------------------------------------------------------------------
 

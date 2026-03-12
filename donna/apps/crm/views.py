@@ -19,11 +19,14 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 
 import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Count, Q, Sum
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponse, JsonResponse
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView, View
 
@@ -44,11 +47,13 @@ def _all_projects_list(exclude_pk=None) -> list:
 
 def _member_rates_data(form, project=None) -> dict:
     """Baut ein Dict {user_pk: {name, role, default_rate, current_rate}} für das Template."""
+    from apps.core.models import Lookup
+    role_labels = {e["value"]: e["label"] for e in Lookup.entries_for("user_role")}
     data = {}
     for user in form.fields["team_members"].queryset:
         data[str(user.pk)] = {
             "name": user.get_full_name() or user.username,
-            "role": user.get_role_display(),
+            "role": role_labels.get(user.role, user.role),
             "default_rate": float(user.default_hourly_rate) if user.default_hourly_rate is not None else None,
             "current_rate": None,
         }
@@ -84,6 +89,15 @@ def _save_member_rates(request, project, team_members) -> None:
 
 class CRMMixin(LoginRequiredMixin):
     login_url = "/auth/login/"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        from apps.core.models import Lookup
+        ctx["company_colors"] = {
+            e["value"]: e["color"] for e in Lookup.entries_for("company")
+        }
+        ctx["companies"] = Lookup.entries_for("company")
+        return ctx
 
 
 class AdminOrLeadMixin(CRMMixin, UserPassesTestMixin):
@@ -211,12 +225,7 @@ class ProjectListView(CRMMixin, ListView):
     paginate_by         = 25
 
     def _base_qs(self):
-        user = self.request.user
-        if user.is_admin:
-            qs = Project.objects.all()
-        else:
-            qs = (Project.objects.filter(team_lead=user) | user.assigned_projects.all()).distinct()
-        return qs.select_related("account", "team_lead")
+        return Project.objects.all().select_related("account", "team_lead")
 
     def get_queryset(self):
         qs = self._base_qs().exclude(status__in=Project.ARCHIVED_STATUSES).order_by("-created_at")
@@ -229,13 +238,19 @@ class ProjectListView(CRMMixin, ListView):
         if status:
             qs = qs.filter(status=status)
 
+        if self.request.GET.get("mine") == "1":
+            user = self.request.user
+            qs = qs.filter(
+                Q(team_lead=user) | Q(team_members=user)
+            )
+
         return qs.distinct()
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["q"]             = self.request.GET.get("q", "")
         ctx["status_filter"] = self.request.GET.get("status", "")
-        # Nur aktive Status im Filter anbieten
+        ctx["mine_filter"]   = self.request.GET.get("mine", "")
         ctx["status_choices"] = [
             (v, l) for v, l in Project.Status.choices
             if v not in Project.ARCHIVED_STATUSES
@@ -250,12 +265,7 @@ class ProjectArchiveView(CRMMixin, TemplateView):
     template_name = "crm/project_archive.html"
 
     def _base_qs(self):
-        user = self.request.user
-        if user.is_admin:
-            qs = Project.objects.all()
-        else:
-            qs = (Project.objects.filter(team_lead=user) | user.assigned_projects.all()).distinct()
-        return qs.select_related("account", "team_lead")
+        return Project.objects.all().select_related("account", "team_lead")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -514,6 +524,10 @@ class KanbanView(CRMMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
+        from apps.core.models import Lookup
+        company_colors = {e["value"]: e["color"] for e in Lookup.entries_for("company")}
+        company_labels = {e["value"]: e["label"] for e in Lookup.entries_for("company")}
+
         projects = list(
             Project.objects
             .exclude(status__in=Project.ARCHIVED_STATUSES)
@@ -528,11 +542,15 @@ class KanbanView(CRMMixin, TemplateView):
                 if p.status == col_def["status"]
                 and (not col_def["company"] or p.company == col_def["company"])
             ]
-            columns.append({
-                **col_def,
-                "projects": col_projects,
-                "count":    len(col_projects),
-            })
+            col = {**col_def, "projects": col_projects, "count": len(col_projects)}
+            # Override label and dot color for company columns using Lookup brand colors
+            if col_def["company"]:
+                brand_color = company_colors.get(col_def["company"], "")
+                col["brand_color"] = brand_color
+                col["label"] = company_labels.get(col_def["company"], col_def["label"])
+            else:
+                col["brand_color"] = ""
+            columns.append(col)
 
         ctx["columns"] = columns
         return ctx
@@ -589,11 +607,22 @@ class DocumentUploadView(AdminOrLeadMixin, View):
 
         title = request.POST.get("title", "").strip() or uploaded.name
 
+        # Net amount for invoices (optional in generic upload)
+        net_amount = None
+        if doc_type == Document.DocumentType.INVOICE:
+            raw = request.POST.get("net_amount", "").strip()
+            if raw:
+                try:
+                    net_amount = Decimal(raw.replace(",", "."))
+                except InvalidOperation:
+                    pass
+
         doc = Document.objects.create(
             project=project,
             document_type=doc_type,
             title=title,
             file=uploaded,
+            net_amount=net_amount,
             uploaded_by=request.user,
         )
 
@@ -614,6 +643,157 @@ class DocumentUploadView(AdminOrLeadMixin, View):
             messages.success(request, "Dokument gespeichert.")
 
         return redirect("crm:project_detail", pk=pk)
+
+
+class ProjectInvoiceCreateView(AdminOrLeadMixin, View):
+    """
+    Rechnung stellen: Erstellt ein Rechnungsdokument, trägt den Nettobetrag ein
+    und setzt das Projekt auf 'Abgeschlossen'.
+
+    Wenn ein Lexoffice API-Key für das Unternehmen des Projekts hinterlegt ist,
+    wird die Rechnung direkt in Lexoffice erstellt und das PDF automatisch heruntergeladen.
+    Andernfalls kann das PDF manuell hochgeladen werden.
+
+    Nur erreichbar wenn project.status == 'invoiced'.
+    """
+    template_name = "crm/project_invoice_form.html"
+
+    def _get_project(self, pk):
+        return get_object_or_404(Project, pk=pk)
+
+    @staticmethod
+    def _lexoffice_configured(project) -> bool:
+        from apps.core.models import CompanyCredential
+        return bool(CompanyCredential.get_lexoffice_key(project.company))
+
+    def get(self, request, pk):
+        project = self._get_project(pk)
+        if project.status != Project.Status.INVOICED:
+            messages.error(request, "Rechnung kann nur für Projekte im Status 'Rechnung' gestellt werden.")
+            return redirect("crm:project_detail", pk=pk)
+        return render(request, self.template_name, self._ctx(project))
+
+    def post(self, request, pk):
+        import datetime as _dt
+        project = self._get_project(pk)
+        if project.status != Project.Status.INVOICED:
+            messages.error(request, "Ungültiger Status.")
+            return redirect("crm:project_detail", pk=pk)
+
+        use_lexoffice = self._lexoffice_configured(project)
+
+        # ── Eingabe validieren ─────────────────────────────────────────────
+        errors = {}
+        title = request.POST.get("title", "").strip()
+        if not title:
+            errors["title"] = "Pflichtfeld."
+
+        raw_amount = request.POST.get("net_amount", "").strip().replace(",", ".")
+        net_amount = None
+        try:
+            net_amount = Decimal(raw_amount)
+            if net_amount <= 0:
+                errors["net_amount"] = "Betrag muss größer als 0 sein."
+        except InvalidOperation:
+            errors["net_amount"] = "Ungültiger Betrag."
+
+        raw_date = request.POST.get("document_date", "").strip()
+        document_date = None
+        try:
+            document_date = _dt.date.fromisoformat(raw_date)
+        except ValueError:
+            errors["document_date"] = "Ungültiges Datum."
+
+        uploaded = request.FILES.get("file")
+        if not use_lexoffice and not uploaded:
+            errors["file"] = "Bitte PDF hochladen."
+
+        payment_term_days = 30
+        try:
+            payment_term_days = int(request.POST.get("payment_term_days", 30))
+        except ValueError:
+            pass
+
+        if errors:
+            return render(request, self.template_name, {
+                **self._ctx(project),
+                "errors": errors,
+                "post": request.POST,
+            })
+
+        # ── Lexoffice-Anbindung ────────────────────────────────────────────
+        lexoffice_invoice_id = ""
+        lexoffice_doc_number = request.POST.get("lexoffice_document_number", "").strip()
+        pdf_content = None
+
+        if use_lexoffice:
+            from apps.core.lexoffice import LexofficeError, get_client_for_company
+            try:
+                client = get_client_for_company(project.company)
+                lexoffice_invoice_id, lexoffice_doc_number = client.create_invoice(
+                    customer_name=project.account.name if project.account else title,
+                    line_description=title,
+                    net_amount=net_amount,
+                    invoice_date=document_date,
+                    customer_lexoffice_id=(
+                        project.account.lexoffice_id
+                        if project.account and project.account.lexoffice_id else None
+                    ),
+                    payment_term_days=payment_term_days,
+                )
+                pdf_content = client.get_invoice_pdf(lexoffice_invoice_id)
+            except LexofficeError as exc:
+                logger.error("Lexoffice Fehler für Projekt %s: %s", project.pk, exc)
+                return render(request, self.template_name, {
+                    **self._ctx(project),
+                    "lexoffice_error": str(exc),
+                    "post": request.POST,
+                })
+
+        # ── Dokument speichern ─────────────────────────────────────────────
+        from django.core.files.base import ContentFile
+
+        doc_kwargs = dict(
+            project=project,
+            document_type=Document.DocumentType.INVOICE,
+            title=title,
+            net_amount=net_amount,
+            gross_amount=net_amount * Decimal("1.19"),
+            document_date=document_date,
+            lexoffice_id=lexoffice_invoice_id,
+            lexoffice_document_number=lexoffice_doc_number,
+            uploaded_by=request.user,
+        )
+
+        if pdf_content:
+            safe_title = "".join(c if c.isalnum() or c in "-_" else "_" for c in title)
+            doc_kwargs["file"] = ContentFile(pdf_content, name=f"{safe_title}.pdf")
+        elif uploaded:
+            doc_kwargs["file"] = uploaded
+
+        Document.objects.create(**doc_kwargs)
+
+        # ── Projektstatus ──────────────────────────────────────────────────
+        project.status = Project.Status.COMPLETED
+        project.save(update_fields=["status"])
+
+        if use_lexoffice and lexoffice_doc_number:
+            msg = f'Rechnung {lexoffice_doc_number} in Lexoffice erstellt und gespeichert. Projekt abgeschlossen.'
+        else:
+            msg = f'Rechnung „{title}" gespeichert. Projekt wurde auf „Abgeschlossen" gesetzt.'
+        messages.success(request, msg)
+        return redirect("crm:project_detail", pk=pk)
+
+    @staticmethod
+    def _ctx(project):
+        import datetime as _dt
+        from apps.core.models import CompanyCredential
+        return {
+            "project": project,
+            "today": _dt.date.today().isoformat(),
+            "page_title": f"Rechnung stellen — {project.name}",
+            "use_lexoffice": bool(CompanyCredential.get_lexoffice_key(project.company)),
+        }
 
 
 class DocumentDeleteView(AdminOrLeadMixin, View):

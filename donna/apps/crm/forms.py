@@ -169,9 +169,13 @@ class ProjectForm(forms.ModelForm):
         self.fields["predecessor_projects"].queryset = predecessors_qs
         self.fields["predecessor_projects"].required = False
 
-        self.fields["company"].choices = [("", "Unternehmen auswählen …")] + Lookup.choices_for("company")
+        company_choices = [("", "Unternehmen auswählen …")] + Lookup.choices_for("company")
+        self.fields["company"].choices = company_choices
+        self.fields["company"].widget.choices = company_choices
         self.fields["company"].required = True
-        self.fields["project_type"].choices = Lookup.choices_for("project_type")
+        project_type_choices = Lookup.choices_for("project_type")
+        self.fields["project_type"].choices = project_type_choices
+        self.fields["project_type"].widget.choices = project_type_choices
 
         # primary_contact ist optional im AccountForm
 

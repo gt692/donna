@@ -1,0 +1,276 @@
+{% extends "dashboard/base.html" %}
+{% load i18n donna_filters %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_heading %}Rechnung stellen{% endblock %}
+{% block page_subheading %}{{ project.name }} · {{ project.account.name }}{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'crm:project_detail' project.pk %}"
+     class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Zurück zum Projekt
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-xl">
+
+  <!-- Lexoffice-Status-Banner -->
+  {% if use_lexoffice %}
+  <div class="mb-5 flex items-start gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-5 py-4">
+    <svg class="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <div>
+      <p class="text-sm font-medium text-emerald-800">Lexoffice verbunden</p>
+      <p class="text-xs text-emerald-600 mt-0.5">
+        Die Rechnung wird automatisch in Lexoffice erstellt, das PDF heruntergeladen und im Projekt gespeichert.
+        Das Projekt wird auf <strong>Abgeschlossen</strong> gesetzt und der Betrag dem Jahresziel angerechnet.
+      </p>
+    </div>
+  </div>
+  {% else %}
+  <div class="mb-5 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
+    <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <div>
+      <p class="text-sm font-medium text-amber-800">Manueller Upload (kein Lexoffice konfiguriert)</p>
+      <p class="text-xs text-amber-600 mt-0.5">
+        Für dieses Unternehmen ist kein Lexoffice API-Key hinterlegt.
+        Bitte Rechnung extern erstellen, als PDF exportieren und hier hochladen.
+        <a href="{% url 'dashboard:company_credential_list' %}" class="underline font-medium">Zugangsdaten konfigurieren →</a>
+      </p>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Lexoffice API-Fehler -->
+  {% if lexoffice_error %}
+  <div class="mb-5 flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-5 py-4">
+    <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <div>
+      <p class="text-sm font-medium text-red-800">Lexoffice-Fehler</p>
+      <p class="text-xs text-red-600 mt-0.5 font-mono">{{ lexoffice_error }}</p>
+      <p class="text-xs text-red-600 mt-1">Bitte API-Key prüfen oder Lexoffice-Status überprüfen.</p>
+    </div>
+  </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+
+    <!-- Rechnungsdetails -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Rechnungsdetails</h3>
+      </div>
+      <div class="px-6 py-5 space-y-4">
+
+        <!-- Bezeichnung / Positionstext -->
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">
+            {% if use_lexoffice %}Positionstext (Rechnungszeile){% else %}Bezeichnung{% endif %}
+            <span class="text-red-500">*</span>
+          </label>
+          <input type="text" name="title"
+                 value="{{ post.title|default:project.name }}"
+                 placeholder="{{ project.name }}"
+                 class="w-full px-3 py-2 rounded-lg border {% if errors.title %}border-red-400{% else %}border-slate-200{% endif %}
+                        bg-white focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent text-sm transition">
+          {% if use_lexoffice %}
+            <p class="mt-1 text-xs text-slate-400">Erscheint als Leistungsbeschreibung auf der Rechnung in Lexoffice.</p>
+          {% endif %}
+          {% if errors.title %}<p class="mt-1 text-xs text-red-600">{{ errors.title }}</p>{% endif %}
+        </div>
+
+        <!-- Belegnummer (nur bei manuellem Upload sinnvoll; bei Lexoffice wird sie automatisch vergeben) -->
+        {% if not use_lexoffice %}
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">
+            Belegnummer
+            <span class="text-xs text-slate-400 font-normal">(optional)</span>
+          </label>
+          <input type="text" name="lexoffice_document_number"
+                 value="{{ post.lexoffice_document_number|default:'' }}"
+                 placeholder="z.B. RE-2026-0042"
+                 class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white
+                        focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent text-sm transition">
+        </div>
+        {% endif %}
+
+        <!-- Rechnungsdatum -->
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">
+            Rechnungsdatum <span class="text-red-500">*</span>
+          </label>
+          <input type="date" name="document_date"
+                 value="{{ post.document_date|default:today }}"
+                 class="w-full px-3 py-2 rounded-lg border {% if errors.document_date %}border-red-400{% else %}border-slate-200{% endif %}
+                        bg-white focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent text-sm transition">
+          {% if errors.document_date %}<p class="mt-1 text-xs text-red-600">{{ errors.document_date }}</p>{% endif %}
+        </div>
+
+        <!-- Nettobetrag -->
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">
+            Nettobetrag (€) <span class="text-red-500">*</span>
+          </label>
+          <div class="relative">
+            <input type="text" name="net_amount" id="id_net_amount"
+                   value="{{ post.net_amount|default:'' }}"
+                   placeholder="z.B. 9600"
+                   class="w-full pr-8 px-3 py-2 rounded-lg border {% if errors.net_amount %}border-red-400{% else %}border-slate-200{% endif %}
+                          bg-white focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent text-sm transition">
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">€</span>
+          </div>
+          <p class="mt-1 text-xs text-slate-400">Netto-Rechnungsbetrag. Brutto (19 % MwSt.) wird automatisch berechnet.</p>
+          {% if errors.net_amount %}<p class="mt-1 text-xs text-red-600">{{ errors.net_amount }}</p>{% endif %}
+          <p id="gross-preview" class="mt-1 text-xs text-slate-500 hidden">
+            Brutto: <span id="gross-value" class="font-semibold text-slate-700"></span> €
+          </p>
+        </div>
+
+        <!-- Zahlungsziel (nur bei Lexoffice relevant) -->
+        {% if use_lexoffice %}
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Zahlungsziel (Tage)</label>
+          <input type="number" name="payment_term_days"
+                 value="{{ post.payment_term_days|default:'30' }}"
+                 min="0" max="365"
+                 class="w-32 px-3 py-2 rounded-lg border border-slate-200 bg-white
+                        focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent text-sm transition">
+          <p class="mt-1 text-xs text-slate-400">Erscheint als Zahlungsbedingung in Lexoffice. Standard: 30 Tage.</p>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+
+    <!-- PDF Upload (nur ohne Lexoffice) -->
+    {% if not use_lexoffice %}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Rechnungs-PDF</h3>
+      </div>
+      <div class="px-6 py-5">
+        <div id="drop-zone"
+             class="border-2 border-dashed {% if errors.file %}border-red-400{% else %}border-slate-300{% endif %}
+                    rounded-xl p-6 text-center cursor-pointer transition-all hover:border-[#1666b0] hover:bg-[#f0f9fe]">
+          <input type="file" name="file" id="file-input" accept=".pdf,application/pdf" class="hidden">
+          <svg id="drop-icon" class="w-10 h-10 mx-auto mb-2 text-slate-300 transition-colors"
+               fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+          </svg>
+          <p id="drop-label" class="text-sm text-slate-500 font-medium">
+            PDF hier ablegen oder <span class="text-[#1666b0] underline">auswählen</span>
+          </p>
+          <p id="drop-filename" class="text-sm text-[#1255a0] font-semibold mt-1 hidden"></p>
+        </div>
+        {% if errors.file %}<p class="mt-2 text-xs text-red-600">{{ errors.file }}</p>{% endif %}
+      </div>
+    </div>
+    {% else %}
+    <!-- Lexoffice-Vorschau -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Lexoffice-Vorschau</h3>
+      </div>
+      <div class="px-6 py-5 space-y-2 text-sm text-slate-600">
+        <div class="flex justify-between">
+          <span class="text-slate-500">Empfänger</span>
+          <span class="font-medium">{{ project.account.name|default:"—" }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Lexoffice-Kontakt-ID</span>
+          <span class="font-mono text-xs {% if project.account.lexoffice_id %}text-slate-600{% else %}text-slate-300{% endif %}">
+            {{ project.account.lexoffice_id|default:"— wird als neuer Kontakt angelegt" }}
+          </span>
+        </div>
+        <p class="text-xs text-slate-400 pt-2 border-t border-slate-100">
+          Belegnummer und finale Rechnungs-PDF werden von Lexoffice vergeben und automatisch gespeichert.
+        </p>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="flex items-center justify-between">
+      <a href="{% url 'crm:project_detail' project.pk %}"
+         class="text-sm text-slate-500 hover:text-slate-700 transition">Abbrechen</a>
+      <button type="submit"
+              class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white
+                     font-medium text-sm px-6 py-2.5 rounded-lg transition
+                     focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        {% if use_lexoffice %}In Lexoffice erstellen & Projekt abschließen{% else %}Rechnung speichern & Projekt abschließen{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  // Drag & Drop / Datei-Auswahl (nur bei manuellem Upload)
+  const zone     = document.getElementById('drop-zone');
+  const input    = document.getElementById('file-input');
+  if (zone && input) {
+    const label    = document.getElementById('drop-label');
+    const icon     = document.getElementById('drop-icon');
+    const filename = document.getElementById('drop-filename');
+
+    zone.addEventListener('click', () => input.click());
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('border-[#1666b0]', 'bg-[#f0f9fe]'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('border-[#1666b0]', 'bg-[#f0f9fe]'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('border-[#1666b0]', 'bg-[#f0f9fe]');
+      if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+    });
+    input.addEventListener('change', () => { if (input.files.length) setFile(input.files[0]); });
+
+    function setFile(file) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      icon.classList.add('text-emerald-500');
+      icon.classList.remove('text-slate-300');
+      label.classList.add('hidden');
+      filename.textContent = file.name;
+      filename.classList.remove('hidden');
+    }
+  }
+
+  // Brutto-Vorschau
+  const netInput     = document.getElementById('id_net_amount');
+  const grossPreview = document.getElementById('gross-preview');
+  const grossValue   = document.getElementById('gross-value');
+
+  if (netInput) {
+    netInput.addEventListener('input', () => {
+      const net = parseFloat(netInput.value.replace(',', '.'));
+      if (net > 0) {
+        const gross = (net * 1.19).toFixed(2);
+        grossValue.textContent = parseFloat(gross).toLocaleString('de-DE', {minimumFractionDigits: 2});
+        grossPreview.classList.remove('hidden');
+      } else {
+        grossPreview.classList.add('hidden');
+      }
+    });
+  }
+})();
+</script>
+{% endblock %}
