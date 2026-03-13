@@ -179,6 +179,7 @@ JAZZMIN_SETTINGS = {
     # Layout
     "show_ui_builder":      False,
     "navigation_expanded":  True,
+    "hide_apps":            ["auth", "otp_static", "otp_totp"],
     "order_with_respect_to": [
         "core", "core.User",
         "crm", "crm.Account", "crm.Contact", "crm.Project", "crm.Document",
