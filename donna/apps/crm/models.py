@@ -6,10 +6,13 @@ Storage-Path-Anbindung und Dokument-Pfad-Speicherung.
 """
 from __future__ import annotations
 
+import datetime
 import uuid
+from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 
@@ -652,3 +655,158 @@ class Document(models.Model):
 
     def __str__(self) -> str:
         return f"{self.get_document_type_display()} – {self.title} ({self.project})"
+
+
+# ---------------------------------------------------------------------------
+# ProjectActivity — Aktivitäten-Timeline pro Projekt
+# ---------------------------------------------------------------------------
+
+class ProjectActivity(models.Model):
+    class ActivityType(models.TextChoices):
+        CALL     = "call",     _("Telefonat")
+        MEETING  = "meeting",  _("Meeting")
+        EMAIL    = "email",    _("E-Mail-Verweis")
+        NOTE     = "note",     _("Notiz")
+        DOCUMENT = "document", _("Dokument")
+
+    id            = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project       = models.ForeignKey("Project", on_delete=models.CASCADE, related_name="activities")
+    activity_type = models.CharField(max_length=20, choices=ActivityType.choices)
+    title         = models.CharField(max_length=255, verbose_name=_("Titel"))
+    body          = models.TextField(blank=True, verbose_name=_("Inhalt"))
+    attachment    = models.FileField(upload_to="activity_attachments/", null=True, blank=True, verbose_name=_("Dateianhang"))
+    occurred_at   = models.DateTimeField(default=timezone.now, verbose_name=_("Datum / Uhrzeit"))
+    created_by    = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="created_activities",
+        verbose_name=_("Erstellt von"),
+    )
+    created_at    = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-occurred_at"]
+        verbose_name = _("Projektaktivität")
+        verbose_name_plural = _("Projektaktivitäten")
+
+    def __str__(self) -> str:
+        return f"{self.get_activity_type_display()} — {self.title}"
+
+
+# ---------------------------------------------------------------------------
+# Offer + OfferItem — PDF-Angebote
+# ---------------------------------------------------------------------------
+
+class Offer(models.Model):
+    class Status(models.TextChoices):
+        DRAFT    = "draft",    "Entwurf"
+        SENT     = "sent",     "Versendet"
+        ACCEPTED = "accepted", "Beauftragt"
+        REJECTED = "rejected", "Abgelehnt"
+
+    id           = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    offer_number = models.CharField(max_length=20, unique=True, blank=True)
+    project      = models.ForeignKey(
+        "Project",
+        on_delete=models.PROTECT,
+        related_name="offers",
+        verbose_name=_("Projekt"),
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.DRAFT,
+        verbose_name=_("Status"),
+    )
+    title        = models.CharField(max_length=255, verbose_name=_("Titel"))
+    intro_text   = models.TextField(blank=True, verbose_name=_("Einleitungstext"))
+    closing_text = models.TextField(blank=True, verbose_name=_("Schlusstext"))
+    tax_rate     = models.DecimalField(
+        max_digits=5, decimal_places=2, default=Decimal("19.00"),
+        verbose_name=_("MwSt. (%)"),
+    )
+    valid_until  = models.DateField(null=True, blank=True, verbose_name=_("Gültig bis"))
+    offer_date   = models.DateField(default=datetime.date.today, verbose_name=_("Angebotsdatum"))
+
+    recipient_name    = models.CharField(max_length=255, blank=True, verbose_name=_("Empfänger Name"))
+    recipient_email   = models.EmailField(blank=True, verbose_name=_("Empfänger E-Mail"))
+    recipient_address = models.TextField(blank=True, verbose_name=_("Empfänger Adresse"))
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="created_offers",
+        verbose_name=_("Erstellt von"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering        = ["-offer_date", "-created_at"]
+        verbose_name    = "Angebot"
+        verbose_name_plural = "Angebote"
+
+    def save(self, *args, **kwargs):
+        if not self.offer_number:
+            from django.db import transaction
+            with transaction.atomic():
+                last = (
+                    Offer.objects
+                    .select_for_update()
+                    .filter(offer_number__regex=r"^ANG-\d+$")
+                    .order_by("-offer_number")
+                    .values_list("offer_number", flat=True)
+                    .first()
+                )
+                num = (int(last.split("-")[1]) + 1) if last else 1
+                self.offer_number = f"ANG-{num:05d}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.offer_number} — {self.title}"
+
+    @property
+    def net_total(self):
+        return sum((item.net_amount for item in self.items.all()), Decimal("0.00"))
+
+    @property
+    def tax_amount(self):
+        return (self.net_total * self.tax_rate / Decimal("100")).quantize(Decimal("0.01"))
+
+    @property
+    def gross_total(self):
+        return self.net_total + self.tax_amount
+
+
+class OfferItem(models.Model):
+    offer       = models.ForeignKey(
+        Offer,
+        on_delete=models.CASCADE,
+        related_name="items",
+        verbose_name=_("Angebot"),
+    )
+    position    = models.PositiveSmallIntegerField(default=1, verbose_name=_("Position"))
+    description = models.TextField(verbose_name=_("Beschreibung"))
+    quantity    = models.DecimalField(
+        max_digits=8, decimal_places=2, default=Decimal("1"),
+        verbose_name=_("Menge"),
+    )
+    unit       = models.CharField(
+        max_length=50, blank=True, default="pauschal",
+        verbose_name=_("Einheit"),
+    )
+    unit_price = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        verbose_name=_("Einzelpreis (€ netto)"),
+    )
+
+    class Meta:
+        ordering     = ["position"]
+        verbose_name = _("Angebotsposition")
+        verbose_name_plural = _("Angebotspositionen")
+
+    @property
+    def net_amount(self):
+        return (self.quantity * self.unit_price).quantize(Decimal("0.01"))

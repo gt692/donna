@@ -1,0 +1,119 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Angebote{% endblock %}
+{% block page_heading %}Angebote{% endblock %}
+{% block page_subheading %}Alle Angebote im System{% endblock %}
+
+{% block content %}
+
+<!-- Filter -->
+<form method="get" class="mb-5 flex items-center gap-3">
+  <input type="text" name="q" value="{{ q }}" placeholder="Suche nach Nummer, Titel, Projekt …"
+         class="w-72 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm
+                focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent transition">
+  <select name="status"
+          class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm cursor-pointer
+                 focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent transition">
+    <option value="">Alle Status</option>
+    {% for val, label in status_choices %}
+      <option value="{{ val }}" {% if val == status_filter %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit"
+          class="px-4 py-2 bg-[#1666b0] hover:bg-[#1255a0] text-white text-sm font-medium rounded-lg transition">
+    Filtern
+  </button>
+  {% if q or status_filter %}
+    <a href="{% url 'crm:offer_list' %}"
+       class="text-sm text-slate-500 hover:text-slate-700 transition">Zurücksetzen</a>
+  {% endif %}
+</form>
+
+<!-- Tabelle -->
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  {% if offers %}
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="bg-slate-50 border-b border-slate-200">
+        <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Nummer</th>
+        <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Titel</th>
+        <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Projekt</th>
+        <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Datum</th>
+        <th class="px-5 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Betrag (brutto)</th>
+        <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for offer in offers %}
+      <tr class="hover:bg-slate-50 transition">
+        <td class="px-5 py-3">
+          <a href="{% url 'crm:offer_detail' offer.pk %}"
+             class="font-mono text-xs text-[#1666b0] hover:text-[#0d4f8c] transition font-semibold">
+            {{ offer.offer_number }}
+          </a>
+        </td>
+        <td class="px-5 py-3 text-slate-700 font-medium max-w-xs truncate">
+          <a href="{% url 'crm:offer_detail' offer.pk %}"
+             class="hover:text-[#1666b0] transition">{{ offer.title }}</a>
+        </td>
+        <td class="px-5 py-3">
+          <a href="{% url 'crm:project_detail' offer.project.pk %}"
+             class="text-slate-500 hover:text-[#1666b0] transition text-xs">
+            {{ offer.project.project_number }} · {{ offer.project.name }}
+          </a>
+        </td>
+        <td class="px-5 py-3 text-slate-500 text-xs">{{ offer.offer_date|date:"d.m.Y" }}</td>
+        <td class="px-5 py-3 text-right font-mono font-semibold text-slate-700">
+          {{ offer.gross_total|floatformat:2 }} €
+        </td>
+        <td class="px-5 py-3">
+          {% with s=offer.status %}
+            {% if s == "draft" %}
+              <span class="text-xs font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">Entwurf</span>
+            {% elif s == "sent" %}
+              <span class="text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Versendet</span>
+            {% elif s == "accepted" %}
+              <span class="text-xs font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Beauftragt</span>
+            {% elif s == "rejected" %}
+              <span class="text-xs font-semibold bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Abgelehnt</span>
+            {% endif %}
+          {% endwith %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if is_paginated %}
+  <div class="px-5 py-4 border-t border-slate-100 flex items-center justify-between text-sm">
+    <span class="text-slate-400">Seite {{ page_obj.number }} von {{ page_obj.paginator.num_pages }}</span>
+    <div class="flex gap-2">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&q={{ q }}&status={{ status_filter }}"
+           class="px-3 py-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 transition">
+          Zurück
+        </a>
+      {% endif %}
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&q={{ q }}&status={{ status_filter }}"
+           class="px-3 py-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 transition">
+          Weiter
+        </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="px-5 py-12 text-center text-slate-400">
+    <svg class="w-10 h-10 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+    </svg>
+    <p class="text-sm font-medium">Keine Angebote gefunden</p>
+    <p class="text-xs mt-1">Angebote werden aus der Projekt-Detailseite heraus erstellt.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

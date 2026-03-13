@@ -1,0 +1,252 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}{{ offer.offer_number }}{% endblock %}
+{% block page_heading %}{{ offer.offer_number }}{% endblock %}
+{% block page_subheading %}<a href="{% url 'crm:project_detail' offer.project.pk %}" class="hover:text-slate-600 transition">{{ offer.project.name }}</a>{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'crm:offer_pdf' offer.pk %}" target="_blank"
+     class="flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50
+            text-slate-700 font-medium text-sm px-4 py-2 rounded-lg transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+    </svg>
+    PDF anzeigen
+  </a>
+
+  {% if request.user.can_approve_time_entries %}
+    {% if offer.status == "draft" or offer.status == "sent" %}
+      <form method="post" action="{% url 'crm:offer_send' offer.pk %}">
+        {% csrf_token %}
+        <button type="submit"
+                class="flex items-center gap-2 bg-[#1666b0] hover:bg-[#1255a0] text-white
+                       font-medium text-sm px-4 py-2 rounded-lg transition"
+                {% if not offer.recipient_email %}title="Kein Empfänger hinterlegt" disabled{% endif %}>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+          </svg>
+          Per E-Mail senden
+        </button>
+      </form>
+    {% endif %}
+
+    <a href="{% url 'crm:offer_edit' offer.pk %}"
+       class="flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50
+              text-slate-700 font-medium text-sm px-4 py-2 rounded-lg transition">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+      </svg>
+      Bearbeiten
+    </a>
+
+    {% if offer.status == "draft" %}
+      <form method="post" action="{% url 'crm:offer_delete' offer.pk %}"
+            onsubmit="return confirm('Angebot {{ offer.offer_number }} wirklich löschen?')">
+        {% csrf_token %}
+        <button type="submit"
+                class="flex items-center gap-2 border border-red-200 bg-white hover:bg-red-50
+                       text-red-600 font-medium text-sm px-4 py-2 rounded-lg transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+          Löschen
+        </button>
+      </form>
+    {% endif %}
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-3 gap-6">
+
+  <!-- ── Linke Spalte: Positionen ──────────────────────────── -->
+  <div class="col-span-2 space-y-5">
+
+    <!-- Einleitungstext -->
+    {% if offer.intro_text %}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Einleitungstext</h3>
+      <p class="text-sm text-slate-700 whitespace-pre-wrap">{{ offer.intro_text }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Positionen -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-100">
+        <h2 class="text-sm font-semibold text-slate-700">Positionen</h2>
+      </div>
+      {% if items %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200">
+              <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide w-12">Nr.</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Beschreibung</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide w-24">Menge</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide w-24">Einheit</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide w-32">Einzelpreis</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide w-32">Gesamtpreis</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for item in items %}
+            <tr class="hover:bg-slate-50 transition">
+              <td class="px-4 py-3 text-slate-400 text-center font-mono text-xs">{{ item.position }}</td>
+              <td class="px-4 py-3 text-slate-700 whitespace-pre-wrap">{{ item.description }}</td>
+              <td class="px-4 py-3 text-right text-slate-600 font-mono">{{ item.quantity|floatformat:2 }}</td>
+              <td class="px-4 py-3 text-slate-500">{{ item.unit }}</td>
+              <td class="px-4 py-3 text-right text-slate-600 font-mono">{{ item.unit_price|floatformat:2 }} €</td>
+              <td class="px-4 py-3 text-right text-slate-800 font-semibold font-mono">{{ item.net_amount|floatformat:2 }} €</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <!-- Summen -->
+      <div class="border-t border-slate-200 px-5 py-4">
+        <div class="flex justify-end">
+          <div class="w-64 space-y-1.5 text-sm">
+            <div class="flex justify-between">
+              <span class="text-slate-500">Nettobetrag</span>
+              <span class="font-mono font-medium text-slate-700">{{ net_total|floatformat:2 }} €</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">MwSt. {{ offer.tax_rate|floatformat:2 }} %</span>
+              <span class="font-mono font-medium text-slate-700">{{ tax_amount|floatformat:2 }} €</span>
+            </div>
+            <div class="flex justify-between pt-2 border-t border-slate-200 text-base font-bold">
+              <span class="text-slate-800">Bruttobetrag</span>
+              <span class="font-mono text-[#1666b0]">{{ gross_total|floatformat:2 }} €</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="px-5 py-8 text-center text-slate-400 text-sm">Noch keine Positionen.</div>
+      {% endif %}
+    </div>
+
+    <!-- Schlusstext -->
+    {% if offer.closing_text %}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Schlusstext</h3>
+      <p class="text-sm text-slate-700 whitespace-pre-wrap">{{ offer.closing_text }}</p>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- ── Rechte Spalte: Metadaten ───────────────────────────── -->
+  <div class="space-y-5">
+
+    <!-- Status & Details -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Details</h3>
+      <dl class="space-y-2.5 text-sm">
+        <div class="flex justify-between items-center">
+          <dt class="text-slate-500">Status</dt>
+          <dd>
+            {% with s=offer.status %}
+              {% if s == "draft" %}<span class="text-xs font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">Entwurf</span>
+              {% elif s == "sent" %}<span class="text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Versendet</span>
+              {% elif s == "accepted" %}<span class="text-xs font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Beauftragt</span>
+              {% elif s == "rejected" %}<span class="text-xs font-semibold bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Abgelehnt</span>
+              {% endif %}
+            {% endwith %}
+          </dd>
+        </div>
+        <div class="flex justify-between">
+          <dt class="text-slate-500">Nummer</dt>
+          <dd class="font-mono text-xs text-slate-600">{{ offer.offer_number }}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt class="text-slate-500">Datum</dt>
+          <dd class="text-slate-700">{{ offer.offer_date|date:"d.m.Y" }}</dd>
+        </div>
+        {% if offer.valid_until %}
+        <div class="flex justify-between">
+          <dt class="text-slate-500">Gültig bis</dt>
+          <dd class="text-slate-700">{{ offer.valid_until|date:"d.m.Y" }}</dd>
+        </div>
+        {% endif %}
+        <div class="flex justify-between">
+          <dt class="text-slate-500">MwSt.</dt>
+          <dd class="text-slate-700">{{ offer.tax_rate|floatformat:2 }} %</dd>
+        </div>
+        {% if offer.created_by %}
+        <div class="flex justify-between">
+          <dt class="text-slate-500">Erstellt von</dt>
+          <dd class="text-slate-700">{{ offer.created_by.get_full_name }}</dd>
+        </div>
+        {% endif %}
+      </dl>
+    </div>
+
+    <!-- Empfänger -->
+    {% if offer.recipient_name or offer.recipient_email or offer.recipient_address %}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Empfänger</h3>
+      <div class="text-sm space-y-1">
+        {% if offer.recipient_name %}
+          <p class="font-medium text-slate-700">{{ offer.recipient_name }}</p>
+        {% endif %}
+        {% if offer.recipient_address %}
+          <p class="text-slate-500 whitespace-pre-line">{{ offer.recipient_address }}</p>
+        {% endif %}
+        {% if offer.recipient_email %}
+          <a href="mailto:{{ offer.recipient_email }}"
+             class="text-[#1666b0] hover:text-[#0d4f8c] transition">{{ offer.recipient_email }}</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Status-Wechsel -->
+    {% if request.user.can_approve_time_entries %}
+    {% if offer.status == "sent" %}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Status aktualisieren</h3>
+      <div class="space-y-2">
+        <form method="post" action="{% url 'crm:offer_status' offer.pk %}">
+          {% csrf_token %}
+          <input type="hidden" name="status" value="accepted">
+          <button type="submit"
+                  class="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-medium
+                         py-2 rounded-lg transition">
+            Beauftragt markieren
+          </button>
+        </form>
+        <form method="post" action="{% url 'crm:offer_status' offer.pk %}">
+          {% csrf_token %}
+          <input type="hidden" name="status" value="rejected">
+          <button type="submit"
+                  class="w-full bg-red-500 hover:bg-red-600 text-white text-sm font-medium
+                         py-2 rounded-lg transition">
+            Abgelehnt markieren
+          </button>
+        </form>
+      </div>
+    </div>
+    {% elif offer.status == "draft" %}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Status aktualisieren</h3>
+      <form method="post" action="{% url 'crm:offer_status' offer.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="status" value="sent">
+        <button type="submit"
+                class="w-full bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium
+                       py-2 rounded-lg transition">
+          Als versendet markieren
+        </button>
+      </form>
+    </div>
+    {% endif %}
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

@@ -2,10 +2,11 @@
 crm/forms.py
 """
 from django import forms
+from django.forms import inlineformset_factory
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import Lookup
-from .models import Account, Contact, Project
+from .models import Account, Contact, Offer, OfferItem, Project
 
 _INPUT = (
     "w-full px-3 py-2 rounded-lg border border-slate-200 bg-white "
@@ -186,3 +187,75 @@ class ProjectForm(forms.ModelForm):
                   "storage_path", "lexoffice_id",
                   "start_date", "end_date", "description"):
             self.fields[f].required = False
+
+
+# ---------------------------------------------------------------------------
+# Offer Forms
+# ---------------------------------------------------------------------------
+
+class OfferForm(forms.ModelForm):
+    class Meta:
+        model  = Offer
+        fields = [
+            "title", "offer_date", "valid_until", "tax_rate",
+            "intro_text", "closing_text",
+            "recipient_name", "recipient_email", "recipient_address",
+        ]
+        widgets = {
+            "title":            forms.TextInput(attrs={"class": _INPUT, "placeholder": "Angebotstitel"}),
+            "offer_date":       forms.DateInput(attrs={"class": _INPUT, "type": "date"}, format="%Y-%m-%d"),
+            "valid_until":      forms.DateInput(attrs={"class": _INPUT, "type": "date"}, format="%Y-%m-%d"),
+            "tax_rate":         forms.NumberInput(attrs={"class": _INPUT, "step": "0.01"}),
+            "intro_text":       forms.Textarea(attrs={"class": _INPUT, "rows": 3, "placeholder": "Einleitungstext …"}),
+            "closing_text":     forms.Textarea(attrs={"class": _INPUT, "rows": 3, "placeholder": "Schlusstext …"}),
+            "recipient_name":   forms.TextInput(attrs={"class": _INPUT, "placeholder": "Empfänger Name"}),
+            "recipient_email":  forms.EmailInput(attrs={"class": _INPUT, "placeholder": "empfaenger@beispiel.de"}),
+            "recipient_address": forms.Textarea(attrs={"class": _INPUT, "rows": 3, "placeholder": "Straße, Nr.\nPLZ Ort"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["valid_until"].required = False
+        self.fields["intro_text"].required = False
+        self.fields["closing_text"].required = False
+        self.fields["recipient_name"].required = False
+        self.fields["recipient_email"].required = False
+        self.fields["recipient_address"].required = False
+
+
+class OfferItemForm(forms.ModelForm):
+    class Meta:
+        model  = OfferItem
+        fields = ["position", "description", "quantity", "unit", "unit_price"]
+        widgets = {
+            "position":    forms.NumberInput(attrs={
+                "class": "w-16 px-2 py-1.5 text-sm rounded border border-slate-200 text-center",
+                "min": "1",
+            }),
+            "description": forms.Textarea(attrs={
+                "class": "w-full px-2 py-1.5 text-sm rounded border border-slate-200 resize-none",
+                "rows": 2,
+                "placeholder": "Leistungsbeschreibung …",
+            }),
+            "quantity":    forms.NumberInput(attrs={
+                "class": "w-24 px-2 py-1.5 text-sm rounded border border-slate-200 text-right item-qty",
+                "step": "0.01", "min": "0",
+            }),
+            "unit":        forms.TextInput(attrs={
+                "class": "w-28 px-2 py-1.5 text-sm rounded border border-slate-200",
+                "placeholder": "pauschal",
+            }),
+            "unit_price":  forms.NumberInput(attrs={
+                "class": "w-32 px-2 py-1.5 text-sm rounded border border-slate-200 text-right item-price",
+                "step": "0.01", "min": "0",
+            }),
+        }
+
+
+OfferItemFormSet = inlineformset_factory(
+    Offer,
+    OfferItem,
+    form=OfferItemForm,
+    extra=1,
+    can_delete=True,
+)

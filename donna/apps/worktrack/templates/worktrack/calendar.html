@@ -1,0 +1,53 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}Kalender{% endblock %}
+{% block page_heading %}Kalender{% endblock %}
+
+{% block extra_head %}
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css' rel='stylesheet' />
+{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl border border-slate-200 p-6">
+  <div id="calendar"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales/de.global.min.js'></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var calendarEl = document.getElementById('calendar');
+  var calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'timeGridWeek',
+    locale: 'de',
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'dayGridMonth,timeGridWeek,timeGridDay'
+    },
+    height: 'auto',
+    events: function(info, successCallback, failureCallback) {
+      fetch(`{% url 'worktrack:calendar_events' %}?start=${info.startStr}&end=${info.endStr}`)
+        .then(function(r) { return r.json(); })
+        .then(function(data) { successCallback(data); })
+        .catch(failureCallback);
+    },
+    eventClick: function(info) {
+      var props = info.event.extendedProps;
+      var statusLabels = { approved: 'Freigegeben', submitted: 'Eingereicht', draft: 'Entwurf', rejected: 'Abgelehnt' };
+      var statusLabel = statusLabels[props.status] || props.status;
+      alert(
+        info.event.title + '\n\n' +
+        'Status: ' + statusLabel + '\n' +
+        'Dauer: ' + props.duration_hours + ' h\n' +
+        (props.description ? 'Tätigkeit: ' + props.description : '')
+      );
+    }
+  });
+  calendar.render();
+});
+</script>
+{% endblock %}

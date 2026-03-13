@@ -30,8 +30,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponse, JsonResponse
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView, View
 
-from .forms import AccountForm, ContactForm, ProjectForm
-from .models import Account, CompanyProjectTypeMapping, Contact, Document, Project, ProjectBudgetExtension, ProjectMemberRate
+from .forms import AccountForm, ContactForm, OfferForm, OfferItemFormSet, ProjectForm
+from .models import Account, CompanyProjectTypeMapping, Contact, Document, Offer, OfferItem, Project, ProjectActivity, ProjectBudgetExtension, ProjectMemberRate
 
 
 # ---------------------------------------------------------------------------
@@ -424,6 +424,8 @@ class ProjectDetailView(CRMMixin, DetailView):
             if project.budget_hours else None
         )
         ctx["today"]                   = datetime.date.today().isoformat()
+        ctx["activities"]              = project.activities.select_related("created_by").order_by("-occurred_at")[:50]
+        ctx["activity_types"]          = ProjectActivity.ActivityType.choices
         return ctx
 
 
@@ -825,6 +827,67 @@ class DocumentServeView(CRMMixin, View):
 
 
 # ---------------------------------------------------------------------------
+# Aktivitäten-Timeline (POST-only)
+# ---------------------------------------------------------------------------
+
+class ProjectActivityCreateView(LoginRequiredMixin, View):
+    """Legt eine neue Projektaktivität an (POST-only)."""
+
+    login_url = "/auth/login/"
+
+    def post(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
+
+        activity_type = request.POST.get("activity_type", "").strip()
+        title         = request.POST.get("title", "").strip()
+        body          = request.POST.get("body", "").strip()
+        occurred_at   = request.POST.get("occurred_at", "").strip()
+        attachment    = request.FILES.get("attachment")
+
+        if not title or activity_type not in ProjectActivity.ActivityType.values:
+            messages.error(request, "Ungültige Eingabe. Typ und Titel sind Pflichtfelder.")
+            return redirect("crm:project_detail", pk=pk)
+
+        import datetime as _dt
+        try:
+            occurred_at_dt = _dt.datetime.fromisoformat(occurred_at) if occurred_at else _dt.datetime.now()
+        except ValueError:
+            occurred_at_dt = _dt.datetime.now()
+
+        activity = ProjectActivity(
+            project=project,
+            activity_type=activity_type,
+            title=title,
+            body=body,
+            occurred_at=occurred_at_dt,
+            created_by=request.user,
+        )
+        if attachment:
+            activity.attachment = attachment
+        activity.save()
+
+        messages.success(request, f'Aktivität „{title}" wurde gespeichert.')
+        return redirect("crm:project_detail", pk=pk)
+
+
+class ProjectActivityDeleteView(LoginRequiredMixin, View):
+    """Löscht eine Projektaktivität — nur für Ersteller oder Staff."""
+
+    login_url = "/auth/login/"
+
+    def post(self, request, pk, act_pk):
+        activity = get_object_or_404(ProjectActivity, pk=act_pk, project_id=pk)
+        if activity.created_by != request.user and not request.user.is_staff:
+            messages.error(request, "Keine Berechtigung zum Löschen dieser Aktivität.")
+            return redirect("crm:project_detail", pk=pk)
+        if activity.attachment:
+            activity.attachment.delete(save=False)
+        activity.delete()
+        messages.success(request, "Aktivität gelöscht.")
+        return redirect("crm:project_detail", pk=pk)
+
+
+# ---------------------------------------------------------------------------
 # vCard-Hilfsfunktionen
 # ---------------------------------------------------------------------------
 
@@ -1034,3 +1097,260 @@ class ContactVCardImportView(CRMMixin, View):
 
         messages.success(request, f"{created} Kontakt(e) importiert.")
         return redirect("crm:contact_list")
+
+
+# ---------------------------------------------------------------------------
+# Offer Views
+# ---------------------------------------------------------------------------
+
+def _build_offer_formset(request, offer=None, extra=1):
+    """Gibt ein OfferItemFormSet zurück — mit konfigurierbarem extra-Wert."""
+    from django.forms import inlineformset_factory
+    from .forms import OfferItemForm
+    FS = inlineformset_factory(
+        Offer, OfferItem, form=OfferItemForm,
+        extra=extra, can_delete=True,
+    )
+    if request.method == "POST":
+        return FS(request.POST, instance=offer)
+    return FS(instance=offer)
+
+
+class OfferListView(CRMMixin, ListView):
+    model               = Offer
+    template_name       = "crm/offer_list.html"
+    context_object_name = "offers"
+    paginate_by         = 30
+
+    def get_queryset(self):
+        qs = Offer.objects.select_related("project", "created_by").order_by("-offer_date", "-created_at")
+        q = self.request.GET.get("q", "").strip()
+        if q:
+            qs = qs.filter(
+                Q(offer_number__icontains=q) |
+                Q(title__icontains=q) |
+                Q(project__name__icontains=q)
+            )
+        status = self.request.GET.get("status", "")
+        if status:
+            qs = qs.filter(status=status)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["q"]              = self.request.GET.get("q", "")
+        ctx["status_filter"]  = self.request.GET.get("status", "")
+        ctx["status_choices"] = Offer.Status.choices
+        return ctx
+
+
+class OfferCreateView(AdminOrLeadMixin, View):
+    template_name = "crm/offer_form.html"
+
+    def _get_project(self, pk):
+        return get_object_or_404(Project, pk=pk)
+
+    def get(self, request, pk):
+        project  = self._get_project(pk)
+        form     = OfferForm()
+        formset  = _build_offer_formset(request, extra=3)
+        return render(request, self.template_name, {
+            "form":    form,
+            "formset": formset,
+            "project": project,
+            "page_title": "Neues Angebot",
+        })
+
+    def post(self, request, pk):
+        project = self._get_project(pk)
+        form    = OfferForm(request.POST)
+        formset = _build_offer_formset(request, extra=3)
+
+        if form.is_valid() and formset.is_valid():
+            offer = form.save(commit=False)
+            offer.project    = project
+            offer.created_by = request.user
+            offer.save()
+            formset.instance = offer
+            formset.save()
+            messages.success(request, f"Angebot {offer.offer_number} erstellt.")
+            return redirect("crm:offer_detail", pk=offer.pk)
+
+        return render(request, self.template_name, {
+            "form":    form,
+            "formset": formset,
+            "project": project,
+            "page_title": "Neues Angebot",
+        })
+
+    # AdminOrLeadMixin needs test_func — inherited via mixin chain
+    # but View doesn't call setup automatically for test_func, so we expose
+    # get_test_func via UserPassesTestMixin which calls test_func on dispatch.
+
+
+class OfferDetailView(LoginRequiredMixin, DetailView):
+    login_url     = "/auth/login/"
+    model         = Offer
+    template_name = "crm/offer_detail.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        offer = self.object
+        items = list(offer.items.all())
+        ctx["items"]       = items
+        ctx["net_total"]   = offer.net_total
+        ctx["tax_amount"]  = offer.tax_amount
+        ctx["gross_total"] = offer.gross_total
+        return ctx
+
+
+class OfferUpdateView(AdminOrLeadMixin, View):
+    template_name = "crm/offer_form.html"
+
+    def _get_offer(self, pk):
+        return get_object_or_404(Offer, pk=pk)
+
+    def get(self, request, pk):
+        offer   = self._get_offer(pk)
+        form    = OfferForm(instance=offer)
+        formset = _build_offer_formset(request, offer=offer, extra=1)
+        return render(request, self.template_name, {
+            "form":    form,
+            "formset": formset,
+            "project": offer.project,
+            "offer":   offer,
+            "page_title": f"Angebot {offer.offer_number} bearbeiten",
+        })
+
+    def post(self, request, pk):
+        offer   = self._get_offer(pk)
+        form    = OfferForm(request.POST, instance=offer)
+        formset = _build_offer_formset(request, offer=offer, extra=1)
+
+        if form.is_valid() and formset.is_valid():
+            form.save()
+            formset.save()
+            messages.success(request, f"Angebot {offer.offer_number} gespeichert.")
+            return redirect("crm:offer_detail", pk=offer.pk)
+
+        return render(request, self.template_name, {
+            "form":    form,
+            "formset": formset,
+            "project": offer.project,
+            "offer":   offer,
+            "page_title": f"Angebot {offer.offer_number} bearbeiten",
+        })
+
+
+class OfferPDFView(LoginRequiredMixin, View):
+    login_url = "/auth/login/"
+
+    def get(self, request, pk):
+        offer = get_object_or_404(Offer, pk=pk)
+        try:
+            import weasyprint
+        except ImportError:
+            return HttpResponse(
+                "WeasyPrint ist nicht installiert. Bitte 'pip install weasyprint' ausführen.",
+                status=503,
+                content_type="text/plain; charset=utf-8",
+            )
+
+        from django.template.loader import render_to_string
+        html_string = render_to_string("crm/offer_pdf.html", {
+            "offer":      offer,
+            "items":      list(offer.items.all()),
+            "net_total":  offer.net_total,
+            "tax_amount": offer.tax_amount,
+            "gross_total": offer.gross_total,
+        }, request=request)
+
+        pdf = weasyprint.HTML(string=html_string, base_url=request.build_absolute_uri("/")).write_pdf()
+        response = HttpResponse(pdf, content_type="application/pdf")
+        response["Content-Disposition"] = f'inline; filename="{offer.offer_number}.pdf"'
+        return response
+
+
+def _generate_offer_pdf_bytes(offer, request=None):
+    """Shared helper: renders offer PDF and returns bytes. Raises ImportError if WeasyPrint missing."""
+    import weasyprint
+    from django.template.loader import render_to_string
+    html_string = render_to_string("crm/offer_pdf.html", {
+        "offer":       offer,
+        "items":       list(offer.items.all()),
+        "net_total":   offer.net_total,
+        "tax_amount":  offer.tax_amount,
+        "gross_total": offer.gross_total,
+    })
+    base_url = request.build_absolute_uri("/") if request else "/"
+    return weasyprint.HTML(string=html_string, base_url=base_url).write_pdf()
+
+
+class OfferSendView(AdminOrLeadMixin, View):
+    def post(self, request, pk):
+        offer = get_object_or_404(Offer, pk=pk)
+
+        if not offer.recipient_email:
+            messages.error(request, "Kein Empfänger hinterlegt.")
+            return redirect("crm:offer_detail", pk=offer.pk)
+
+        try:
+            pdf_bytes = _generate_offer_pdf_bytes(offer, request)
+        except ImportError:
+            messages.error(request, "WeasyPrint ist nicht installiert — PDF-Versand nicht möglich.")
+            return redirect("crm:offer_detail", pk=offer.pk)
+
+        from django.core.mail import EmailMessage
+        from django.conf import settings as dj_settings
+        msg = EmailMessage(
+            subject=f"Angebot {offer.offer_number} – {offer.project.name}",
+            body=(
+                f"Sehr geehrte/r {offer.recipient_name or 'Damen und Herren'},\n\n"
+                f"anbei finden Sie unser Angebot.\n\n"
+                f"Mit freundlichen Grüßen\nDonna Business OS"
+            ),
+            from_email=dj_settings.DEFAULT_FROM_EMAIL,
+            to=[offer.recipient_email],
+        )
+        msg.attach(f"{offer.offer_number}.pdf", pdf_bytes, "application/pdf")
+        msg.send()
+
+        offer.status = Offer.Status.SENT
+        offer.save(update_fields=["status"])
+        messages.success(request, f"Angebot {offer.offer_number} wurde an {offer.recipient_email} versendet.")
+        return redirect("crm:offer_detail", pk=offer.pk)
+
+
+class OfferStatusUpdateView(AdminOrLeadMixin, View):
+    ALLOWED_TRANSITIONS = {
+        Offer.Status.DRAFT:    {Offer.Status.SENT},
+        Offer.Status.SENT:     {Offer.Status.ACCEPTED, Offer.Status.REJECTED},
+    }
+
+    def post(self, request, pk):
+        offer      = get_object_or_404(Offer, pk=pk)
+        new_status = request.POST.get("status", "")
+        allowed    = self.ALLOWED_TRANSITIONS.get(offer.status, set())
+
+        if new_status not in {s.value for s in allowed}:
+            messages.error(request, "Ungültiger Statuswechsel.")
+            return redirect("crm:offer_detail", pk=offer.pk)
+
+        offer.status = new_status
+        offer.save(update_fields=["status"])
+        label = dict(Offer.Status.choices).get(new_status, new_status)
+        messages.success(request, f'Status auf "{label}" gesetzt.')
+        return redirect("crm:offer_detail", pk=offer.pk)
+
+
+class OfferDeleteView(AdminOrLeadMixin, View):
+    def post(self, request, pk):
+        offer = get_object_or_404(Offer, pk=pk)
+        if offer.status != Offer.Status.DRAFT:
+            messages.error(request, "Nur Angebote im Entwurfsstatus können gelöscht werden.")
+            return redirect("crm:offer_detail", pk=offer.pk)
+        project_pk = offer.project.pk
+        number = offer.offer_number
+        offer.delete()
+        messages.success(request, f"Angebot {number} wurde gelöscht.")
+        return redirect("crm:project_detail", pk=project_pk)

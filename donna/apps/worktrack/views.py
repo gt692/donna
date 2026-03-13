@@ -17,7 +17,7 @@ import datetime
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Sum
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
 from django.views.generic import CreateView, ListView, TemplateView, UpdateView, View
@@ -290,3 +290,60 @@ class ApprovalBatchView(WorktrackMixin, UserPassesTestMixin, View):
         if approved_count:
             messages.success(request, f"{approved_count} Buchung(en) freigegeben.")
         return redirect("worktrack:approval_list")
+
+
+# ---------------------------------------------------------------------------
+# Kalender-Ansicht
+# ---------------------------------------------------------------------------
+
+class TimeEntryCalendarView(LoginRequiredMixin, TemplateView):
+    login_url     = "/auth/login/"
+    template_name = "worktrack/calendar.html"
+
+
+class TimeEntryCalendarAPIView(LoginRequiredMixin, View):
+    login_url = "/auth/login/"
+
+    def get(self, request):
+        start_str = request.GET.get("start", "")
+        end_str   = request.GET.get("end",   "")
+
+        try:
+            start = datetime.date.fromisoformat(start_str[:10])
+            end   = datetime.date.fromisoformat(end_str[:10])
+        except (ValueError, TypeError):
+            return JsonResponse([], safe=False)
+
+        entries = (
+            TimeEntry.objects
+            .filter(user=request.user, date__range=(start, end))
+            .select_related("project")
+        )
+
+        status_colors = {
+            TimeEntry.Status.APPROVED:  "#16a34a",
+            TimeEntry.Status.SUBMITTED: "#d97706",
+        }
+
+        events = []
+        for entry in entries:
+            color = status_colors.get(entry.status, "#64748b")
+
+            if entry.start_time:
+                start_val = f"{entry.date}T{entry.start_time.strftime('%H:%M:%S')}"
+            else:
+                start_val = str(entry.date)
+
+            events.append({
+                "id":    str(entry.id),
+                "title": f"{entry.project.name} · {entry.duration_hours}h",
+                "start": start_val,
+                "color": color,
+                "extendedProps": {
+                    "description":    entry.description,
+                    "status":         entry.status,
+                    "duration_hours": float(entry.duration_hours),
+                },
+            })
+
+        return JsonResponse(events, safe=False)

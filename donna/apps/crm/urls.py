@@ -5,6 +5,9 @@ from .views import (
     ContactVCardExportView, ContactVCardImportView,
     DocumentDeleteView, DocumentServeView, DocumentUploadView,
     KanbanView, ProjectKanbanMoveView,
+    OfferCreateView, OfferDeleteView, OfferDetailView, OfferListView,
+    OfferPDFView, OfferSendView, OfferStatusUpdateView, OfferUpdateView,
+    ProjectActivityCreateView, ProjectActivityDeleteView,
     ProjectArchiveView, ProjectBudgetExtensionCreateView, ProjectBudgetExtensionDeleteView,
     ProjectCreateView, ProjectDetailView, ProjectInvoiceCreateView, ProjectListView, ProjectUpdateView,
 )
@@ -52,4 +55,28 @@ urlpatterns = [
          ProjectBudgetExtensionCreateView.as_view(), name="project_budget_ext_add"),
     path("projects/<uuid:pk>/budget-extension/<int:ext_pk>/delete/",
          ProjectBudgetExtensionDeleteView.as_view(), name="project_budget_ext_delete"),
+
+    # Aktivitäten-Timeline
+    path("projects/<uuid:pk>/activities/add/",
+         ProjectActivityCreateView.as_view(), name="project_activity_add"),
+    path("projects/<uuid:pk>/activities/<uuid:act_pk>/delete/",
+         ProjectActivityDeleteView.as_view(), name="project_activity_delete"),
+
+    # Angebote
+    path("projects/<uuid:pk>/offers/new/",
+         OfferCreateView.as_view(), name="offer_create"),
+    path("offers/",
+         OfferListView.as_view(), name="offer_list"),
+    path("offers/<uuid:pk>/",
+         OfferDetailView.as_view(), name="offer_detail"),
+    path("offers/<uuid:pk>/edit/",
+         OfferUpdateView.as_view(), name="offer_edit"),
+    path("offers/<uuid:pk>/pdf/",
+         OfferPDFView.as_view(), name="offer_pdf"),
+    path("offers/<uuid:pk>/send/",
+         OfferSendView.as_view(), name="offer_send"),
+    path("offers/<uuid:pk>/status/",
+         OfferStatusUpdateView.as_view(), name="offer_status"),
+    path("offers/<uuid:pk>/delete/",
+         OfferDeleteView.as_view(), name="offer_delete"),
 ]

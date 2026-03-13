@@ -32,3 +32,6 @@ python-dateutil==2.9.*          # Erweiterte Datums-Utilities
 
 # CORS (für späteres SPA-Frontend)
 django-cors-headers==4.*
+
+# PDF-Generierung
+weasyprint==65.*                # HTML/CSS → PDF für Angebote und Rechnungen

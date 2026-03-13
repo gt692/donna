@@ -1,7 +1,9 @@
 """
 Microsoft Graph API Email Backend für Django.
 Ersetzt SMTP durch OAuth2-authentifizierte Graph API Aufrufe.
+Unterstützt Dateianhänge via Base64-kodiertem attachments-Array der Graph API.
 """
+import base64
 import json
 import msal
 import requests
@@ -32,25 +34,43 @@ class GraphAPIEmailBackend(BaseEmailBackend):
         sent = 0
 
         for message in email_messages:
-            payload = {
-                "message": {
-                    "subject": message.subject,
-                    "body": {
-                        "contentType": "HTML" if message.content_subtype == "html" else "Text",
-                        "content": message.body,
-                    },
-                    "toRecipients": [
-                        {"emailAddress": {"address": addr}}
-                        for addr in message.to
-                    ],
-                    "ccRecipients": [
-                        {"emailAddress": {"address": addr}}
-                        for addr in (message.cc or [])
-                    ],
-                    "from": {
-                        "emailAddress": {"address": sender}
-                    },
+            graph_message = {
+                "subject": message.subject,
+                "body": {
+                    "contentType": "HTML" if message.content_subtype == "html" else "Text",
+                    "content": message.body,
                 },
+                "toRecipients": [
+                    {"emailAddress": {"address": addr}}
+                    for addr in message.to
+                ],
+                "ccRecipients": [
+                    {"emailAddress": {"address": addr}}
+                    for addr in (message.cc or [])
+                ],
+                "from": {
+                    "emailAddress": {"address": sender}
+                },
+            }
+
+            # Anhänge: Django EmailMessage speichert Anhänge als Liste von
+            # (filename, content, mimetype)-Tupeln in message.attachments
+            attachments = getattr(message, "attachments", [])
+            if attachments:
+                graph_attachments = []
+                for filename, content, mimetype in attachments:
+                    if isinstance(content, str):
+                        content = content.encode("utf-8")
+                    graph_attachments.append({
+                        "@odata.type": "#microsoft.graph.fileAttachment",
+                        "name": filename,
+                        "contentType": mimetype or "application/octet-stream",
+                        "contentBytes": base64.b64encode(content).decode("ascii"),
+                    })
+                graph_message["attachments"] = graph_attachments
+
+            payload = {
+                "message": graph_message,
                 "saveToSentItems": "false",
             }
 
