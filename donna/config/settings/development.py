@@ -11,5 +11,7 @@ MIDDLEWARE = ["debug_toolbar.middleware.DebugToolbarMiddleware"] + MIDDLEWARE  #
 
 INTERNAL_IPS = ["127.0.0.1"]
 
+ALLOWED_HOSTS += ["192.168.0.126", "0.0.0.0"]  # noqa: F405
+
 # Alle CORS-Anfragen lokal erlauben
 CORS_ALLOW_ALL_ORIGINS = True

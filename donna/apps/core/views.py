@@ -70,8 +70,12 @@ class LoginView(View):
             logger.info("Login-Versuch Schritt 1 erfolgreich: %s", user.email)
 
             if not user.totp_enabled:
-                # 2FA noch nicht eingerichtet → Setup erzwingen
-                return redirect("core:totp_setup")
+                # Kein 2FA eingerichtet → direkt einloggen
+                from django.contrib.auth import login as auth_login
+                del request.session[_SESSION_PRE_AUTH_USER]
+                auth_login(request, user, backend="apps.core.backends.EmailBackend")
+                next_url = request.GET.get("next") or "dashboard:home"
+                return redirect(next_url)
             return redirect("core:totp_verify")
 
         return render(request, self.template_name, {"form": form})
