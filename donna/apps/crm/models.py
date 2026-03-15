@@ -761,7 +761,7 @@ class Offer(models.Model):
     payment_terms  = models.TextField(blank=True, verbose_name=_("Zahlungsbedingung"))
     tax_rate     = models.DecimalField(
         max_digits=5, decimal_places=2, default=Decimal("19.00"),
-        verbose_name=_("MwSt. (%)"),
+        verbose_name=_("Umsatzsteuer (%)"),
     )
     valid_until  = models.DateField(null=True, blank=True, verbose_name=_("Gültig bis"))
     offer_date   = models.DateField(default=datetime.date.today, verbose_name=_("Angebotsdatum"))

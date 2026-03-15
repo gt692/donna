@@ -115,7 +115,7 @@
               <span class="font-mono font-medium text-slate-700">{{ net_total|floatformat:2 }} €</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-slate-500">MwSt. {{ offer.tax_rate|floatformat:2 }} %</span>
+              <span class="text-slate-500">Umsatzsteuer {{ offer.tax_rate|floatformat:2 }} %</span>
               <span class="font-mono font-medium text-slate-700">{{ tax_amount|floatformat:2 }} €</span>
             </div>
             <div class="flex justify-between pt-2 border-t border-slate-200 text-base font-bold">
@@ -174,7 +174,7 @@
         </div>
         {% endif %}
         <div class="flex justify-between">
-          <dt class="text-slate-500">MwSt.</dt>
+          <dt class="text-slate-500">Umsatzsteuer</dt>
           <dd class="text-slate-700">{{ offer.tax_rate|floatformat:2 }} %</dd>
         </div>
         {% if offer.created_by %}

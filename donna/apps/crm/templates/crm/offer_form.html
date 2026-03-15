@@ -106,7 +106,7 @@
             </div>
           </div>
 
-          <!-- Datum + MwSt. -->
+          <!-- Datum + Umsatzsteuer -->
           <div class="grid grid-cols-3 divide-x divide-slate-100">
             <div class="field-wrap">
               <label for="{{ form.offer_date.id_for_label }}">Angebotsdatum *</label>
@@ -117,7 +117,7 @@
               {{ form.valid_until }}
             </div>
             <div class="field-wrap">
-              <label for="{{ form.tax_rate.id_for_label }}">MwSt. (%)</label>
+              <label for="{{ form.tax_rate.id_for_label }}">Umsatzsteuer (%)</label>
               {{ form.tax_rate }}
             </div>
           </div>
@@ -225,14 +225,14 @@
           <!-- Live-Summen -->
           <div class="border-t border-slate-200 bg-slate-800 px-5 py-3">
             <div class="flex items-center justify-between">
-              <span class="text-xs text-slate-400">MwSt. <span id="live-tax-rate">19,00</span> %</span>
+              <span class="text-xs text-slate-400">Umsatzsteuer <span id="live-tax-rate">19,00</span> %</span>
               <div class="flex items-center gap-8">
                 <div class="text-right">
                   <div class="text-xs text-slate-400 mb-0.5">Summe (Netto)</div>
                   <div id="live-net" class="font-mono font-semibold text-white text-base">0,00 €</div>
                 </div>
                 <div class="text-right border-l border-slate-600 pl-8">
-                  <div class="text-xs text-slate-400 mb-0.5">MwSt.</div>
+                  <div class="text-xs text-slate-400 mb-0.5">Umsatzsteuer</div>
                   <div id="live-tax" class="font-mono text-slate-300 text-base">0,00 €</div>
                 </div>
                 <div class="text-right border-l border-slate-600 pl-8">
