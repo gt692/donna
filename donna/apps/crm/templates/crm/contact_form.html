@@ -153,3 +153,46 @@
   </form>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+{% if google_maps_api_key %}
+<script>
+function initGoogleAutocomplete() {
+  const input = document.getElementById('{{ form.address_line1.id_for_label }}');
+  if (!input) return;
+  const ac = new google.maps.places.Autocomplete(input, {
+    types: ['address'],
+    componentRestrictions: { country: ['de', 'at', 'ch'] },
+    fields: ['address_components'],
+  });
+  ac.addListener('place_changed', function () {
+    const place = ac.getPlace();
+    if (!place.address_components) return;
+    const get = (types) => {
+      const c = place.address_components.find(x => types.some(t => x.types.includes(t)));
+      return c ? c.long_name : '';
+    };
+    const getShort = (types) => {
+      const c = place.address_components.find(x => types.some(t => x.types.includes(t)));
+      return c ? c.short_name : '';
+    };
+    const street = get(['route']);
+    const number = get(['street_number']);
+    const fields = {
+      postal:  document.getElementById('{{ form.postal_code.id_for_label }}'),
+      city:    document.getElementById('{{ form.city.id_for_label }}'),
+      country: document.getElementById('{{ form.country.id_for_label }}'),
+    };
+    input.value = number ? street + ' ' + number : street;
+    if (fields.postal)  fields.postal.value  = get(['postal_code']);
+    if (fields.city)    fields.city.value    = get(['locality', 'sublocality', 'postal_town']);
+    if (fields.country) fields.country.value = getShort(['country']);
+    [input, fields.postal, fields.city, fields.country].forEach(el => {
+      if (el) { el.style.transition = 'background 0.3s'; el.style.background = '#f0fdf4'; setTimeout(() => { el.style.background = ''; }, 1200); }
+    });
+  });
+}
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initGoogleAutocomplete" async defer></script>
+{% endif %}
+{% endblock %}

@@ -139,6 +139,12 @@
             </div>
           </div>
           <div class="border-t border-slate-100">
+            {% if google_maps_api_key %}
+            <div class="field-wrap border-b border-slate-100">
+              <label for="id_recipient_address_search">Adresse suchen</label>
+              <input type="text" id="id_recipient_address_search" placeholder="Straße, Stadt …" autocomplete="off">
+            </div>
+            {% endif %}
             <div class="field-wrap">
               <label for="{{ form.recipient_address.id_for_label }}">Adresse</label>
               {{ form.recipient_address }}
@@ -535,5 +541,43 @@
   }
 })();
 </script>
+
+{% if google_maps_api_key %}
+<script>
+function initGoogleAutocomplete() {
+  const searchInput = document.getElementById('id_recipient_address_search');
+  if (!searchInput) return;
+  const ac = new google.maps.places.Autocomplete(searchInput, {
+    types: ['address'],
+    componentRestrictions: { country: ['de', 'at', 'ch'] },
+    fields: ['address_components', 'formatted_address'],
+  });
+  ac.addListener('place_changed', function () {
+    const place = ac.getPlace();
+    if (!place.address_components) return;
+    const get = (types) => {
+      const c = place.address_components.find(x => types.some(t => x.types.includes(t)));
+      return c ? c.long_name : '';
+    };
+    const street  = get(['route']);
+    const number  = get(['street_number']);
+    const postal  = get(['postal_code']);
+    const city    = get(['locality', 'sublocality', 'postal_town']);
+    const country = get(['country']);
+    const line1   = number ? street + ' ' + number : street;
+    const parts   = [line1, postal && city ? postal + ' ' + city : (postal || city), country].filter(Boolean);
+    const textarea = document.getElementById('{{ form.recipient_address.id_for_label }}');
+    if (textarea) {
+      textarea.value = parts.join('\n');
+      textarea.style.transition = 'background 0.3s';
+      textarea.style.background = '#f0fdf4';
+      setTimeout(() => { textarea.style.background = ''; }, 1200);
+    }
+    searchInput.value = '';
+  });
+}
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initGoogleAutocomplete" async defer></script>
+{% endif %}
 </body>
 </html>

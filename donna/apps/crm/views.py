@@ -1133,9 +1133,11 @@ class ContactCreateView(CRMMixin, CreateView):
         return redirect("crm:contact_detail", pk=contact.pk)
 
     def get_context_data(self, **kwargs):
+        from django.conf import settings as dj_settings
         ctx = super().get_context_data(**kwargs)
-        ctx["page_title"]   = "Neuer Kontakt"
-        ctx["submit_label"] = "Kontakt erstellen"
+        ctx["page_title"]          = "Neuer Kontakt"
+        ctx["submit_label"]        = "Kontakt erstellen"
+        ctx["google_maps_api_key"] = dj_settings.GOOGLE_MAPS_API_KEY
         return ctx
 
 
@@ -1150,9 +1152,11 @@ class ContactUpdateView(CRMMixin, UpdateView):
         return redirect("crm:contact_detail", pk=contact.pk)
 
     def get_context_data(self, **kwargs):
+        from django.conf import settings as dj_settings
         ctx = super().get_context_data(**kwargs)
-        ctx["page_title"]   = f"{self.object} bearbeiten"
-        ctx["submit_label"] = "Speichern"
+        ctx["page_title"]          = f"{self.object} bearbeiten"
+        ctx["submit_label"]        = "Speichern"
+        ctx["google_maps_api_key"] = dj_settings.GOOGLE_MAPS_API_KEY
         return ctx
 
 
@@ -1265,14 +1269,16 @@ class OfferCreateView(AdminOrLeadMixin, View):
         if project.account and not initial.get("recipient_name"):
             initial["recipient_name"] = project.account.name
             initial["recipient_email"] = project.account.billing_email or project.account.email
+        from django.conf import settings as dj_settings
         form    = OfferForm(initial=initial)
         formset = _build_offer_formset(request, extra=3)
         return render(request, self.template_name, {
-            "form":         form,
-            "formset":      formset,
-            "project":      project,
-            "page_title":   "Neues Angebot",
-            "from_inquiry": bool(request.GET.get("recipient_name")),
+            "form":               form,
+            "formset":            formset,
+            "project":            project,
+            "page_title":         "Neues Angebot",
+            "from_inquiry":       bool(request.GET.get("recipient_name")),
+            "google_maps_api_key": dj_settings.GOOGLE_MAPS_API_KEY,
         })
 
     def post(self, request, pk):
@@ -1334,6 +1340,7 @@ class OfferUpdateView(AdminOrLeadMixin, View):
             "project": offer.project,
             "offer":   offer,
             "page_title": f"Angebot {offer.offer_number} bearbeiten",
+            "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
         })
 
     def post(self, request, pk):
@@ -1353,6 +1360,7 @@ class OfferUpdateView(AdminOrLeadMixin, View):
             "project": offer.project,
             "offer":   offer,
             "page_title": f"Angebot {offer.offer_number} bearbeiten",
+            "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
         })
 
 
@@ -1704,6 +1712,7 @@ class InvoiceCreateView(AdminOrLeadMixin, View):
         return render(request, "crm/invoice_form.html", {
             "form": form, "formset": formset, "project": project, "offer": None,
             "page_title": "Neue Rechnung",
+            "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
         })
 
     def post(self, request, pk):
@@ -1724,6 +1733,7 @@ class InvoiceCreateView(AdminOrLeadMixin, View):
         return render(request, "crm/invoice_form.html", {
             "form": form, "formset": formset, "project": project, "offer": None,
             "page_title": "Neue Rechnung",
+            "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
         })
 
 
@@ -1756,6 +1766,7 @@ class InvoiceFromOfferView(AdminOrLeadMixin, View):
         return render(request, "crm/invoice_form.html", {
             "form": form, "formset": formset, "project": offer.project, "offer": offer,
             "page_title": "Rechnung aus Angebot",
+            "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
         })
 
     def post(self, request, pk):
@@ -1777,6 +1788,7 @@ class InvoiceFromOfferView(AdminOrLeadMixin, View):
         return render(request, "crm/invoice_form.html", {
             "form": form, "formset": formset, "project": offer.project, "offer": offer,
             "page_title": "Rechnung aus Angebot",
+            "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
         })
 
 
@@ -1808,6 +1820,7 @@ class InvoiceUpdateView(AdminOrLeadMixin, View):
             "form": form, "formset": formset, "project": invoice.project,
             "offer": invoice.offer, "invoice": invoice,
             "page_title": f"Rechnung {invoice.invoice_number} bearbeiten",
+            "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
         })
 
     def post(self, request, pk):
@@ -1828,6 +1841,7 @@ class InvoiceUpdateView(AdminOrLeadMixin, View):
             "form": form, "formset": formset, "project": invoice.project,
             "offer": invoice.offer, "invoice": invoice,
             "page_title": f"Rechnung {invoice.invoice_number} bearbeiten",
+            "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
         })
 
 
@@ -2058,9 +2072,11 @@ class LeadInquiryPublicView(View):
             return render(request, "crm/lead_inquiry_expired.html", {})
         if inquiry.status == LeadInquiry.Status.SUBMITTED:
             return render(request, "crm/lead_inquiry_thankyou.html", {"inquiry": inquiry})
+        from django.conf import settings as dj_settings
         return render(request, "crm/lead_inquiry_form.html", {
             "inquiry": inquiry,
             "project": inquiry.project,
+            "google_maps_api_key": dj_settings.GOOGLE_MAPS_API_KEY,
         })
 
     def post(self, request, token):
