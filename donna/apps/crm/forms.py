@@ -6,7 +6,7 @@ from django.forms import inlineformset_factory
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import Lookup
-from .models import Account, Contact, Offer, OfferItem, Project
+from .models import Account, Contact, Invoice, InvoiceItem, Offer, OfferItem, Project
 
 _INPUT = (
     "w-full px-3 py-2 rounded-lg border border-slate-200 bg-white "
@@ -258,4 +258,49 @@ OfferItemFormSet = inlineformset_factory(
     form=OfferItemForm,
     extra=1,
     can_delete=True,
+)
+
+
+# ---------------------------------------------------------------------------
+# Invoice Forms
+# ---------------------------------------------------------------------------
+
+class InvoiceForm(forms.ModelForm):
+    class Meta:
+        model = Invoice
+        fields = [
+            "title", "invoice_type", "invoice_date", "due_date", "tax_rate",
+            "intro_text", "closing_text", "payment_info",
+            "recipient_name", "recipient_email", "recipient_address",
+        ]
+        widgets = {
+            "title":            forms.TextInput(attrs={"class": _INPUT}),
+            "invoice_type":     forms.Select(attrs={"class": _SELECT}),
+            "invoice_date":     forms.DateInput(attrs={"class": _INPUT, "type": "date"}),
+            "due_date":         forms.DateInput(attrs={"class": _INPUT, "type": "date"}),
+            "tax_rate":         forms.NumberInput(attrs={"class": _INPUT, "step": "0.01"}),
+            "intro_text":       forms.Textarea(attrs={"class": _INPUT, "rows": 3}),
+            "closing_text":     forms.Textarea(attrs={"class": _INPUT, "rows": 3}),
+            "payment_info":     forms.Textarea(attrs={"class": _INPUT, "rows": 3}),
+            "recipient_name":   forms.TextInput(attrs={"class": _INPUT}),
+            "recipient_email":  forms.EmailInput(attrs={"class": _INPUT}),
+            "recipient_address": forms.Textarea(attrs={"class": _INPUT, "rows": 3}),
+        }
+
+
+class InvoiceItemForm(forms.ModelForm):
+    class Meta:
+        model = InvoiceItem
+        fields = ["position", "description", "quantity", "unit", "unit_price"]
+        widgets = {
+            "position":    forms.NumberInput(attrs={"class": _INPUT + " w-16"}),
+            "description": forms.Textarea(attrs={"class": _INPUT, "rows": 2}),
+            "quantity":    forms.NumberInput(attrs={"class": _INPUT + " w-24", "step": "0.01"}),
+            "unit":        forms.TextInput(attrs={"class": _INPUT + " w-28"}),
+            "unit_price":  forms.NumberInput(attrs={"class": _INPUT + " w-32", "step": "0.01"}),
+        }
+
+
+InvoiceItemFormSet = forms.inlineformset_factory(
+    Invoice, InvoiceItem, form=InvoiceItemForm, extra=1, can_delete=True
 )

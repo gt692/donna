@@ -19,19 +19,24 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 
 import datetime
+from datetime import date
 import logging
 
 logger = logging.getLogger(__name__)
 
+from django import forms
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.core.mail import EmailMessage
 from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponse, JsonResponse
+from django.template.loader import render_to_string
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView, View
 
-from .forms import AccountForm, ContactForm, OfferForm, OfferItemFormSet, ProjectForm
-from .models import Account, CompanyProjectTypeMapping, Contact, Document, Offer, OfferItem, Project, ProjectActivity, ProjectBudgetExtension, ProjectMemberRate
+from .forms import AccountForm, ContactForm, InvoiceForm, InvoiceItemForm, InvoiceItemFormSet, OfferForm, OfferItemFormSet, ProjectForm
+from .models import Account, CompanyProjectTypeMapping, Contact, Document, Invoice, InvoiceItem, Offer, OfferItem, Project, ProjectActivity, ProjectBudgetExtension, ProjectMemberRate
 
 
 # ---------------------------------------------------------------------------
@@ -97,6 +102,9 @@ class CRMMixin(LoginRequiredMixin):
             e["value"]: e["color"] for e in Lookup.entries_for("company")
         }
         ctx["companies"] = Lookup.entries_for("company")
+        ctx["overdue_invoices_count"] = Invoice.objects.filter(
+            status=Invoice.Status.SENT, due_date__lt=date.today()
+        ).count()
         return ctx
 
 
@@ -426,6 +434,20 @@ class ProjectDetailView(CRMMixin, DetailView):
         ctx["today"]                   = datetime.date.today().isoformat()
         ctx["activities"]              = project.activities.select_related("created_by").order_by("-occurred_at")[:50]
         ctx["activity_types"]          = ProjectActivity.ActivityType.choices
+        ctx["invoices"]                = project.invoices.all()
+
+        # Prozess-Pipeline Stepper
+        s = project.status
+        S = Project.Status
+        steps = [
+            ("Lead",          s not in {"lead"},                                              s == "lead"),
+            ("Angebot",       s in {"active","on_hold","invoiced","completed","cancelled"},   s == "offer_sent"),
+            ("Beauftragt",    s in {"invoiced","completed"},                                  s == "active"),
+            ("Rechnung",      s == "completed",                                               s == "invoiced"),
+            ("Abgeschlossen", False,                                                          s == "completed"),
+        ]
+        ctx["process_steps"] = [(label, "", done, active) for label, done, active in steps]
+
         return ctx
 
 
@@ -1354,3 +1376,282 @@ class OfferDeleteView(AdminOrLeadMixin, View):
         offer.delete()
         messages.success(request, f"Angebot {number} wurde gelöscht.")
         return redirect("crm:project_detail", pk=project_pk)
+
+
+# ---------------------------------------------------------------------------
+# Invoice Views
+# ---------------------------------------------------------------------------
+
+def _build_invoice_formset(request, invoice=None, extra=1):
+    FormSet = forms.inlineformset_factory(
+        Invoice, InvoiceItem, form=InvoiceItemForm, extra=extra, can_delete=True
+    )
+    if request.method == "POST":
+        return FormSet(request.POST, instance=invoice)
+    return FormSet(instance=invoice)
+
+
+def _generate_invoice_pdf_bytes(invoice, request):
+    """Generate PDF bytes for an invoice using WeasyPrint."""
+    html_string = render_to_string(
+        "crm/invoice_pdf.html", {"invoice": invoice, "items": invoice.items.all()}, request=request
+    )
+    from weasyprint import HTML
+    return HTML(string=html_string, base_url=request.build_absolute_uri("/")).write_pdf()
+
+
+class InvoiceListView(CRMMixin, ListView):
+    model = Invoice
+    template_name = "crm/invoice_list.html"
+    context_object_name = "invoices"
+    paginate_by = 25
+
+    def get_queryset(self):
+        qs = Invoice.objects.select_related("project", "offer").order_by("-invoice_date", "-created_at")
+        q = self.request.GET.get("q", "").strip()
+        status = self.request.GET.get("status", "")
+        if q:
+            qs = qs.filter(
+                Q(invoice_number__icontains=q)
+                | Q(title__icontains=q)
+                | Q(project__name__icontains=q)
+            )
+        if status:
+            qs = qs.filter(status=status)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["q"] = self.request.GET.get("q", "")
+        ctx["status_filter"] = self.request.GET.get("status", "")
+        ctx["status_choices"] = Invoice.Status.choices
+        ctx["today"] = date.today()
+        return ctx
+
+
+class InvoiceCreateView(AdminOrLeadMixin, View):
+    def get(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
+        initial = {"title": f"Rechnung – {project.name}"}
+        if project.account:
+            initial["recipient_name"] = project.account.name
+            initial["recipient_email"] = project.account.billing_email or project.account.email
+            initial["recipient_address"] = project.account.address_line1 or ""
+        form = InvoiceForm(initial=initial)
+        formset = _build_invoice_formset(request, extra=3)
+        return render(request, "crm/invoice_form.html", {
+            "form": form, "formset": formset, "project": project, "offer": None,
+            "page_title": "Neue Rechnung",
+        })
+
+    def post(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
+        form = InvoiceForm(request.POST)
+        formset = _build_invoice_formset(request)
+        if form.is_valid() and formset.is_valid():
+            invoice = form.save(commit=False)
+            invoice.project = project
+            invoice.created_by = request.user
+            invoice.save()
+            formset.instance = invoice
+            formset.save()
+            invoice.net_total_cached = invoice.net_total
+            invoice.save(update_fields=["net_total_cached"])
+            messages.success(request, f"Rechnung {invoice.invoice_number} erstellt.")
+            return redirect("crm:invoice_detail", pk=invoice.pk)
+        return render(request, "crm/invoice_form.html", {
+            "form": form, "formset": formset, "project": project, "offer": None,
+            "page_title": "Neue Rechnung",
+        })
+
+
+class InvoiceFromOfferView(AdminOrLeadMixin, View):
+    def get(self, request, pk):
+        offer = get_object_or_404(Offer, pk=pk)
+        if offer.status != Offer.Status.ACCEPTED:
+            messages.error(request, "Rechnungen können nur aus beauftragten Angeboten erstellt werden.")
+            return redirect("crm:offer_detail", pk=offer.pk)
+        initial = {
+            "title": offer.title,
+            "recipient_name": offer.recipient_name,
+            "recipient_email": offer.recipient_email,
+            "recipient_address": offer.recipient_address,
+            "tax_rate": offer.tax_rate,
+            "intro_text": offer.intro_text,
+            "closing_text": offer.closing_text,
+        }
+        form = InvoiceForm(initial=initial)
+        items_initial = [
+            {"position": item.position, "description": item.description,
+             "quantity": item.quantity, "unit": item.unit, "unit_price": item.unit_price}
+            for item in offer.items.all()
+        ]
+        from django import forms as _forms
+        FormSet = _forms.inlineformset_factory(
+            Invoice, InvoiceItem, form=InvoiceItemForm, extra=len(items_initial), can_delete=True
+        )
+        formset = FormSet(initial=items_initial)
+        return render(request, "crm/invoice_form.html", {
+            "form": form, "formset": formset, "project": offer.project, "offer": offer,
+            "page_title": "Rechnung aus Angebot",
+        })
+
+    def post(self, request, pk):
+        offer = get_object_or_404(Offer, pk=pk)
+        form = InvoiceForm(request.POST)
+        formset = _build_invoice_formset(request)
+        if form.is_valid() and formset.is_valid():
+            invoice = form.save(commit=False)
+            invoice.project = offer.project
+            invoice.offer = offer
+            invoice.created_by = request.user
+            invoice.save()
+            formset.instance = invoice
+            formset.save()
+            invoice.net_total_cached = invoice.net_total
+            invoice.save(update_fields=["net_total_cached"])
+            messages.success(request, f"Rechnung {invoice.invoice_number} aus Angebot erstellt.")
+            return redirect("crm:invoice_detail", pk=invoice.pk)
+        return render(request, "crm/invoice_form.html", {
+            "form": form, "formset": formset, "project": offer.project, "offer": offer,
+            "page_title": "Rechnung aus Angebot",
+        })
+
+
+class InvoiceDetailView(LoginRequiredMixin, DetailView):
+    model = Invoice
+    template_name = "crm/invoice_detail.html"
+    login_url = "/auth/login/"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        invoice = self.object
+        ctx["items"] = invoice.items.all()
+        ctx["net_total"] = invoice.net_total
+        ctx["tax_amount"] = invoice.tax_amount
+        ctx["gross_total"] = invoice.gross_total
+        ctx["today"] = date.today()
+        return ctx
+
+
+class InvoiceUpdateView(AdminOrLeadMixin, View):
+    def get(self, request, pk):
+        invoice = get_object_or_404(Invoice, pk=pk)
+        if invoice.status != Invoice.Status.DRAFT:
+            messages.error(request, "Nur Entwürfe können bearbeitet werden.")
+            return redirect("crm:invoice_detail", pk=invoice.pk)
+        form = InvoiceForm(instance=invoice)
+        formset = _build_invoice_formset(request, invoice=invoice, extra=1)
+        return render(request, "crm/invoice_form.html", {
+            "form": form, "formset": formset, "project": invoice.project,
+            "offer": invoice.offer, "invoice": invoice,
+            "page_title": f"Rechnung {invoice.invoice_number} bearbeiten",
+        })
+
+    def post(self, request, pk):
+        invoice = get_object_or_404(Invoice, pk=pk)
+        if invoice.status != Invoice.Status.DRAFT:
+            messages.error(request, "Nur Entwürfe können bearbeitet werden.")
+            return redirect("crm:invoice_detail", pk=invoice.pk)
+        form = InvoiceForm(request.POST, instance=invoice)
+        formset = _build_invoice_formset(request, invoice=invoice)
+        if form.is_valid() and formset.is_valid():
+            invoice = form.save()
+            formset.save()
+            invoice.net_total_cached = invoice.net_total
+            invoice.save(update_fields=["net_total_cached"])
+            messages.success(request, "Rechnung gespeichert.")
+            return redirect("crm:invoice_detail", pk=invoice.pk)
+        return render(request, "crm/invoice_form.html", {
+            "form": form, "formset": formset, "project": invoice.project,
+            "offer": invoice.offer, "invoice": invoice,
+            "page_title": f"Rechnung {invoice.invoice_number} bearbeiten",
+        })
+
+
+class InvoicePDFView(LoginRequiredMixin, View):
+    login_url = "/auth/login/"
+
+    def get(self, request, pk):
+        invoice = get_object_or_404(Invoice, pk=pk)
+        try:
+            pdf_bytes = _generate_invoice_pdf_bytes(invoice, request)
+        except ImportError:
+            messages.error(request, "WeasyPrint ist nicht installiert.")
+            return redirect("crm:invoice_detail", pk=invoice.pk)
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        response["Content-Disposition"] = f'inline; filename="{invoice.invoice_number}.pdf"'
+        return response
+
+
+class InvoiceSendView(AdminOrLeadMixin, View):
+    def post(self, request, pk):
+        invoice = get_object_or_404(Invoice, pk=pk)
+        if not invoice.recipient_email:
+            messages.error(request, "Kein Empfänger hinterlegt.")
+            return redirect("crm:invoice_detail", pk=invoice.pk)
+        try:
+            pdf_bytes = _generate_invoice_pdf_bytes(invoice, request)
+        except Exception as e:
+            messages.error(request, f"PDF-Generierung fehlgeschlagen: {e}")
+            return redirect("crm:invoice_detail", pk=invoice.pk)
+        email = EmailMessage(
+            subject=f"Rechnung {invoice.invoice_number} – {invoice.project.name}",
+            body=invoice.intro_text or f"Anbei erhalten Sie Ihre Rechnung {invoice.invoice_number}.",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[invoice.recipient_email],
+        )
+        email.attach(f"{invoice.invoice_number}.pdf", pdf_bytes, "application/pdf")
+        email.send()
+        invoice.status = Invoice.Status.SENT
+        invoice.save(update_fields=["status"])
+        project = invoice.project
+        if project.status not in {Project.Status.INVOICED, Project.Status.COMPLETED}:
+            project.status = Project.Status.INVOICED
+            project.save(update_fields=["status"])
+        messages.success(request, f"Rechnung an {invoice.recipient_email} versendet.")
+        return redirect("crm:invoice_detail", pk=invoice.pk)
+
+
+class InvoiceStatusUpdateView(AdminOrLeadMixin, View):
+    ALLOWED_TRANSITIONS = {
+        Invoice.Status.DRAFT:  {Invoice.Status.SENT, Invoice.Status.CANCELLED},
+        Invoice.Status.SENT:   {Invoice.Status.PAID, Invoice.Status.CANCELLED},
+    }
+
+    def post(self, request, pk):
+        invoice = get_object_or_404(Invoice, pk=pk)
+        new_status = request.POST.get("status")
+        allowed = self.ALLOWED_TRANSITIONS.get(invoice.status, set())
+        if new_status not in allowed:
+            messages.error(request, "Ungültiger Statuswechsel.")
+            return redirect("crm:invoice_detail", pk=invoice.pk)
+        invoice.status = new_status
+        if new_status == Invoice.Status.PAID:
+            invoice.payment_date = date.today()
+            project = invoice.project
+            project.status = Project.Status.COMPLETED
+            project.save(update_fields=["status"])
+        invoice.save()
+        messages.success(request, f"Status auf '{invoice.get_status_display()}' gesetzt.")
+        return redirect("crm:invoice_detail", pk=invoice.pk)
+
+
+class InvoiceDeleteView(AdminOrLeadMixin, View):
+    def post(self, request, pk):
+        invoice = get_object_or_404(Invoice, pk=pk)
+        if invoice.status != Invoice.Status.DRAFT:
+            messages.error(request, "Nur Entwürfe können gelöscht werden.")
+            return redirect("crm:invoice_detail", pk=invoice.pk)
+        project_pk = invoice.project.pk
+        invoice.delete()
+        messages.success(request, "Rechnung gelöscht.")
+        return redirect("crm:project_detail", pk=project_pk)
+
+
+class OfferOrderConfirmationView(AdminOrLeadMixin, View):
+    def post(self, request, pk):
+        offer = get_object_or_404(Offer, pk=pk)
+        offer.is_order_confirmation = True
+        offer.save(update_fields=["is_order_confirmation"])
+        return redirect("crm:offer_pdf", pk=offer.pk)

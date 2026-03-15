@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <title>{{ offer.offer_number }} – {{ offer.title }}</title>
+  <title>{{ invoice.invoice_number }} – {{ invoice.title }}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -30,13 +30,13 @@
       justify-content: space-between;
       align-items: flex-start;
       padding-bottom: 12pt;
-      border-bottom: 2pt solid #1666b0;
+      border-bottom: 2pt solid #1a6b3c;
       margin-bottom: 20pt;
     }
     .header-brand {
       font-size: 20pt;
       font-weight: 700;
-      color: #1666b0;
+      color: #1a6b3c;
       letter-spacing: -0.5pt;
     }
     .header-brand-sub {
@@ -50,10 +50,10 @@
       color: #444;
       line-height: 1.6;
     }
-    .header-meta .offer-number {
+    .header-meta .invoice-number {
       font-size: 13pt;
       font-weight: 700;
-      color: #1666b0;
+      color: #1a6b3c;
     }
 
     /* ── Empfänger ────────────────────────────────────────── */
@@ -67,7 +67,7 @@
       font-weight: 600;
     }
 
-    /* ── Angebots-Titel ───────────────────────────────────── */
+    /* ── Rechnungs-Titel ──────────────────────────────────── */
     .offer-title {
       font-size: 14pt;
       font-weight: 700;
@@ -90,7 +90,7 @@
       font-size: 9pt;
     }
     .positions-table thead tr {
-      background-color: #1666b0;
+      background-color: #1a6b3c;
       color: #fff;
     }
     .positions-table thead th {
@@ -104,12 +104,12 @@
       text-align: right;
     }
     .positions-table tbody tr:nth-child(even) {
-      background-color: #f4f8fc;
+      background-color: #f4fbf7;
     }
     .positions-table tbody td {
       padding: 6pt 8pt;
       vertical-align: top;
-      border-bottom: 0.5pt solid #dde8f0;
+      border-bottom: 0.5pt solid #d0e8da;
       line-height: 1.5;
     }
     .positions-table tbody td.text-right {
@@ -164,8 +164,8 @@
     .totals-table tr.gross td {
       font-size: 12pt;
       font-weight: 700;
-      color: #1666b0;
-      border-top: 2pt solid #1666b0;
+      color: #1a6b3c;
+      border-top: 2pt solid #1a6b3c;
       padding-top: 6pt;
     }
 
@@ -176,6 +176,16 @@
       color: #333;
       margin-bottom: 18pt;
       white-space: pre-wrap;
+    }
+
+    /* ── Zahlungshinweise ─────────────────────────────────── */
+    .payment-info {
+      margin-top: 20pt;
+      background: #f5f5f5;
+      padding: 12pt 16pt;
+      border-radius: 4pt;
+      font-size: 9pt;
+      color: #444;
     }
 
     /* ── Fußzeile ─────────────────────────────────────────── */
@@ -198,29 +208,29 @@
       <div class="header-brand-sub">Business Operating System</div>
     </div>
     <div class="header-meta">
-      <div class="offer-number">{{ offer.offer_number }}</div>
-      <div>Datum: {{ offer.offer_date|date:"d.m.Y" }}</div>
-      {% if offer.valid_until and not offer.is_order_confirmation %}
-      <div>Gültig bis: {{ offer.valid_until|date:"d.m.Y" }}</div>
+      <div class="invoice-number">{{ invoice.invoice_number }}</div>
+      <div>Rechnungsdatum: {{ invoice.invoice_date|date:"d.m.Y" }}</div>
+      {% if invoice.due_date %}
+      <div>Zahlbar bis: {{ invoice.due_date|date:"d.m.Y" }}</div>
       {% endif %}
     </div>
   </div>
 
   <!-- Empfänger -->
   <div class="recipient-block">
-    {% if offer.recipient_name %}
-      <div class="name">{{ offer.recipient_name }}</div>
+    {% if invoice.recipient_name %}
+      <div class="name">{{ invoice.recipient_name }}</div>
     {% endif %}
-    {% if offer.recipient_address %}
-      <div style="white-space: pre-line;">{{ offer.recipient_address }}</div>
+    {% if invoice.recipient_address %}
+      <div style="white-space: pre-line;">{{ invoice.recipient_address }}</div>
     {% endif %}
   </div>
 
-  <!-- Angebots-Titel + Einleitung -->
-  <div class="offer-title">{% if offer.is_order_confirmation %}Auftragsbestätigung{% else %}Angebot{% endif %}: {{ offer.title }}</div>
+  <!-- Rechnungs-Titel + Einleitung -->
+  <div class="offer-title">{{ invoice.title }}</div>
 
-  {% if offer.intro_text %}
-  <div class="intro-text">{{ offer.intro_text }}</div>
+  {% if invoice.intro_text %}
+  <div class="intro-text">{{ invoice.intro_text }}</div>
   {% endif %}
 
   <!-- Positionstabelle -->
@@ -256,29 +266,37 @@
     <table class="totals-table">
       <tr>
         <td class="label">Nettobetrag</td>
-        <td class="amount">{{ net_total|floatformat:2 }} €</td>
+        <td class="amount">{{ invoice.net_total|floatformat:2 }} €</td>
       </tr>
       <tr>
-        <td class="label">MwSt. {{ offer.tax_rate|floatformat:2 }} %</td>
-        <td class="amount">{{ tax_amount|floatformat:2 }} €</td>
+        <td class="label">MwSt. {{ invoice.tax_rate|floatformat:2 }} %</td>
+        <td class="amount">{{ invoice.tax_amount|floatformat:2 }} €</td>
       </tr>
       <tr class="gross">
         <td class="label">Gesamtbetrag brutto</td>
-        <td class="amount">{{ gross_total|floatformat:2 }} €</td>
+        <td class="amount">{{ invoice.gross_total|floatformat:2 }} €</td>
       </tr>
     </table>
   </div>
 
   <!-- Schlusstext -->
-  {% if offer.closing_text %}
-  <div class="closing-text">{{ offer.closing_text }}</div>
+  {% if invoice.closing_text %}
+  <div class="closing-text">{{ invoice.closing_text }}</div>
+  {% endif %}
+
+  <!-- Zahlungshinweise -->
+  {% if invoice.payment_info %}
+  <div class="payment-info">
+    <strong>Zahlungshinweise</strong><br>
+    {{ invoice.payment_info|linebreaksbr }}
+  </div>
   {% endif %}
 
   <!-- Fußzeile -->
   <div class="footer">
-    <span>Projekt: {{ offer.project.project_number }} — {{ offer.project.name }}</span>
-    {% if offer.valid_until %}
-    <span>Angebot gültig bis {{ offer.valid_until|date:"d.m.Y" }}</span>
+    <span>Projekt: {{ invoice.project.project_number }} — {{ invoice.project.name }}</span>
+    {% if invoice.due_date %}
+    <span>Zahlbar bis {{ invoice.due_date|date:"d.m.Y" }}</span>
     {% endif %}
   </div>
 

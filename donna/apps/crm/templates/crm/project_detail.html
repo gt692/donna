@@ -40,6 +40,35 @@
 
 {% block content %}
 
+<!-- Prozess-Pipeline -->
+<div class="mb-5 bg-white rounded-xl border border-slate-200 shadow-sm px-6 py-4">
+  <div class="flex items-center">
+    {% with s=project.status %}
+    {% for step_label, step_key, step_done, step_active in process_steps %}
+    <div class="flex items-center {% if not forloop.last %}flex-1{% endif %}">
+      <div class="flex flex-col items-center min-w-0">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0
+          {% if step_active %}bg-[#1666b0] text-white
+          {% elif step_done %}bg-green-500 text-white
+          {% else %}bg-slate-100 text-slate-400{% endif %}">
+          {% if step_done %}✓{% else %}{{ forloop.counter }}{% endif %}
+        </div>
+        <span class="text-xs mt-1 font-medium whitespace-nowrap
+          {% if step_active %}text-[#1666b0]
+          {% elif step_done %}text-green-600
+          {% else %}text-slate-400{% endif %}">
+          {{ step_label }}
+        </span>
+      </div>
+      {% if not forloop.last %}
+      <div class="flex-1 h-0.5 mx-2 mb-4 {% if step_done %}bg-green-400{% else %}bg-slate-200{% endif %}"></div>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% endwith %}
+  </div>
+</div>
+
 {% if project.status == "invoiced" and request.user.can_approve_time_entries %}
 <div class="mb-5 flex items-center gap-4 bg-emerald-50 border border-emerald-200 rounded-xl px-5 py-4">
   <svg class="w-6 h-6 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -312,6 +341,52 @@
       <div class="px-5 py-6 text-center text-slate-400 text-sm">
         Noch keine Angebote für dieses Projekt.
       </div>
+      {% endif %}
+    </div>
+
+    <!-- Rechnungen -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-slate-700">Rechnungen</h2>
+        {% if request.user.can_approve_time_entries %}
+        <a href="{% url 'crm:invoice_create' project.pk %}"
+           class="text-xs text-[#1666b0] hover:text-[#0d4f8c] transition font-medium">
+          + Neue Rechnung
+        </a>
+        {% endif %}
+      </div>
+      {% if invoices %}
+      <div class="divide-y divide-slate-50">
+        {% for inv in invoices %}
+        <div class="flex items-center gap-3 px-5 py-3 {% if inv.is_overdue %}bg-red-50{% endif %}">
+          <div class="flex-1 min-w-0">
+            <a href="{% url 'crm:invoice_detail' inv.pk %}"
+               class="text-sm font-medium text-[#1666b0] hover:text-[#0d4f8c] truncate block">
+              {{ inv.invoice_number }} — {{ inv.title }}
+            </a>
+            <p class="text-xs text-slate-400">
+              {{ inv.invoice_date|date:"d.m.Y" }}{% if inv.due_date %} · Fällig: {{ inv.due_date|date:"d.m.Y" }}{% endif %}
+            </p>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <span class="text-xs font-mono text-slate-600">{{ inv.gross_total|floatformat:2 }} €</span>
+            {% if inv.is_overdue %}
+              <span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">Überfällig</span>
+            {% elif inv.status == "draft" %}
+              <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">Entwurf</span>
+            {% elif inv.status == "sent" %}
+              <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">Versendet</span>
+            {% elif inv.status == "paid" %}
+              <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Bezahlt</span>
+            {% elif inv.status == "cancelled" %}
+              <span class="text-xs bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full font-medium">Storniert</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="px-5 py-6 text-center text-slate-400 text-sm">Noch keine Rechnungen.</div>
       {% endif %}
     </div>
 

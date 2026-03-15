@@ -8,10 +8,11 @@ from __future__ import annotations
 
 import datetime
 import uuid
+from datetime import date
 from decimal import Decimal
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -742,6 +743,7 @@ class Offer(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_order_confirmation = models.BooleanField(default=False)
 
     class Meta:
         ordering        = ["-offer_date", "-created_at"]
@@ -810,3 +812,105 @@ class OfferItem(models.Model):
     @property
     def net_amount(self):
         return (self.quantity * self.unit_price).quantize(Decimal("0.01"))
+
+
+# ---------------------------------------------------------------------------
+# Invoice + InvoiceItem — Rechnungen
+# ---------------------------------------------------------------------------
+
+class Invoice(models.Model):
+    class InvoiceType(models.TextChoices):
+        STANDARD = "standard", "Standardrechnung"
+        PARTIAL  = "partial",  "Abschlagsrechnung"
+        FINAL    = "final",    "Schlussrechnung"
+
+    class Status(models.TextChoices):
+        DRAFT     = "draft",     "Entwurf"
+        SENT      = "sent",      "Versendet"
+        PAID      = "paid",      "Bezahlt"
+        CANCELLED = "cancelled", "Storniert"
+
+    id             = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    invoice_number = models.CharField(max_length=20, unique=True, blank=True)
+    project        = models.ForeignKey("Project", on_delete=models.PROTECT, related_name="invoices")
+    offer          = models.ForeignKey("Offer", null=True, blank=True, on_delete=models.SET_NULL, related_name="invoices")
+    invoice_type   = models.CharField(max_length=20, choices=InvoiceType.choices, default=InvoiceType.STANDARD)
+    status         = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+    invoice_date   = models.DateField(default=date.today)
+    due_date       = models.DateField(null=True, blank=True)
+    payment_date   = models.DateField(null=True, blank=True)
+    title          = models.CharField(max_length=255)
+    intro_text     = models.TextField(blank=True)
+    closing_text   = models.TextField(blank=True)
+    payment_info   = models.TextField(blank=True, help_text="IBAN, BIC, Verwendungszweck")
+    tax_rate       = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("19.00"))
+    recipient_name    = models.CharField(max_length=255, blank=True)
+    recipient_email   = models.EmailField(blank=True)
+    recipient_address = models.TextField(blank=True)
+    net_total_cached  = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    created_by     = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="created_invoices")
+    created_at     = models.DateTimeField(auto_now_add=True)
+    updated_at     = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.invoice_number:
+            with transaction.atomic():
+                last = Invoice.objects.select_for_update().filter(
+                    invoice_number__regex=r"^RGN-\d+$"
+                ).order_by("-invoice_number").first()
+                if last:
+                    num = int(last.invoice_number.split("-")[1]) + 1
+                else:
+                    num = 1
+                self.invoice_number = f"RGN-{num:05d}"
+        if not self.due_date and self.invoice_date:
+            from datetime import timedelta
+            self.due_date = self.invoice_date + timedelta(days=14)
+        super().save(*args, **kwargs)
+
+    @property
+    def net_total(self):
+        return sum((item.net_amount for item in self.items.all()), Decimal("0.00"))
+
+    @property
+    def tax_amount(self):
+        return (self.net_total * self.tax_rate / Decimal("100")).quantize(Decimal("0.01"))
+
+    @property
+    def gross_total(self):
+        return self.net_total + self.tax_amount
+
+    @property
+    def is_overdue(self):
+        from datetime import date as date_today
+        return (
+            self.status not in {self.Status.PAID, self.Status.CANCELLED}
+            and self.due_date is not None
+            and self.due_date < date_today.today()
+        )
+
+    def __str__(self):
+        return f"{self.invoice_number} – {self.title}"
+
+    class Meta:
+        ordering = ["-invoice_date", "-created_at"]
+        verbose_name = "Rechnung"
+        verbose_name_plural = "Rechnungen"
+
+
+class InvoiceItem(models.Model):
+    invoice     = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="items")
+    position    = models.PositiveSmallIntegerField(default=1)
+    description = models.TextField()
+    quantity    = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("1"))
+    unit        = models.CharField(max_length=50, blank=True, default="pauschal")
+    unit_price  = models.DecimalField(max_digits=12, decimal_places=2)
+
+    @property
+    def net_amount(self):
+        return (self.quantity * self.unit_price).quantize(Decimal("0.01"))
+
+    class Meta:
+        ordering = ["position"]
+        verbose_name = "Rechnungsposition"
+        verbose_name_plural = "Rechnungspositionen"
