@@ -955,12 +955,17 @@ class LeadInquiry(models.Model):
         SUBMITTED = "submitted", "Eingereicht"
         IMPORTED  = "imported",  "Übernommen"
 
+    class CustomerType(models.TextChoices):
+        PRIVATE = "private", "Privatperson"
+        COMPANY = "company", "Unternehmen"
+
     id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     token       = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
     project     = models.OneToOneField("Project", on_delete=models.CASCADE, related_name="lead_inquiry")
     status      = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
 
     # Customer-provided data (filled via public form)
+    customer_type   = models.CharField(max_length=10, choices=CustomerType.choices, default=CustomerType.PRIVATE, verbose_name="Kundentyp")
     first_name      = models.CharField(max_length=100, blank=True, verbose_name="Vorname")
     last_name       = models.CharField(max_length=100, blank=True, verbose_name="Nachname")
     company_name    = models.CharField(max_length=255, blank=True, verbose_name="Firma")
@@ -970,6 +975,7 @@ class LeadInquiry(models.Model):
     postal_code     = models.CharField(max_length=20, blank=True, verbose_name="PLZ")
     city            = models.CharField(max_length=100, blank=True, verbose_name="Stadt")
     request_description = models.TextField(blank=True, verbose_name="Beschreibung des Anliegens")
+    invoice_email   = models.EmailField(blank=True, verbose_name="Rechnungs-E-Mail")
 
     sent_at         = models.DateTimeField(null=True, blank=True)
     submitted_at    = models.DateTimeField(null=True, blank=True)

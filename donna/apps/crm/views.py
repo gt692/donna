@@ -1996,6 +1996,8 @@ class LeadInquiryPublicView(View):
         if inquiry.status == LeadInquiry.Status.SUBMITTED:
             return render(request, "crm/lead_inquiry_thankyou.html", {"inquiry": inquiry})
 
+        customer_type = request.POST.get("customer_type", LeadInquiry.CustomerType.PRIVATE)
+        inquiry.customer_type       = customer_type
         inquiry.first_name          = request.POST.get("first_name", "").strip()
         inquiry.last_name           = request.POST.get("last_name", "").strip()
         inquiry.company_name        = request.POST.get("company_name", "").strip()
@@ -2005,6 +2007,7 @@ class LeadInquiryPublicView(View):
         inquiry.postal_code         = request.POST.get("postal_code", "").strip()
         inquiry.city                = request.POST.get("city", "").strip()
         inquiry.request_description = request.POST.get("request_description", "").strip()
+        inquiry.invoice_email       = request.POST.get("invoice_email", "").strip()
         inquiry.status              = LeadInquiry.Status.SUBMITTED
         inquiry.submitted_at        = timezone.now()
         inquiry.save()
@@ -2012,8 +2015,14 @@ class LeadInquiryPublicView(View):
         # Update account with submitted data
         account = inquiry.project.account
         if account:
-            if inquiry.company_name:
+            is_company = customer_type == LeadInquiry.CustomerType.COMPANY
+            account.account_type = Account.AccountType.COMPANY if is_company else Account.AccountType.PRIVATE
+            if is_company and inquiry.company_name:
                 account.name = inquiry.company_name
+            elif not is_company:
+                full_name = " ".join(p for p in [inquiry.first_name, inquiry.last_name] if p)
+                if full_name:
+                    account.name = full_name
             if inquiry.email:
                 account.email = inquiry.email
             if inquiry.phone:
