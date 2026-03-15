@@ -253,11 +253,15 @@
   });
 })();
 
-// ── Adress-Autocomplete ──────────────────────────────────────────────────────
-(function () {
-  const input    = document.getElementById('{{ form.address_line1.id_for_label }}');
-  const dropdown = document.getElementById('address-dropdown');
-  const spinner  = document.getElementById('address-spinner');
+// ── Adress-Autocomplete (Google Places) ──────────────────────────────────────
+{% if google_maps_api_key %}
+function initGoogleAutocomplete() {
+  const input = document.getElementById('{{ form.address_line1.id_for_label }}');
+  const spinner = document.getElementById('address-spinner');
+  if (!input) return;
+
+  input.setAttribute('autocomplete', 'off');
+  spinner.classList.add('hidden');
 
   const fields = {
     postal:  document.getElementById('{{ form.postal_code.id_for_label }}'),
@@ -265,146 +269,51 @@
     country: document.getElementById('{{ form.country.id_for_label }}'),
   };
 
-  let debounceTimer = null;
-  let latestQuery   = '';
-  let skipNext      = false;   // nach Auswahl keine erneute Suche
-
-  input.setAttribute('autocomplete', 'off');
-
-  input.addEventListener('input', function () {
-    if (skipNext) { skipNext = false; return; }
-    const q = this.value.trim();
-    clearTimeout(debounceTimer);
-    hideDropdown();
-    if (q.length < 3) { spinner.classList.add('hidden'); return; }
-    latestQuery = q;
-    spinner.classList.remove('hidden');
-    debounceTimer = setTimeout(() => fetchSuggestions(q), 350);
+  const ac = new google.maps.places.Autocomplete(input, {
+    types: ['address'],
+    componentRestrictions: { country: ['de', 'at', 'ch'] },
+    fields: ['address_components'],
   });
 
-  async function fetchSuggestions(q) {
-    if (q !== latestQuery) return;
-    const url = new URL('https://nominatim.openstreetmap.org/search');
-    url.searchParams.set('q', q);
-    url.searchParams.set('format', 'json');
-    url.searchParams.set('addressdetails', '1');
-    url.searchParams.set('limit', '6');
-    url.searchParams.set('countrycodes', 'de,at,ch');
-    try {
-      const res  = await fetch(url, { headers: { 'Accept-Language': 'de' } });
-      const data = await res.json();
-      spinner.classList.add('hidden');
-      if (q !== latestQuery) return;
-      renderDropdown(data);
-    } catch {
-      spinner.classList.add('hidden');
-    }
-  }
+  // Google's eigenes Dropdown überlagert unser leeres — ausblenden
+  document.getElementById('address-dropdown').classList.add('hidden');
 
-  function renderDropdown(results) {
-    if (!results.length) {
-      dropdown.innerHTML = '<div class="px-4 py-3 text-sm text-slate-400">Keine Ergebnisse.</div>';
-      dropdown.classList.remove('hidden');
-      return;
-    }
-    dropdown.innerHTML = results.map((r, i) => {
-      const addr  = r.address || {};
-      const line1 = buildLine1(addr);
-      const sub   = buildSub(addr);
-      return `<button type="button" data-index="${i}"
-                class="w-full text-left px-4 py-2.5 hover:bg-[#f0f9fe] active:bg-[#ddf1fb]
-                       transition flex items-start gap-3 border-b border-slate-50 last:border-0">
-          <svg class="w-4 h-4 text-[#14b0e4] mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-          </svg>
-          <div class="min-w-0">
-            <p class="text-sm font-medium text-slate-800 truncate">${esc(line1)}</p>
-            ${sub ? `<p class="text-xs text-slate-400 truncate">${esc(sub)}</p>` : ''}
-          </div>
-        </button>`;
-    }).join('');
-    dropdown.classList.remove('hidden');
-    dropdown.querySelectorAll('button').forEach((btn, i) => {
-      btn.addEventListener('mousedown', e => {
-        e.preventDefault();
-        applyResult(results[i]);
-      });
-    });
-  }
+  ac.addListener('place_changed', function () {
+    const place = ac.getPlace();
+    if (!place.address_components) return;
 
-  function applyResult(r) {
-    const addr  = r.address || {};
-    const line1 = buildLine1(addr);
-    skipNext        = true;
-    input.value     = line1;
-    fields.postal.value  = addr.postcode || '';
-    fields.city.value    = addr.city || addr.town || addr.village || addr.municipality || '';
-    fields.country.value = addr.country || '';
-    hideDropdown();
+    const get = (types) => {
+      const c = place.address_components.find(c => types.some(t => c.types.includes(t)));
+      return c ? c.long_name : '';
+    };
+    const getShort = (types) => {
+      const c = place.address_components.find(c => types.some(t => c.types.includes(t)));
+      return c ? c.short_name : '';
+    };
+
+    const street  = get(['route']);
+    const number  = get(['street_number']);
+    const line1   = street && number ? `${street} ${number}` : street;
+
+    if (line1) input.value = line1;
+    if (fields.postal)  fields.postal.value  = get(['postal_code']);
+    if (fields.city)    fields.city.value    = get(['locality', 'sublocality', 'postal_town']);
+    if (fields.country) fields.country.value = get(['country']);
+
     // Felder kurz grün aufleuchten
     [input, fields.postal, fields.city, fields.country].forEach(f => {
       if (!f?.value) return;
       f.classList.add('ring-2', 'ring-green-400', 'border-green-300');
       setTimeout(() => f.classList.remove('ring-2', 'ring-green-400', 'border-green-300'), 1500);
     });
-    input.focus();
-  }
-
-  function buildLine1(addr) {
-    const road   = addr.road || addr.pedestrian || addr.path || '';
-    const number = addr.house_number || '';
-    return road && number ? `${road} ${number}` : road;
-  }
-
-  function buildSub(addr) {
-    const parts = [];
-    if (addr.postcode) parts.push(addr.postcode);
-    const city = addr.city || addr.town || addr.village || '';
-    if (city) parts.push(city);
-    if (addr.country) parts.push(addr.country);
-    return parts.join(' · ');
-  }
-
-  function hideDropdown() {
-    dropdown.classList.add('hidden');
-    dropdown.innerHTML = '';
-  }
-
-  function esc(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  // Tastaturnavigation
-  input.addEventListener('keydown', e => {
-    const items  = [...dropdown.querySelectorAll('button')];
-    if (!items.length) return;
-    const active = dropdown.querySelector('button[data-active]');
-    const idx    = active ? items.indexOf(active) : -1;
-
-    if (e.key === 'Escape')    { hideDropdown(); return; }
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      const next = items[(idx + 1) % items.length];
-      active?.removeAttribute('data-active'); active?.classList.remove('bg-[#f0f9fe]');
-      next.setAttribute('data-active', '');   next.classList.add('bg-[#f0f9fe]');
-      next.scrollIntoView({ block: 'nearest' });
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      const prev = items[(idx - 1 + items.length) % items.length];
-      active?.removeAttribute('data-active'); active?.classList.remove('bg-[#f0f9fe]');
-      prev.setAttribute('data-active', '');   prev.classList.add('bg-[#f0f9fe]');
-      prev.scrollIntoView({ block: 'nearest' });
-    } else if (e.key === 'Enter' && active) {
-      e.preventDefault();
-      active.dispatchEvent(new MouseEvent('mousedown'));
-    }
   });
-
-  document.addEventListener('click', e => {
-    if (!input.contains(e.target) && !dropdown.contains(e.target)) hideDropdown();
-  });
-})();
+}
+{% else %}
+// Kein Google Maps API Key konfiguriert — Autocomplete deaktiviert
+document.getElementById('address-spinner')?.classList.add('hidden');
+{% endif %}
 </script>
+{% if google_maps_api_key %}
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initGoogleAutocomplete" async defer></script>
+{% endif %}
 {% endblock %}

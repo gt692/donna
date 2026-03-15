@@ -163,6 +163,7 @@ MS_SENDER_EMAIL  = env("MS_SENDER_EMAIL", default="donna@direso.de")
 # ── Externe Dienste ────────────────────────────────────────────────────────
 LEXOFFICE_API_KEY      = env("LEXOFFICE_API_KEY", default="")
 LEXOFFICE_API_BASE_URL = env("LEXOFFICE_API_BASE_URL", default="https://api.lexoffice.io/v1")
+GOOGLE_MAPS_API_KEY    = env("GOOGLE_MAPS_API_KEY", default="")
 
 # Basis-Pfad für Netzlaufwerk / lokales Storage
 STORAGE_BASE_PATH = env("STORAGE_BASE_PATH", default="")

@@ -199,11 +199,13 @@ class AccountCreateView(AdminOrLeadMixin, CreateView):
         return redirect("crm:account_detail", pk=account.pk)
 
     def get_context_data(self, **kwargs):
+        from django.conf import settings as dj_settings
         ctx = super().get_context_data(**kwargs)
         ctx["page_title"]           = "Neuer Account"
         ctx["submit_label"]         = "Account erstellen"
         ctx["contact_role_choices"] = Contact.Role.choices
         ctx["contact_emails"]       = {str(k): v for k, v in Contact.objects.values_list("id", "email")}
+        ctx["google_maps_api_key"]  = dj_settings.GOOGLE_MAPS_API_KEY
         return ctx
 
 
@@ -233,11 +235,13 @@ class AccountUpdateView(AdminOrLeadMixin, UpdateView):
         return redirect("crm:account_detail", pk=account.pk)
 
     def get_context_data(self, **kwargs):
+        from django.conf import settings as dj_settings
         ctx = super().get_context_data(**kwargs)
         ctx["page_title"]           = f"{self.object.name} bearbeiten"
         ctx["submit_label"]         = "Speichern"
         ctx["contact_role_choices"] = Contact.Role.choices
         ctx["contact_emails"]       = {str(k): v for k, v in Contact.objects.values_list("id", "email")}
+        ctx["google_maps_api_key"]  = dj_settings.GOOGLE_MAPS_API_KEY
         return ctx
 
 
