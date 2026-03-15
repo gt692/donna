@@ -1428,6 +1428,16 @@ class OfferSendView(AdminOrLeadMixin, View):
 
         offer.status = Offer.Status.SENT
         offer.save(update_fields=["status"])
+
+        # PDF-Snapshot als Dokument am Projekt archivieren
+        from django.core.files.base import ContentFile
+        doc = Document(
+            project=offer.project,
+            document_type=Document.DocumentType.OFFER,
+            title=f"{offer.offer_number} – {offer.title}",
+        )
+        doc.file.save(f"{offer.offer_number}.pdf", ContentFile(pdf_bytes), save=True)
+
         messages.success(request, f"Angebot {offer.offer_number} wurde an {offer.recipient_email} versendet.")
         return redirect("crm:offer_detail", pk=offer.pk)
 
@@ -1853,6 +1863,15 @@ class InvoiceSendView(AdminOrLeadMixin, View):
         email.send()
         invoice.status = Invoice.Status.SENT
         invoice.save(update_fields=["status"])
+
+        # PDF-Snapshot als Dokument am Projekt archivieren
+        from django.core.files.base import ContentFile
+        inv_doc = Document(
+            project=invoice.project,
+            document_type=Document.DocumentType.INVOICE,
+            title=f"{invoice.invoice_number} – {invoice.title}",
+        )
+        inv_doc.file.save(f"{invoice.invoice_number}.pdf", ContentFile(pdf_bytes), save=True)
         project = invoice.project
         if project.status not in {Project.Status.INVOICED, Project.Status.COMPLETED}:
             project.status = Project.Status.INVOICED
