@@ -198,18 +198,19 @@ class OfferForm(forms.ModelForm):
         model  = Offer
         fields = [
             "title", "offer_date", "valid_until", "tax_rate",
-            "intro_text", "closing_text",
+            "intro_text", "closing_text", "payment_terms",
             "recipient_name", "recipient_email", "recipient_address",
         ]
         widgets = {
-            "title":            forms.TextInput(attrs={"class": _INPUT, "placeholder": "Angebotstitel"}),
-            "offer_date":       forms.DateInput(attrs={"class": _INPUT, "type": "date"}, format="%Y-%m-%d"),
-            "valid_until":      forms.DateInput(attrs={"class": _INPUT, "type": "date"}, format="%Y-%m-%d"),
-            "tax_rate":         forms.NumberInput(attrs={"class": _INPUT, "step": "0.01"}),
-            "intro_text":       forms.Textarea(attrs={"class": _INPUT, "rows": 3, "placeholder": "Einleitungstext …"}),
-            "closing_text":     forms.Textarea(attrs={"class": _INPUT, "rows": 3, "placeholder": "Schlusstext …"}),
-            "recipient_name":   forms.TextInput(attrs={"class": _INPUT, "placeholder": "Empfänger Name"}),
-            "recipient_email":  forms.EmailInput(attrs={"class": _INPUT, "placeholder": "empfaenger@beispiel.de"}),
+            "title":             forms.TextInput(attrs={"class": _INPUT, "placeholder": "Angebotstitel"}),
+            "offer_date":        forms.DateInput(attrs={"class": _INPUT, "type": "date"}, format="%Y-%m-%d"),
+            "valid_until":       forms.DateInput(attrs={"class": _INPUT, "type": "date"}, format="%Y-%m-%d"),
+            "tax_rate":          forms.NumberInput(attrs={"class": _INPUT, "step": "0.01"}),
+            "intro_text":        forms.Textarea(attrs={"class": _INPUT, "rows": 3, "placeholder": "Einleitungstext …"}),
+            "closing_text":      forms.Textarea(attrs={"class": _INPUT, "rows": 3, "placeholder": "Nachbemerkung …"}),
+            "payment_terms":     forms.Textarea(attrs={"class": _INPUT, "rows": 2, "placeholder": "z.B. Zahlbar innerhalb von 14 Tagen ohne Abzug."}),
+            "recipient_name":    forms.TextInput(attrs={"class": _INPUT, "placeholder": "Empfänger Name"}),
+            "recipient_email":   forms.EmailInput(attrs={"class": _INPUT, "placeholder": "empfaenger@beispiel.de"}),
             "recipient_address": forms.Textarea(attrs={"class": _INPUT, "rows": 3, "placeholder": "Straße, Nr.\nPLZ Ort"}),
         }
 
@@ -218,6 +219,7 @@ class OfferForm(forms.ModelForm):
         self.fields["valid_until"].required = False
         self.fields["intro_text"].required = False
         self.fields["closing_text"].required = False
+        self.fields["payment_terms"].required = False
         self.fields["recipient_name"].required = False
         self.fields["recipient_email"].required = False
         self.fields["recipient_address"].required = False

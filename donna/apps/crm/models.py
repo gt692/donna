@@ -756,8 +756,9 @@ class Offer(models.Model):
         verbose_name=_("Status"),
     )
     title        = models.CharField(max_length=255, verbose_name=_("Titel"))
-    intro_text   = models.TextField(blank=True, verbose_name=_("Einleitungstext"))
-    closing_text = models.TextField(blank=True, verbose_name=_("Schlusstext"))
+    intro_text     = models.TextField(blank=True, verbose_name=_("Einleitungstext"))
+    closing_text   = models.TextField(blank=True, verbose_name=_("Nachbemerkung"))
+    payment_terms  = models.TextField(blank=True, verbose_name=_("Zahlungsbedingung"))
     tax_rate     = models.DecimalField(
         max_digits=5, decimal_places=2, default=Decimal("19.00"),
         verbose_name=_("MwSt. (%)"),

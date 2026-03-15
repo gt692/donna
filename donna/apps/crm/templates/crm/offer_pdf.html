@@ -8,19 +8,18 @@
 
     body {
       font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-      font-size: 10pt;
+      font-size: 9.5pt;
       color: #1a1a2e;
       background: #fff;
-      padding: 0;
     }
 
     @page {
       size: A4;
-      margin: 20mm 20mm 25mm 20mm;
+      margin: 18mm 18mm 38mm 20mm;
       @bottom-center {
         content: "Seite " counter(page) " von " counter(pages);
-        font-size: 8pt;
-        color: #888;
+        font-size: 7.5pt;
+        color: #999;
       }
     }
 
@@ -29,56 +28,77 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      padding-bottom: 12pt;
+      padding-bottom: 10pt;
       border-bottom: 2pt solid {{ company_settings.primary_color }};
-      margin-bottom: 20pt;
+      margin-bottom: 18pt;
     }
     .header-brand {
-      font-size: 20pt;
+      font-size: 22pt;
       font-weight: 700;
       color: {{ company_settings.primary_color }};
       letter-spacing: -0.5pt;
+      line-height: 1.1;
     }
     .header-brand-sub {
-      font-size: 8pt;
-      color: #888;
-      margin-top: 2pt;
+      font-size: 7.5pt;
+      color: #999;
+      margin-top: 3pt;
+      letter-spacing: 0.3pt;
     }
-    .header-meta {
-      text-align: right;
-      font-size: 9pt;
+    .header-meta table {
+      border-collapse: collapse;
+      font-size: 8.5pt;
       color: #444;
-      line-height: 1.6;
     }
-    .header-meta .offer-number {
-      font-size: 13pt;
+    .header-meta table td {
+      padding: 1.5pt 0;
+    }
+    .header-meta table td.lbl {
+      color: #888;
+      padding-right: 10pt;
+      text-align: right;
+      white-space: nowrap;
+    }
+    .header-meta table td.val {
+      font-weight: 600;
+      text-align: right;
+    }
+    .header-meta .doc-number {
+      font-size: 14pt;
       font-weight: 700;
       color: {{ company_settings.primary_color }};
     }
 
-    /* ── Empfänger ────────────────────────────────────────── */
+    /* ── Absender + Empfänger ─────────────────────────────── */
+    .sender-line {
+      font-size: 7.5pt;
+      color: #888;
+      border-bottom: 0.5pt solid #bbb;
+      padding-bottom: 2pt;
+      margin-bottom: 6pt;
+      letter-spacing: 0.1pt;
+    }
     .recipient-block {
-      margin-bottom: 20pt;
+      margin-bottom: 18pt;
       font-size: 10pt;
       line-height: 1.6;
-      min-height: 40pt;
+      min-height: 42pt;
     }
-    .recipient-block .name {
-      font-weight: 600;
-    }
+    .recipient-block .name { font-weight: 600; }
 
-    /* ── Angebots-Titel ───────────────────────────────────── */
-    .offer-title {
+    /* ── Dokument-Titel ───────────────────────────────────── */
+    .doc-title {
       font-size: 14pt;
       font-weight: 700;
       color: #1a1a2e;
-      margin-bottom: 10pt;
+      margin-bottom: 8pt;
+      margin-top: 12pt;
     }
     .intro-text {
-      font-size: 10pt;
-      line-height: 1.6;
+      font-size: 9.5pt;
+      line-height: 1.65;
       color: #333;
-      margin-bottom: 18pt;
+      margin-bottom: 16pt;
       white-space: pre-wrap;
     }
 
@@ -86,7 +106,7 @@
     .positions-table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 20pt;
+      margin-bottom: 16pt;
       font-size: 9pt;
     }
     .positions-table thead tr {
@@ -94,20 +114,16 @@
       color: #fff;
     }
     .positions-table thead th {
-      padding: 6pt 8pt;
+      padding: 5.5pt 7pt;
       text-align: left;
       font-weight: 600;
-      font-size: 8.5pt;
+      font-size: 8pt;
       letter-spacing: 0.3pt;
     }
-    .positions-table thead th.text-right {
-      text-align: right;
-    }
-    .positions-table tbody tr:nth-child(even) {
-      background-color: #f4f8fc;
-    }
+    .positions-table thead th.text-right { text-align: right; }
+    .positions-table tbody tr:nth-child(even) { background-color: #f4f8fc; }
     .positions-table tbody td {
-      padding: 6pt 8pt;
+      padding: 5.5pt 7pt;
       vertical-align: top;
       border-bottom: 0.5pt solid #dde8f0;
       line-height: 1.5;
@@ -118,40 +134,37 @@
       font-variant-numeric: tabular-nums;
     }
     .positions-table tbody td.pos-nr {
-      color: #888;
-      width: 24pt;
+      color: #999;
+      width: 22pt;
       text-align: center;
+      font-size: 8pt;
     }
-    .positions-table tbody td.qty-unit {
-      white-space: nowrap;
-      width: 60pt;
-    }
-    .positions-table tbody td.unit-price {
-      width: 72pt;
-    }
-    .positions-table tbody td.net-amount {
-      width: 80pt;
-      font-weight: 600;
+    .positions-table tbody td.qty-unit { white-space: nowrap; width: 55pt; }
+    .positions-table tbody td.unit-price { width: 68pt; }
+    .positions-table tbody td.net-amount { width: 78pt; font-weight: 600; }
+    .positions-table tbody td.desc { min-width: 140pt; }
+    .positions-table tbody td.desc strong {
+      display: block;
+      font-size: 9pt;
+      margin-bottom: 1.5pt;
     }
 
     /* ── Summen-Block ─────────────────────────────────────── */
     .totals-wrapper {
       display: flex;
       justify-content: flex-end;
-      margin-bottom: 24pt;
+      margin-bottom: 20pt;
     }
     .totals-table {
-      width: 240pt;
+      width: 230pt;
       border-collapse: collapse;
-      font-size: 10pt;
+      font-size: 9.5pt;
     }
     .totals-table td {
-      padding: 4pt 8pt;
+      padding: 3.5pt 7pt;
       vertical-align: middle;
     }
-    .totals-table td.label {
-      color: #555;
-    }
+    .totals-table td.label { color: #555; }
     .totals-table td.amount {
       text-align: right;
       font-variant-numeric: tabular-nums;
@@ -159,34 +172,52 @@
     }
     .totals-table tr.separator td {
       border-top: 0.5pt solid #ccc;
-      padding-top: 6pt;
+      padding-top: 5pt;
     }
     .totals-table tr.gross td {
-      font-size: 12pt;
+      font-size: 11.5pt;
       font-weight: 700;
       color: {{ company_settings.primary_color }};
       border-top: 2pt solid {{ company_settings.primary_color }};
-      padding-top: 6pt;
+      padding-top: 5pt;
     }
 
-    /* ── Schlusstext ──────────────────────────────────────── */
-    .closing-text {
-      font-size: 10pt;
+    /* ── Zahlungsbedingung ────────────────────────────────── */
+    .payment-terms {
+      font-size: 9.5pt;
       line-height: 1.6;
       color: #333;
+      margin-bottom: 14pt;
+    }
+
+    /* ── Schlusstext / Nachbemerkung ──────────────────────── */
+    .closing-text {
+      font-size: 9pt;
+      line-height: 1.6;
+      color: #555;
       margin-bottom: 18pt;
       white-space: pre-wrap;
     }
 
-    /* ── Fußzeile ─────────────────────────────────────────── */
+    /* ── Fußzeile (fixed → wiederholt auf jeder Seite) ───── */
     .footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 30pt;
       border-top: 0.5pt solid #ddd;
-      padding-top: 8pt;
-      font-size: 8pt;
-      color: #888;
+      padding-top: 6pt;
       display: flex;
-      justify-content: space-between;
+      gap: 12pt;
     }
+    .footer-col {
+      flex: 1;
+      font-size: 7pt;
+      color: #777;
+      line-height: 1.55;
+    }
+    .footer-col strong { font-weight: 600; color: #555; }
   </style>
 </head>
 <body>
@@ -195,62 +226,75 @@
   <div class="header">
     <div>
       {% if company_logo_uri %}
-        <img src="{{ company_logo_uri }}" style="max-height: 55pt; max-width: 150pt; object-fit: contain;" alt="Logo">
+        <img src="{{ company_logo_uri }}" style="max-height: 52pt; max-width: 160pt; object-fit: contain;" alt="Logo">
       {% else %}
-        <div class="header-brand">{{ company_settings.company_name }}</div>
+        <div class="header-brand">{{ company_settings.company_name }}{% if company_settings.legal_form %} <span style="font-size:13pt; font-weight:400;">{{ company_settings.legal_form }}</span>{% endif %}</div>
         {% if company_settings.slogan %}<div class="header-brand-sub">{{ company_settings.slogan }}</div>{% endif %}
       {% endif %}
     </div>
     <div class="header-meta">
-      <div class="offer-number">{{ offer.offer_number }}</div>
-      <div>Datum: {{ offer.offer_date|date:"d.m.Y" }}</div>
-      {% if offer.valid_until and not offer.is_order_confirmation %}
-      <div>Gültig bis: {{ offer.valid_until|date:"d.m.Y" }}</div>
-      {% endif %}
+      <table>
+        <tr>
+          <td class="lbl">{% if offer.is_order_confirmation %}AB-Nr.:{% else %}Angebotsnr.:{% endif %}</td>
+          <td class="val doc-number">{{ offer.offer_number }}</td>
+        </tr>
+        {% if offer.project.account %}
+        <tr>
+          <td class="lbl">Kundennr.:</td>
+          <td class="val">{{ offer.project.account.account_number }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td class="lbl">Datum:</td>
+          <td class="val">{{ offer.offer_date|date:"d.m.Y" }}</td>
+        </tr>
+        {% if offer.valid_until and not offer.is_order_confirmation %}
+        <tr>
+          <td class="lbl">Gültig bis:</td>
+          <td class="val">{{ offer.valid_until|date:"d.m.Y" }}</td>
+        </tr>
+        {% endif %}
+      </table>
     </div>
   </div>
 
   <!-- Empfänger -->
-  <div class="recipient-block">
-    {% if offer.recipient_name %}
-      <div class="name">{{ offer.recipient_name }}</div>
-    {% endif %}
-    {% if offer.recipient_address %}
-      <div style="white-space: pre-line;">{{ offer.recipient_address }}</div>
-    {% endif %}
+  <div>
+    <div class="sender-line">{{ company_settings.company_name }}{% if company_settings.legal_form %} {{ company_settings.legal_form }}{% endif %}{% if company_settings.street %} · {{ company_settings.street }} · {{ company_settings.postal_code }} {{ company_settings.city }}{% endif %}</div>
+    <div class="recipient-block">
+      {% if offer.recipient_name %}<div class="name">{{ offer.recipient_name }}</div>{% endif %}
+      {% if offer.recipient_address %}<div style="white-space: pre-line;">{{ offer.recipient_address }}</div>{% endif %}
+    </div>
   </div>
 
-  <!-- Angebots-Titel + Einleitung -->
-  <div class="offer-title">{% if offer.is_order_confirmation %}Auftragsbestätigung{% else %}Angebot{% endif %}: {{ offer.title }}</div>
-
-  {% if offer.intro_text %}
-  <div class="intro-text">{{ offer.intro_text }}</div>
-  {% endif %}
+  <!-- Dokument-Titel + Einleitung -->
+  <div class="doc-title">{% if offer.is_order_confirmation %}Auftragsbestätigung{% else %}Angebot{% endif %}: {{ offer.title }}</div>
+  {% if offer.intro_text %}<div class="intro-text">{{ offer.intro_text }}</div>{% endif %}
 
   <!-- Positionstabelle -->
   <table class="positions-table">
     <thead>
       <tr>
-        <th style="width:24pt;">Nr.</th>
-        <th>Beschreibung</th>
-        <th class="text-right" style="width:60pt;">Menge</th>
-        <th style="width:56pt;">Einheit</th>
-        <th class="text-right" style="width:72pt;">Einzelpreis</th>
-        <th class="text-right" style="width:80pt;">Gesamtpreis</th>
+        <th style="width:22pt;">Pos.</th>
+        <th>Bezeichnung</th>
+        <th class="text-right" style="width:55pt;">Menge</th>
+        <th style="width:52pt;">Einheit</th>
+        <th class="text-right" style="width:68pt;">Einzel €</th>
+        <th class="text-right" style="width:78pt;">Gesamt €</th>
       </tr>
     </thead>
     <tbody>
       {% for item in items %}
       <tr>
         <td class="pos-nr">{{ item.position }}</td>
-        <td>{{ item.description }}</td>
+        <td class="desc">{{ item.description }}</td>
         <td class="text-right qty-unit">{{ item.quantity|floatformat:2 }}</td>
         <td>{{ item.unit }}</td>
-        <td class="text-right unit-price">{{ item.unit_price|floatformat:2 }} €</td>
-        <td class="text-right net-amount">{{ item.net_amount|floatformat:2 }} €</td>
+        <td class="text-right unit-price">{{ item.unit_price|floatformat:2 }}</td>
+        <td class="text-right net-amount">{{ item.net_amount|floatformat:2 }}</td>
       </tr>
       {% empty %}
-      <tr><td colspan="6" style="text-align:center; color:#aaa; padding: 12pt;">Keine Positionen.</td></tr>
+      <tr><td colspan="6" style="text-align:center; color:#aaa; padding:12pt;">Keine Positionen.</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -259,34 +303,54 @@
   <div class="totals-wrapper">
     <table class="totals-table">
       <tr>
-        <td class="label">Nettobetrag</td>
+        <td class="label">Zwischensumme (netto)</td>
         <td class="amount">{{ net_total|floatformat:2 }} €</td>
       </tr>
-      <tr>
-        <td class="label">MwSt. {{ offer.tax_rate|floatformat:2 }} %</td>
+      <tr class="separator">
+        <td class="label">Umsatzsteuer {{ offer.tax_rate|floatformat:0 }} %</td>
         <td class="amount">{{ tax_amount|floatformat:2 }} €</td>
       </tr>
       <tr class="gross">
-        <td class="label">Gesamtbetrag brutto</td>
+        <td class="label">Gesamtbetrag</td>
         <td class="amount">{{ gross_total|floatformat:2 }} €</td>
       </tr>
     </table>
   </div>
 
-  <!-- Schlusstext -->
+  <!-- Zahlungsbedingung -->
+  {% if offer.payment_terms %}
+  <div class="payment-terms">{{ offer.payment_terms }}</div>
+  {% endif %}
+
+  <!-- Schlusstext / Nachbemerkung -->
   {% if offer.closing_text %}
   <div class="closing-text">{{ offer.closing_text }}</div>
   {% endif %}
 
-  <!-- Fußzeile -->
+  <!-- Fußzeile (3-spaltig, wiederholt auf jeder Seite) -->
   <div class="footer">
-    <div style="display: flex; justify-content: space-between; font-size: 7pt; color: #888; width: 100%;">
-      <span>{{ company_settings.company_name }}{% if company_settings.legal_form %} {{ company_settings.legal_form }}{% endif %}{% if company_settings.street %} · {{ company_settings.street }}, {{ company_settings.postal_code }} {{ company_settings.city }}{% endif %}</span>
-      <span>
-        {% if company_settings.hrb_number %}{% if company_settings.registry_court %}Amtsgericht {{ company_settings.registry_court }}, {% endif %}HRB {{ company_settings.hrb_number }} · {% endif %}
-        {% if company_settings.vat_id %}USt-IdNr.: {{ company_settings.vat_id }}{% endif %}
-      </span>
-      {% if company_settings.pdf_footer_text %}<span>{{ company_settings.pdf_footer_text }}</span>{% endif %}
+    <div class="footer-col">
+      <strong>{{ company_settings.company_name }}{% if company_settings.legal_form %} {{ company_settings.legal_form }}{% endif %}</strong><br>
+      {% if company_settings.street %}{{ company_settings.street }}<br>{{ company_settings.postal_code }} {{ company_settings.city }}<br>{% endif %}
+      {% if company_settings.phone %}Tel.: {{ company_settings.phone }}<br>{% endif %}
+      {% if company_settings.email %}{{ company_settings.email }}<br>{% endif %}
+      {% if company_settings.website %}{{ company_settings.website }}{% endif %}
+    </div>
+    <div class="footer-col">
+      {% if company_settings.vat_id %}USt-IdNr.: {{ company_settings.vat_id }}<br>{% endif %}
+      {% if company_settings.hrb_number %}HRB {{ company_settings.hrb_number }}{% if company_settings.registry_court %}, Amtsgericht {{ company_settings.registry_court }}{% endif %}<br>{% endif %}
+      {% if company_settings.geschaeftsfuehrer %}Geschäftsführer: {{ company_settings.geschaeftsfuehrer }}{% endif %}
+    </div>
+    <div class="footer-col">
+      {% if company_settings.bank_name %}<strong>{{ company_settings.bank_name }}</strong><br>{% endif %}
+      {% if company_settings.iban %}IBAN: {{ company_settings.iban }}<br>{% endif %}
+      {% if company_settings.bic %}BIC: {{ company_settings.bic }}{% endif %}
+      {% if company_settings.bank2_name %}
+      <br><br>
+      <strong>{{ company_settings.bank2_name }}</strong><br>
+      {% if company_settings.bank2_iban %}IBAN: {{ company_settings.bank2_iban }}<br>{% endif %}
+      {% if company_settings.bank2_bic %}BIC: {{ company_settings.bank2_bic }}{% endif %}
+      {% endif %}
     </div>
   </div>
 
