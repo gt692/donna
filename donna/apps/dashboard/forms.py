@@ -126,6 +126,7 @@ class CompanySettingsForm(forms.ModelForm):
             "city":            forms.TextInput(attrs={"class": _TW_CS}),
             "country":         forms.TextInput(attrs={"class": _TW_CS}),
             "hrb_number":      forms.TextInput(attrs={"class": _TW_CS}),
+            "registry_court":  forms.TextInput(attrs={"class": _TW_CS}),
             "vat_id":          forms.TextInput(attrs={"class": _TW_CS}),
             "tax_number":      forms.TextInput(attrs={"class": _TW_CS}),
             "bank_name":       forms.TextInput(attrs={"class": _TW_CS}),

@@ -115,12 +115,19 @@
         </div>
         <div class="px-6 py-5 space-y-4">
 
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.registry_court.label }}</label>
+              {{ form.registry_court }}
+              {% if form.registry_court.errors %}<p class="mt-1 text-xs text-red-600">{{ form.registry_court.errors|join:", " }}</p>{% endif %}
+            </div>
             <div>
               <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.hrb_number.label }}</label>
               {{ form.hrb_number }}
               {% if form.hrb_number.errors %}<p class="mt-1 text-xs text-red-600">{{ form.hrb_number.errors|join:", " }}</p>{% endif %}
             </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.vat_id.label }}</label>
               {{ form.vat_id }}

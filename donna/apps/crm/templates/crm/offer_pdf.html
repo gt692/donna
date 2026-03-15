@@ -283,7 +283,7 @@
     <div style="display: flex; justify-content: space-between; font-size: 7pt; color: #888; width: 100%;">
       <span>{{ company_settings.company_name }}{% if company_settings.legal_form %} {{ company_settings.legal_form }}{% endif %}{% if company_settings.street %} · {{ company_settings.street }}, {{ company_settings.postal_code }} {{ company_settings.city }}{% endif %}</span>
       <span>
-        {% if company_settings.hrb_number %}HRB {{ company_settings.hrb_number }} · {% endif %}
+        {% if company_settings.hrb_number %}{% if company_settings.registry_court %}Amtsgericht {{ company_settings.registry_court }}, {% endif %}HRB {{ company_settings.hrb_number }} · {% endif %}
         {% if company_settings.vat_id %}USt-IdNr.: {{ company_settings.vat_id }}{% endif %}
       </span>
       {% if company_settings.pdf_footer_text %}<span>{{ company_settings.pdf_footer_text }}</span>{% endif %}

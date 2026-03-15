@@ -492,6 +492,7 @@ class CompanySettings(models.Model):
     city            = models.CharField(max_length=100, blank=True, verbose_name="Stadt")
     country         = models.CharField(max_length=100, blank=True, default="Deutschland", verbose_name="Land")
     hrb_number      = models.CharField(max_length=100, blank=True, verbose_name="HRB-Nummer")
+    registry_court  = models.CharField(max_length=100, blank=True, verbose_name="Registergericht (Amtsgericht)")
     vat_id          = models.CharField(max_length=50, blank=True, verbose_name="Umsatzsteuer-ID")
     tax_number      = models.CharField(max_length=50, blank=True, verbose_name="Steuernummer")
     bank_name       = models.CharField(max_length=255, blank=True, verbose_name="Bankname")
