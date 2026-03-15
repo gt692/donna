@@ -3,15 +3,18 @@ from .base import *  # noqa: F401, F403
 DEBUG = False
 
 # ── Sicherheit ─────────────────────────────────────────────────────────────
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["donna-app.de", "www.donna-app.de"])  # noqa: F405
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["donna-app.de", "www.donna-app.de", "187.124.164.248"])  # noqa: F405
 
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["https://donna-app.de", "https://www.donna-app.de", "http://187.124.164.248"])  # noqa: F405
+
+# HTTPS-Einstellungen — werden auf True gesetzt sobald SSL eingerichtet ist
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT       = True
-SESSION_COOKIE_SECURE     = True
-CSRF_COOKIE_SECURE        = True
-SECURE_HSTS_SECONDS       = 31536000
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD       = True
+SECURE_SSL_REDIRECT       = False  # TODO: True nach SSL-Setup
+SESSION_COOKIE_SECURE     = False  # TODO: True nach SSL-Setup
+CSRF_COOKIE_SECURE        = False  # TODO: True nach SSL-Setup
+SECURE_HSTS_SECONDS       = 0      # TODO: 31536000 nach SSL-Setup
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False  # TODO: True nach SSL-Setup
+SECURE_HSTS_PRELOAD       = False  # TODO: True nach SSL-Setup
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS           = "DENY"
 
