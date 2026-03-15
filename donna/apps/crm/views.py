@@ -599,29 +599,21 @@ class ProjectBudgetExtensionDeleteView(AdminOrLeadMixin, View):
 class KanbanView(CRMMixin, TemplateView):
     template_name = "crm/kanban.html"
 
-    # status, label, company filter ("" = alle), css-Klassen direkt
-    COLUMNS = [
-        {"status": "lead",       "label": "Lead",       "company": "",
-         "hdr_bg": "bg-slate-100",    "hdr_border": "border-slate-200",
-         "dot": "bg-slate-400",       "badge_bg": "bg-slate-200",    "badge_text": "text-slate-600"},
-        {"status": "offer_sent", "label": "Angebot",    "company": "",
-         "hdr_bg": "bg-amber-50",     "hdr_border": "border-amber-200",
-         "dot": "bg-amber-400",       "badge_bg": "bg-amber-100",    "badge_text": "text-amber-700"},
-        {"status": "active",     "label": "GT Immo",    "company": "gt_immo",
-         "hdr_bg": "bg-green-50",     "hdr_border": "border-green-200",
-         "dot": "bg-green-500",       "badge_bg": "bg-green-100",    "badge_text": "text-green-700"},
-        {"status": "active",     "label": "GT Projekt", "company": "gt_projekt",
-         "hdr_bg": "bg-[#f0f9fe]",    "hdr_border": "border-[#bde8f7]",
-         "dot": "bg-[#1666b0]",       "badge_bg": "bg-[#ddf1fb]",    "badge_text": "text-[#1255a0]"},
-        {"status": "active",     "label": "DIRESO",     "company": "direso",
-         "hdr_bg": "bg-teal-50",      "hdr_border": "border-teal-200",
-         "dot": "bg-teal-400",        "badge_bg": "bg-teal-100",     "badge_text": "text-teal-700"},
-        {"status": "on_hold",    "label": "Pausiert",   "company": "",
-         "hdr_bg": "bg-purple-50",    "hdr_border": "border-purple-200",
-         "dot": "bg-purple-400",      "badge_bg": "bg-purple-100",   "badge_text": "text-purple-700"},
-        {"status": "invoiced",   "label": "Rechnung",   "company": "",
-         "hdr_bg": "bg-orange-50",    "hdr_border": "border-orange-200",
-         "dot": "bg-orange-400",      "badge_bg": "bg-orange-100",   "badge_text": "text-orange-700"},
+    STATIC_COLS_BEFORE = [
+        {"status": "lead",       "label": "Lead",    "team_lead": None, "employee_col": False,
+         "hdr_bg": "bg-slate-100",  "hdr_border": "border-slate-200",
+         "dot": "bg-slate-400",     "badge_bg": "bg-slate-200",  "badge_text": "text-slate-600"},
+        {"status": "offer_sent", "label": "Angebot", "team_lead": None, "employee_col": False,
+         "hdr_bg": "bg-amber-50",   "hdr_border": "border-amber-200",
+         "dot": "bg-amber-400",     "badge_bg": "bg-amber-100",  "badge_text": "text-amber-700"},
+    ]
+    STATIC_COLS_AFTER = [
+        {"status": "on_hold",  "label": "Pausiert", "team_lead": None, "employee_col": False,
+         "hdr_bg": "bg-purple-50",  "hdr_border": "border-purple-200",
+         "dot": "bg-purple-400",    "badge_bg": "bg-purple-100", "badge_text": "text-purple-700"},
+        {"status": "invoiced", "label": "Rechnung", "team_lead": None, "employee_col": False,
+         "hdr_bg": "bg-orange-50",  "hdr_border": "border-orange-200",
+         "dot": "bg-orange-400",    "badge_bg": "bg-orange-100", "badge_text": "text-orange-700"},
     ]
 
     def get_context_data(self, **kwargs):
@@ -638,24 +630,65 @@ class KanbanView(CRMMixin, TemplateView):
             .order_by("name")
         )
 
+        # Static columns before active
         columns = []
-        for col_def in self.COLUMNS:
-            col_projects = [
-                p for p in projects
-                if p.status == col_def["status"]
-                and (not col_def["company"] or p.company == col_def["company"])
-            ]
-            col = {**col_def, "projects": col_projects, "count": len(col_projects)}
-            # Override label and dot color for company columns using Lookup brand colors
-            if col_def["company"]:
-                brand_color = company_colors.get(col_def["company"], "")
-                col["brand_color"] = brand_color
-                col["label"] = company_labels.get(col_def["company"], col_def["label"])
-            else:
-                col["brand_color"] = ""
-            columns.append(col)
+        for col_def in self.STATIC_COLS_BEFORE:
+            col_projects = [p for p in projects if p.status == col_def["status"]]
+            columns.append({**col_def, "projects": col_projects, "count": len(col_projects)})
+
+        # Dynamic employee columns for active projects
+        active_projects = [p for p in projects if p.status == "active"]
+
+        # Group by team_lead, preserving order by last_name
+        employee_map = {}  # team_lead_id (or None) → {"team_lead": user, "projects": [...]}
+        for p in sorted(active_projects, key=lambda p: (
+            p.team_lead.last_name.lower() if p.team_lead else "zzz",
+            p.team_lead.first_name.lower() if p.team_lead else "",
+        )):
+            key = p.team_lead_id if p.team_lead_id else "__none__"
+            if key not in employee_map:
+                employee_map[key] = {"team_lead": p.team_lead, "projects": []}
+            employee_map[key]["projects"].append(p)
+
+        for key, data in employee_map.items():
+            lead = data["team_lead"]
+            # Sort projects within column by company label then name
+            sorted_projects = sorted(
+                data["projects"],
+                key=lambda p: (company_labels.get(p.company, p.company).lower(), p.name.lower())
+            )
+            # Group projects by company for display
+            company_groups = []
+            seen = {}
+            for p in sorted_projects:
+                co = p.company
+                if co not in seen:
+                    seen[co] = []
+                    company_groups.append({"company": co, "label": company_labels.get(co, co),
+                                           "color": company_colors.get(co, "#94a3b8"), "projects": seen[co]})
+                seen[co].append(p)
+
+            columns.append({
+                "status": "active",
+                "employee_col": True,
+                "team_lead": lead,
+                "team_lead_id": str(lead.pk) if lead else "",
+                "label": f"{lead.first_name} {lead.last_name}" if lead else "Nicht zugewiesen",
+                "projects": sorted_projects,
+                "company_groups": company_groups,
+                "count": len(sorted_projects),
+                "hdr_bg": "bg-green-50",   "hdr_border": "border-green-200",
+                "dot": "bg-green-500",     "badge_bg": "bg-green-100", "badge_text": "text-green-700",
+            })
+
+        # Static columns after active
+        for col_def in self.STATIC_COLS_AFTER:
+            col_projects = [p for p in projects if p.status == col_def["status"]]
+            columns.append({**col_def, "projects": col_projects, "count": len(col_projects)})
 
         ctx["columns"] = columns
+        ctx["company_colors"] = company_colors
+        ctx["company_labels"] = company_labels
         return ctx
 
 
@@ -666,6 +699,7 @@ class ProjectKanbanMoveView(CRMMixin, View):
 
     def post(self, request):
         import json
+        from apps.core.models import User
         try:
             data       = json.loads(request.body)
             project_id = data["project_id"]
@@ -681,8 +715,22 @@ class ProjectKanbanMoveView(CRMMixin, View):
         except Project.DoesNotExist:
             return JsonResponse({"ok": False, "error": "Not found"}, status=404)
 
+        update_fields = ["status"]
         project.status = new_status
-        project.save(update_fields=["status"])
+
+        # Update team_lead when dropping into an employee column
+        if "team_lead_id" in data:
+            tl_id = data["team_lead_id"]
+            if tl_id:
+                try:
+                    project.team_lead = User.objects.get(pk=tl_id)
+                except User.DoesNotExist:
+                    pass
+            else:
+                project.team_lead = None
+            update_fields.append("team_lead")
+
+        project.save(update_fields=update_fields)
         return JsonResponse({"ok": True})
 
 

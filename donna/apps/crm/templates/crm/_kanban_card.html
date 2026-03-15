@@ -1,0 +1,48 @@
+{% load donna_filters %}
+<div class="kanban-card bg-white rounded-xl border border-slate-200 shadow-sm p-3
+            hover:border-[#14b0e4] hover:shadow-md transition cursor-grab active:cursor-grabbing"
+     draggable="true"
+     data-id="{{ project.pk }}"
+     data-company="{{ project.company }}">
+
+  <div class="flex items-center justify-between mb-1.5">
+    <div class="flex items-center gap-1.5">
+      <span class="w-2 h-2 rounded-full flex-shrink-0"
+            style="background-color: {{ company_colors|get_item:project.company|default:'#94a3b8' }};"></span>
+      <span class="font-mono text-xs text-slate-400">{{ project.project_number }}</span>
+    </div>
+    <span class="text-xs px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 leading-tight">
+      {{ project.get_project_type_display }}
+    </span>
+  </div>
+
+  <a href="{% url 'crm:project_detail' project.pk %}"
+     class="block text-sm font-semibold text-slate-800 leading-snug mb-1
+            hover:text-[#1255a0] transition"
+     onclick="event.stopPropagation()">
+    {{ project.name }}
+  </a>
+
+  <p class="text-xs text-slate-400 truncate mb-2">{{ project.account.name|default:"—" }}</p>
+
+  <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+    {% if not hide_lead and project.team_lead %}
+      <div class="flex items-center gap-1">
+        <div class="w-4 h-4 rounded-full bg-[#ddf1fb] flex items-center justify-center
+                    text-[#1666b0] text-xs font-bold flex-shrink-0">
+          {{ project.team_lead.first_name|first|upper }}{{ project.team_lead.last_name|first|upper }}
+        </div>
+        <span class="text-xs text-slate-400 truncate max-w-24">{{ project.team_lead.last_name }}</span>
+      </div>
+    {% else %}
+      <span></span>
+    {% endif %}
+    {% if project.end_date %}
+      <span class="text-xs text-slate-400">bis {{ project.end_date|date:"d.m.y" }}</span>
+    {% elif project.start_date %}
+      <span class="text-xs text-slate-400">ab {{ project.start_date|date:"d.m.y" }}</span>
+    {% else %}
+      <span></span>
+    {% endif %}
+  </div>
+</div>
