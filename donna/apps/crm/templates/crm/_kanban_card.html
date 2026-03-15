@@ -11,9 +11,14 @@
             style="background-color: {{ company_colors|get_item:project.company|default:'#94a3b8' }};"></span>
       <span class="font-mono text-xs text-slate-400">{{ project.project_number }}</span>
     </div>
-    <span class="text-xs px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 leading-tight">
-      {{ project.get_project_type_display }}
-    </span>
+    <div class="flex items-center gap-1.5">
+      {% if project.pk in accepted_offer_pids %}
+        <span class="text-xs px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700 font-medium leading-tight">✓ Beauftragt</span>
+      {% endif %}
+      <span class="text-xs px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 leading-tight">
+        {{ project.get_project_type_display }}
+      </span>
+    </div>
   </div>
 
   <a href="{% url 'crm:project_detail' project.pk %}"

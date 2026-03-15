@@ -627,8 +627,15 @@ class KanbanView(CRMMixin, TemplateView):
             Project.objects
             .exclude(status__in=Project.ARCHIVED_STATUSES)
             .select_related("account", "team_lead")
+            .prefetch_related("offers")
             .order_by("name")
         )
+
+        # Set of project PKs that have at least one accepted offer (for badge)
+        accepted_offer_pids = {
+            p.pk for p in projects
+            if any(o.status == "accepted" for o in p.offers.all())
+        }
 
         # Static columns before active
         columns = []
@@ -636,37 +643,52 @@ class KanbanView(CRMMixin, TemplateView):
             col_projects = [p for p in projects if p.status == col_def["status"]]
             columns.append({**col_def, "projects": col_projects, "count": len(col_projects)})
 
-        # Dynamic employee columns for active projects
+        # Dynamic employee columns — one per eligible team lead (project_manager + admin)
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        eligible_leads = list(
+            User.objects.filter(role__in=["project_manager", "admin"], is_active=True)
+            .order_by("last_name", "first_name")
+        )
+
         active_projects = [p for p in projects if p.status == "active"]
+        active_by_lead = {}
+        for p in active_projects:
+            key = str(p.team_lead_id) if p.team_lead_id else "__none__"
+            active_by_lead.setdefault(key, []).append(p)
 
-        # Group by team_lead, preserving order by last_name
-        employee_map = {}  # team_lead_id (or None) → {"team_lead": user, "projects": [...]}
-        for p in sorted(active_projects, key=lambda p: (
-            p.team_lead.last_name.lower() if p.team_lead else "zzz",
-            p.team_lead.first_name.lower() if p.team_lead else "",
-        )):
-            key = p.team_lead_id if p.team_lead_id else "__none__"
-            if key not in employee_map:
-                employee_map[key] = {"team_lead": p.team_lead, "projects": []}
-            employee_map[key]["projects"].append(p)
+        # Fixed "Beauftragt" column — active projects without team_lead (pool to claim)
+        def _company_groups(proj_list):
+            sorted_p = sorted(proj_list, key=lambda p: (company_labels.get(p.company, p.company).lower(), p.name.lower()))
+            groups, seen = [], {}
+            for p in sorted_p:
+                if p.company not in seen:
+                    seen[p.company] = []
+                    groups.append({"company": p.company, "label": company_labels.get(p.company, p.company),
+                                   "color": company_colors.get(p.company, "#94a3b8"), "projects": seen[p.company]})
+                seen[p.company].append(p)
+            return sorted_p, groups
 
-        for key, data in employee_map.items():
-            lead = data["team_lead"]
+        unassigned = active_by_lead.get("__none__", [])
+        unassigned_sorted, unassigned_groups = _company_groups(unassigned)
+        columns.append({
+            "status": "active",
+            "employee_col": True,
+            "team_lead": None,
+            "team_lead_id": "",
+            "label": "Beauftragt",
+            "projects": unassigned_sorted,
+            "company_groups": unassigned_groups,
+            "count": len(unassigned_sorted),
+            "hdr_bg": "bg-teal-50",   "hdr_border": "border-teal-200",
+            "dot": "bg-teal-500",     "badge_bg": "bg-teal-100", "badge_text": "text-teal-700",
+        })
+
+        all_leads_data = [(lead, active_by_lead.get(str(lead.pk), [])) for lead in eligible_leads]
+
+        for lead, lead_projects in all_leads_data:
             # Sort projects within column by company label then name
-            sorted_projects = sorted(
-                data["projects"],
-                key=lambda p: (company_labels.get(p.company, p.company).lower(), p.name.lower())
-            )
-            # Group projects by company for display
-            company_groups = []
-            seen = {}
-            for p in sorted_projects:
-                co = p.company
-                if co not in seen:
-                    seen[co] = []
-                    company_groups.append({"company": co, "label": company_labels.get(co, co),
-                                           "color": company_colors.get(co, "#94a3b8"), "projects": seen[co]})
-                seen[co].append(p)
+            sorted_projects, company_groups = _company_groups(lead_projects)
 
             columns.append({
                 "status": "active",
@@ -689,6 +711,7 @@ class KanbanView(CRMMixin, TemplateView):
         ctx["columns"] = columns
         ctx["company_colors"] = company_colors
         ctx["company_labels"] = company_labels
+        ctx["accepted_offer_pids"] = accepted_offer_pids
         return ctx
 
 
