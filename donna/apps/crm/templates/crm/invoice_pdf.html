@@ -30,13 +30,13 @@
       justify-content: space-between;
       align-items: flex-start;
       padding-bottom: 12pt;
-      border-bottom: 2pt solid #1a6b3c;
+      border-bottom: 2pt solid {{ company_settings.primary_color }};
       margin-bottom: 20pt;
     }
     .header-brand {
       font-size: 20pt;
       font-weight: 700;
-      color: #1a6b3c;
+      color: {{ company_settings.primary_color }};
       letter-spacing: -0.5pt;
     }
     .header-brand-sub {
@@ -53,7 +53,7 @@
     .header-meta .invoice-number {
       font-size: 13pt;
       font-weight: 700;
-      color: #1a6b3c;
+      color: {{ company_settings.primary_color }};
     }
 
     /* ── Empfänger ────────────────────────────────────────── */
@@ -90,7 +90,7 @@
       font-size: 9pt;
     }
     .positions-table thead tr {
-      background-color: #1a6b3c;
+      background-color: {{ company_settings.primary_color }};
       color: #fff;
     }
     .positions-table thead th {
@@ -164,8 +164,8 @@
     .totals-table tr.gross td {
       font-size: 12pt;
       font-weight: 700;
-      color: #1a6b3c;
-      border-top: 2pt solid #1a6b3c;
+      color: {{ company_settings.primary_color }};
+      border-top: 2pt solid {{ company_settings.primary_color }};
       padding-top: 6pt;
     }
 
@@ -204,8 +204,12 @@
   <!-- Kopfzeile -->
   <div class="header">
     <div>
-      <div class="header-brand">Donna</div>
-      <div class="header-brand-sub">Business Operating System</div>
+      {% if company_logo_uri %}
+        <img src="{{ company_logo_uri }}" style="max-height: 55pt; max-width: 150pt; object-fit: contain;" alt="Logo">
+      {% else %}
+        <div class="header-brand">{{ company_settings.company_name }}</div>
+        {% if company_settings.slogan %}<div class="header-brand-sub">{{ company_settings.slogan }}</div>{% endif %}
+      {% endif %}
     </div>
     <div class="header-meta">
       <div class="invoice-number">{{ invoice.invoice_number }}</div>
@@ -285,19 +289,28 @@
   {% endif %}
 
   <!-- Zahlungshinweise -->
-  {% if invoice.payment_info %}
+  {% if invoice.payment_info or company_settings.iban %}
   <div class="payment-info">
     <strong>Zahlungshinweise</strong><br>
-    {{ invoice.payment_info|linebreaksbr }}
+    {% if invoice.payment_info %}
+      {{ invoice.payment_info|linebreaksbr }}
+    {% elif company_settings.iban %}
+      <strong>Bankverbindung:</strong> {{ company_settings.bank_name }} · IBAN: {{ company_settings.iban }} · BIC: {{ company_settings.bic }}<br>
+      <strong>Verwendungszweck:</strong> {{ invoice.invoice_number }}
+    {% endif %}
   </div>
   {% endif %}
 
   <!-- Fußzeile -->
   <div class="footer">
-    <span>Projekt: {{ invoice.project.project_number }} — {{ invoice.project.name }}</span>
-    {% if invoice.due_date %}
-    <span>Zahlbar bis {{ invoice.due_date|date:"d.m.Y" }}</span>
-    {% endif %}
+    <div style="display: flex; justify-content: space-between; font-size: 7pt; color: #888; width: 100%;">
+      <span>{{ company_settings.company_name }}{% if company_settings.legal_form %} {{ company_settings.legal_form }}{% endif %}{% if company_settings.street %} · {{ company_settings.street }}, {{ company_settings.postal_code }} {{ company_settings.city }}{% endif %}</span>
+      <span>
+        {% if company_settings.hrb_number %}HRB {{ company_settings.hrb_number }} · {% endif %}
+        {% if company_settings.vat_id %}USt-IdNr.: {{ company_settings.vat_id }}{% endif %}
+      </span>
+      {% if company_settings.pdf_footer_text %}<span>{{ company_settings.pdf_footer_text }}</span>{% endif %}
+    </div>
   </div>
 
 </body>

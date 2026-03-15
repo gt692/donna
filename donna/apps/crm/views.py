@@ -43,6 +43,23 @@ from .models import Account, CompanyProjectTypeMapping, Contact, Document, Invoi
 # Helpers
 # ---------------------------------------------------------------------------
 
+def _company_ctx():
+    """Build template context dict with company settings + logo data URI."""
+    from apps.core.models import CompanySettings
+    import base64, mimetypes
+    cs = CompanySettings.get()
+    logo_data_uri = None
+    if cs.logo and cs.logo.name:
+        try:
+            with open(cs.logo.path, "rb") as f:
+                raw = f.read()
+            mime = mimetypes.guess_type(cs.logo.name)[0] or "image/png"
+            logo_data_uri = f"data:{mime};base64,{base64.b64encode(raw).decode()}"
+        except (OSError, ValueError):
+            pass
+    return {"company_settings": cs, "company_logo_uri": logo_data_uri}
+
+
 def _all_projects_list(exclude_pk=None) -> list:
     qs = Project.objects.order_by("name")
     if exclude_pk:
@@ -1303,6 +1320,7 @@ def _generate_offer_pdf_bytes(offer, request=None):
         "net_total":   offer.net_total,
         "tax_amount":  offer.tax_amount,
         "gross_total": offer.gross_total,
+        **_company_ctx(),
     })
     base_url = request.build_absolute_uri("/") if request else "/"
     return weasyprint.HTML(string=html_string, base_url=base_url).write_pdf()
@@ -1394,10 +1412,169 @@ def _build_invoice_formset(request, invoice=None, extra=1):
 def _generate_invoice_pdf_bytes(invoice, request):
     """Generate PDF bytes for an invoice using WeasyPrint."""
     html_string = render_to_string(
-        "crm/invoice_pdf.html", {"invoice": invoice, "items": invoice.items.all()}, request=request
+        "crm/invoice_pdf.html",
+        {"invoice": invoice, "items": invoice.items.all(), **_company_ctx()},
+        request=request,
     )
     from weasyprint import HTML
     return HTML(string=html_string, base_url=request.build_absolute_uri("/")).write_pdf()
+
+
+def _build_zugferd_xml(invoice, cs, items) -> str:
+    """Build ZUGFeRD EN 16931 XML string."""
+    from decimal import Decimal
+    from xml.sax.saxutils import escape
+
+    UNIT_CODE_MAP = {
+        "stunden": "HUR", "std": "HUR", "h": "HUR",
+        "tage": "DAY", "tag": "DAY",
+        "stück": "C62", "stk": "C62", "pcs": "C62",
+        "pauschal": "C62", "ls": "C62",
+    }
+
+    def uc(unit_str: str) -> str:
+        return UNIT_CODE_MAP.get((unit_str or "").lower().strip(), "C62")
+
+    def fmt(d) -> str:
+        return f"{Decimal(str(d)):.2f}"
+
+    def x(s) -> str:
+        return escape(str(s or ""))
+
+    lines_xml = ""
+    for item in items:
+        lines_xml += f"""
+    <ram:IncludedSupplyChainTradeLineItem>
+      <ram:AssociatedDocumentLineDocument>
+        <ram:LineID>{item.position}</ram:LineID>
+      </ram:AssociatedDocumentLineDocument>
+      <ram:SpecifiedTradeProduct>
+        <ram:Name>{x(item.description)}</ram:Name>
+      </ram:SpecifiedTradeProduct>
+      <ram:SpecifiedLineTradeAgreement>
+        <ram:NetPriceProductTradePrice>
+          <ram:ChargeAmount>{fmt(item.unit_price)}</ram:ChargeAmount>
+        </ram:NetPriceProductTradePrice>
+      </ram:SpecifiedLineTradeAgreement>
+      <ram:SpecifiedLineTradeDelivery>
+        <ram:BilledQuantity unitCode="{uc(item.unit)}">{fmt(item.quantity)}</ram:BilledQuantity>
+      </ram:SpecifiedLineTradeDelivery>
+      <ram:SpecifiedLineTradeSettlement>
+        <ram:ApplicableTradeTax>
+          <ram:TypeCode>VAT</ram:TypeCode>
+          <ram:CategoryCode>S</ram:CategoryCode>
+          <ram:RateApplicablePercent>{fmt(invoice.tax_rate)}</ram:RateApplicablePercent>
+        </ram:ApplicableTradeTax>
+        <ram:SpecifiedTradeSettlementLineMonetarySummation>
+          <ram:LineTotalAmount>{fmt(item.net_amount)}</ram:LineTotalAmount>
+        </ram:SpecifiedTradeSettlementLineMonetarySummation>
+      </ram:SpecifiedLineTradeSettlement>
+    </ram:IncludedSupplyChainTradeLineItem>"""
+
+    due_date_xml = ""
+    if invoice.due_date:
+        due_date_xml = f"""
+      <ram:SpecifiedTradePaymentTerms>
+        <ram:DueDateDateTime>
+          <udt:DateTimeString format="102">{invoice.due_date.strftime('%Y%m%d')}</udt:DateTimeString>
+        </ram:DueDateDateTime>
+      </ram:SpecifiedTradePaymentTerms>"""
+
+    vat_id_xml = ""
+    if cs.vat_id:
+        vat_id_xml = f"""
+        <ram:SpecifiedTaxRegistration>
+          <ram:ID schemeID="VA">{x(cs.vat_id)}</ram:ID>
+        </ram:SpecifiedTaxRegistration>"""
+
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<rsm:CrossIndustryInvoice
+  xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"
+  xmlns:qdt="urn:un:unece:uncefact:data:standard:QualifiedDataType:100"
+  xmlns:ram="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:udt="urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100">
+  <rsm:ExchangedDocumentContext>
+    <ram:GuidelineSpecifiedDocumentContextParameter>
+      <ram:ID>urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:en16931</ram:ID>
+    </ram:GuidelineSpecifiedDocumentContextParameter>
+  </rsm:ExchangedDocumentContext>
+  <rsm:ExchangedDocument>
+    <ram:ID>{x(invoice.invoice_number)}</ram:ID>
+    <ram:TypeCode>380</ram:TypeCode>
+    <ram:IssueDateTime>
+      <udt:DateTimeString format="102">{invoice.invoice_date.strftime('%Y%m%d')}</udt:DateTimeString>
+    </ram:IssueDateTime>
+  </rsm:ExchangedDocument>
+  <rsm:SupplyChainTradeTransaction>
+{lines_xml}
+    <ram:ApplicableHeaderTradeAgreement>
+      <ram:SellerTradeParty>
+        <ram:Name>{x(cs.company_name)}</ram:Name>
+        <ram:PostalTradeAddress>
+          <ram:LineOne>{x(cs.street)}</ram:LineOne>
+          <ram:PostcodeCode>{x(cs.postal_code)}</ram:PostcodeCode>
+          <ram:CityName>{x(cs.city)}</ram:CityName>
+          <ram:CountryID>DE</ram:CountryID>
+        </ram:PostalTradeAddress>{vat_id_xml}
+      </ram:SellerTradeParty>
+      <ram:BuyerTradeParty>
+        <ram:Name>{x(invoice.recipient_name)}</ram:Name>
+        <ram:PostalTradeAddress>
+          <ram:LineOne>{x(invoice.recipient_address)}</ram:LineOne>
+          <ram:CountryID>DE</ram:CountryID>
+        </ram:PostalTradeAddress>
+      </ram:BuyerTradeParty>
+    </ram:ApplicableHeaderTradeAgreement>
+    <ram:ApplicableHeaderTradeDelivery/>
+    <ram:ApplicableHeaderTradeSettlement>
+      <ram:InvoiceCurrencyCode>EUR</ram:InvoiceCurrencyCode>{due_date_xml}
+      <ram:ApplicableTradeTax>
+        <ram:CalculatedAmount>{fmt(invoice.tax_amount)}</ram:CalculatedAmount>
+        <ram:TypeCode>VAT</ram:TypeCode>
+        <ram:BasisAmount>{fmt(invoice.net_total)}</ram:BasisAmount>
+        <ram:CategoryCode>S</ram:CategoryCode>
+        <ram:RateApplicablePercent>{fmt(invoice.tax_rate)}</ram:RateApplicablePercent>
+      </ram:ApplicableTradeTax>
+      <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+        <ram:LineTotalAmount>{fmt(invoice.net_total)}</ram:LineTotalAmount>
+        <ram:TaxBasisTotalAmount>{fmt(invoice.net_total)}</ram:TaxBasisTotalAmount>
+        <ram:TaxTotalAmount currencyID="EUR">{fmt(invoice.tax_amount)}</ram:TaxTotalAmount>
+        <ram:GrandTotalAmount>{fmt(invoice.gross_total)}</ram:GrandTotalAmount>
+        <ram:DuePayableAmount>{fmt(invoice.gross_total)}</ram:DuePayableAmount>
+      </ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+    </ram:ApplicableHeaderTradeSettlement>
+  </rsm:SupplyChainTradeTransaction>
+</rsm:CrossIndustryInvoice>"""
+
+
+def _generate_zugferd_invoice(invoice, request):
+    """Generate ZUGFeRD PDF. Falls back to plain PDF if factur-x unavailable."""
+    from apps.core.models import CompanySettings
+    cs = CompanySettings.get()
+    items = list(invoice.items.all())
+    plain_pdf = _generate_invoice_pdf_bytes(invoice, request)
+    try:
+        xml_string = _build_zugferd_xml(invoice, cs, items)
+    except Exception as e:
+        logger.warning("ZUGFeRD XML build failed: %s", e)
+        return plain_pdf, False
+    try:
+        from facturx import generate_from_binary
+        import io
+        output = io.BytesIO()
+        generate_from_binary(
+            plain_pdf,
+            xml_string.encode("utf-8"),
+            output_pdf_file=output,
+        )
+        return output.getvalue(), True
+    except ImportError:
+        logger.info("factur-x not installed — returning plain PDF")
+        return plain_pdf, False
+    except Exception as e:
+        logger.warning("ZUGFeRD embedding failed: %s", e)
+        return plain_pdf, False
 
 
 class InvoiceListView(CRMMixin, ListView):
@@ -1575,7 +1752,7 @@ class InvoicePDFView(LoginRequiredMixin, View):
     def get(self, request, pk):
         invoice = get_object_or_404(Invoice, pk=pk)
         try:
-            pdf_bytes = _generate_invoice_pdf_bytes(invoice, request)
+            pdf_bytes, is_zugferd = _generate_zugferd_invoice(invoice, request)
         except ImportError:
             messages.error(request, "WeasyPrint ist nicht installiert.")
             return redirect("crm:invoice_detail", pk=invoice.pk)
@@ -1591,7 +1768,7 @@ class InvoiceSendView(AdminOrLeadMixin, View):
             messages.error(request, "Kein Empfänger hinterlegt.")
             return redirect("crm:invoice_detail", pk=invoice.pk)
         try:
-            pdf_bytes = _generate_invoice_pdf_bytes(invoice, request)
+            pdf_bytes, is_zugferd = _generate_zugferd_invoice(invoice, request)
         except Exception as e:
             messages.error(request, f"PDF-Generierung fehlgeschlagen: {e}")
             return redirect("crm:invoice_detail", pk=invoice.pk)
@@ -1647,6 +1824,24 @@ class InvoiceDeleteView(AdminOrLeadMixin, View):
         invoice.delete()
         messages.success(request, "Rechnung gelöscht.")
         return redirect("crm:project_detail", pk=project_pk)
+
+
+class InvoiceXRechnungView(LoginRequiredMixin, View):
+    login_url = "/auth/login/"
+
+    def get(self, request, pk):
+        invoice = get_object_or_404(Invoice, pk=pk)
+        from apps.core.models import CompanySettings
+        cs = CompanySettings.get()
+        items = list(invoice.items.all())
+        try:
+            xml_string = _build_zugferd_xml(invoice, cs, items)
+        except Exception as e:
+            messages.error(request, f"XML-Generierung fehlgeschlagen: {e}")
+            return redirect("crm:invoice_detail", pk=invoice.pk)
+        response = HttpResponse(xml_string, content_type="application/xml; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="{invoice.invoice_number}_xrechnung.xml"'
+        return response
 
 
 class OfferOrderConfirmationView(AdminOrLeadMixin, View):

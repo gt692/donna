@@ -8,7 +8,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from .models import CompanyCredential, Lookup, NotificationLog, NotificationSubscription, NotificationTemplate, RoleHourlyRate, User
+from .models import CompanyCredential, CompanySettings, Lookup, NotificationLog, NotificationSubscription, NotificationTemplate, RoleHourlyRate, User
 
 
 # ---------------------------------------------------------------------------
@@ -248,6 +248,45 @@ class NotificationLogAdmin(admin.ModelAdmin):
             'border-radius:4px;font-size:11px;font-weight:600;">{label}</span>',
             bg=bg, fg=fg, label=obj.get_status_display(),
         )
+
+
+# ---------------------------------------------------------------------------
+# CompanyCredential Admin
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# CompanySettings Admin
+# ---------------------------------------------------------------------------
+
+@admin.register(CompanySettings)
+class CompanySettingsAdmin(admin.ModelAdmin):
+    fieldsets = (
+        ("Firma", {
+            "fields": ("company_name", "legal_form", "slogan", "logo", "primary_color"),
+        }),
+        ("Adresse", {
+            "fields": ("street", "postal_code", "city", "country"),
+        }),
+        ("Rechtliches", {
+            "fields": ("hrb_number", "vat_id", "tax_number"),
+        }),
+        ("Bankdaten", {
+            "fields": ("bank_name", "iban", "bic"),
+        }),
+        ("Kontakt", {
+            "fields": ("email", "phone", "website"),
+        }),
+        ("PDF-Einstellungen", {
+            "fields": ("pdf_footer_text", "payment_days"),
+        }),
+    )
+    readonly_fields = ("updated_at",)
+
+    def has_add_permission(self, request):
+        return not CompanySettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 # ---------------------------------------------------------------------------

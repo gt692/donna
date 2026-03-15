@@ -6,6 +6,7 @@ from .views import (
     DocumentDeleteView, DocumentServeView, DocumentUploadView,
     InvoiceCreateView, InvoiceDeleteView, InvoiceDetailView, InvoiceFromOfferView,
     InvoiceListView, InvoicePDFView, InvoiceSendView, InvoiceStatusUpdateView, InvoiceUpdateView,
+    InvoiceXRechnungView,
     KanbanView, ProjectKanbanMoveView,
     OfferCreateView, OfferDeleteView, OfferDetailView, OfferListView,
     OfferOrderConfirmationView, OfferPDFView, OfferSendView, OfferStatusUpdateView, OfferUpdateView,
@@ -92,5 +93,6 @@ urlpatterns = [
     path("invoices/<uuid:pk>/send/", InvoiceSendView.as_view(), name="invoice_send"),
     path("invoices/<uuid:pk>/status/", InvoiceStatusUpdateView.as_view(), name="invoice_status"),
     path("invoices/<uuid:pk>/delete/", InvoiceDeleteView.as_view(), name="invoice_delete"),
+    path("invoices/<uuid:pk>/xrechnung/", InvoiceXRechnungView.as_view(), name="invoice_xrechnung"),
     path("offers/<uuid:pk>/ab/", OfferOrderConfirmationView.as_view(), name="offer_ab"),
 ]

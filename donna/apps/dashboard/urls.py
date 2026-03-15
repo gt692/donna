@@ -6,6 +6,7 @@ from .views import (
     CompanyCredentialDeleteView,
     CompanyCredentialListView,
     CompanyCredentialUpdateView,
+    CompanySettingsView,
     DashboardHomeView,
     HourlyRateListView,
     HourlyRateUpdateView,
@@ -66,6 +67,9 @@ urlpatterns = [
     path("admin/project-type-mappings/",              ProjectTypeMappingListView.as_view(),   name="project_type_mapping_list"),
     path("admin/project-type-mappings/new/",          ProjectTypeMappingCreateView.as_view(), name="project_type_mapping_create"),
     path("admin/project-type-mappings/<int:pk>/delete/", ProjectTypeMappingDeleteView.as_view(), name="project_type_mapping_delete"),
+
+    # Firmeneinstellungen (Singleton)
+    path("admin/company-settings/", CompanySettingsView.as_view(), name="company_settings"),
 
     # Firmen-Zugangsdaten (Lexoffice)
     path("admin/credentials/",                  CompanyCredentialListView.as_view(),   name="company_credential_list"),

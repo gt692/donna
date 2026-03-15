@@ -468,3 +468,45 @@ class RoleHourlyRate(models.Model):
 
     def __str__(self) -> str:
         return f"{self.get_role_display()} — {self.hourly_rate} €/h"
+
+
+# ---------------------------------------------------------------------------
+# CompanySettings — Singleton für Firmen-Stammdaten
+# ---------------------------------------------------------------------------
+
+class CompanySettings(models.Model):
+    """Singleton — always use CompanySettings.get() to access."""
+
+    company_name    = models.CharField(max_length=255, default="", verbose_name="Firmenname")
+    legal_form      = models.CharField(max_length=100, blank=True, verbose_name="Rechtsform")
+    slogan          = models.CharField(max_length=255, blank=True, verbose_name="Slogan")
+    logo            = models.ImageField(upload_to="company/", null=True, blank=True, verbose_name="Logo")
+    street          = models.CharField(max_length=255, blank=True, verbose_name="Straße + Nr.")
+    postal_code     = models.CharField(max_length=20, blank=True, verbose_name="PLZ")
+    city            = models.CharField(max_length=100, blank=True, verbose_name="Stadt")
+    country         = models.CharField(max_length=100, blank=True, default="Deutschland", verbose_name="Land")
+    hrb_number      = models.CharField(max_length=100, blank=True, verbose_name="HRB-Nummer")
+    vat_id          = models.CharField(max_length=50, blank=True, verbose_name="Umsatzsteuer-ID")
+    tax_number      = models.CharField(max_length=50, blank=True, verbose_name="Steuernummer")
+    bank_name       = models.CharField(max_length=255, blank=True, verbose_name="Bankname")
+    iban            = models.CharField(max_length=34, blank=True, verbose_name="IBAN")
+    bic             = models.CharField(max_length=11, blank=True, verbose_name="BIC")
+    email           = models.EmailField(blank=True, verbose_name="E-Mail")
+    phone           = models.CharField(max_length=50, blank=True, verbose_name="Telefon")
+    website         = models.URLField(blank=True, verbose_name="Website")
+    pdf_footer_text = models.TextField(blank=True, verbose_name="PDF-Fußzeile")
+    payment_days    = models.PositiveSmallIntegerField(default=14, verbose_name="Zahlungsziel (Tage)")
+    primary_color   = models.CharField(max_length=7, default="#1666b0", verbose_name="Primärfarbe (Hex)")
+    updated_at      = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Firmeneinstellungen"
+        verbose_name_plural = "Firmeneinstellungen"
+
+    def __str__(self):
+        return self.company_name or "Firmeneinstellungen"
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj

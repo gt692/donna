@@ -15,6 +15,15 @@
     PDF anzeigen
   </a>
 
+  <a href="{% url 'crm:invoice_xrechnung' invoice.pk %}"
+     class="flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-sm px-4 py-2 rounded-lg transition"
+     title="XRechnung XML herunterladen">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+    </svg>
+    XRechnung
+  </a>
+
   {% if request.user.can_approve_time_entries %}
     {% if invoice.status == "draft" or invoice.status == "sent" %}
       <form method="post" action="{% url 'crm:invoice_send' invoice.pk %}">

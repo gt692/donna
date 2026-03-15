@@ -35,3 +35,4 @@ django-cors-headers==4.*
 
 # PDF-Generierung
 weasyprint==65.*                # HTML/CSS → PDF für Angebote und Rechnungen
+factur-x>=1.12                  # ZUGFeRD / XRechnung EN 16931 XML-Einbettung

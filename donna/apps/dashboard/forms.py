@@ -8,7 +8,7 @@ from __future__ import annotations
 from django import forms
 from django.core.exceptions import ValidationError
 
-from apps.core.models import Lookup, Role, User
+from apps.core.models import CompanySettings, Lookup, Role, User
 
 _TW = (
     "w-full px-3 py-2 border border-slate-200 rounded-lg text-sm "
@@ -104,3 +104,36 @@ class UserEditForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
+
+_TW_CS = (
+    "w-full px-3 py-2 text-sm rounded-lg border border-slate-200 "
+    "focus:outline-none focus:ring-2 focus:ring-[#1666b0]"
+)
+
+
+class CompanySettingsForm(forms.ModelForm):
+    class Meta:
+        model = CompanySettings
+        exclude = ["updated_at"]
+        widgets = {
+            "company_name":    forms.TextInput(attrs={"class": _TW_CS}),
+            "legal_form":      forms.TextInput(attrs={"class": _TW_CS}),
+            "slogan":          forms.TextInput(attrs={"class": _TW_CS}),
+            "street":          forms.TextInput(attrs={"class": _TW_CS}),
+            "postal_code":     forms.TextInput(attrs={"class": _TW_CS}),
+            "city":            forms.TextInput(attrs={"class": _TW_CS}),
+            "country":         forms.TextInput(attrs={"class": _TW_CS}),
+            "hrb_number":      forms.TextInput(attrs={"class": _TW_CS}),
+            "vat_id":          forms.TextInput(attrs={"class": _TW_CS}),
+            "tax_number":      forms.TextInput(attrs={"class": _TW_CS}),
+            "bank_name":       forms.TextInput(attrs={"class": _TW_CS}),
+            "iban":            forms.TextInput(attrs={"class": _TW_CS}),
+            "bic":             forms.TextInput(attrs={"class": _TW_CS}),
+            "email":           forms.EmailInput(attrs={"class": _TW_CS}),
+            "phone":           forms.TextInput(attrs={"class": _TW_CS}),
+            "website":         forms.URLInput(attrs={"class": _TW_CS}),
+            "pdf_footer_text": forms.Textarea(attrs={"class": _TW_CS, "rows": 4}),
+            "payment_days":    forms.NumberInput(attrs={"class": _TW_CS}),
+            "primary_color":   forms.TextInput(attrs={"class": _TW_CS, "type": "color"}),
+        }

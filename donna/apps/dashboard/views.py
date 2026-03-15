@@ -15,11 +15,11 @@ from django.views.generic import CreateView, ListView, TemplateView, UpdateView,
 
 from decimal import Decimal
 
-from apps.core.models import CompanyCredential, Lookup, Role, RoleHourlyRate, User
+from apps.core.models import CompanyCredential, CompanySettings, Lookup, Role, RoleHourlyRate, User
 from apps.crm.models import Account, CompanyProjectTypeMapping, Project, RevenueTarget
 from apps.worktrack.models import TimeEntry
 
-from .forms import UserCreateForm, UserEditForm
+from .forms import CompanySettingsForm, UserCreateForm, UserEditForm
 
 
 # ---------------------------------------------------------------------------
@@ -814,3 +814,27 @@ class ProjectTypeMappingDeleteView(AdminRequiredMixin, View):
         mapping.delete()
         messages.success(request, "Zuweisung wurde gelöscht.")
         return redirect("dashboard:project_type_mapping_list")
+
+
+# ---------------------------------------------------------------------------
+# Firmeneinstellungen (Singleton)
+# ---------------------------------------------------------------------------
+
+class CompanySettingsView(AdminRequiredMixin, View):
+    template_name = "dashboard/admin/company_settings.html"
+
+    def get(self, request):
+        from django.shortcuts import render as _render
+        obj = CompanySettings.get()
+        form = CompanySettingsForm(instance=obj)
+        return _render(request, self.template_name, {"form": form, "settings_obj": obj})
+
+    def post(self, request):
+        from django.shortcuts import render as _render
+        obj = CompanySettings.get()
+        form = CompanySettingsForm(request.POST, request.FILES, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Firmeneinstellungen gespeichert.")
+            return redirect("dashboard:company_settings")
+        return _render(request, self.template_name, {"form": form, "settings_obj": obj})
