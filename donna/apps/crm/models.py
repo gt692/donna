@@ -18,6 +18,16 @@ from django.utils.translation import gettext_lazy as _
 
 
 # ---------------------------------------------------------------------------
+# Soft-Delete Manager
+# ---------------------------------------------------------------------------
+
+class ActiveManager(models.Manager):
+    """Excludes soft-deleted records from all default queries."""
+    def get_queryset(self):
+        return super().get_queryset().filter(deleted_at__isnull=True)
+
+
+# ---------------------------------------------------------------------------
 # Account (Kunden & interne Einheiten)
 # ---------------------------------------------------------------------------
 
@@ -102,18 +112,29 @@ class Account(models.Model):
     is_active = models.BooleanField(default=True, verbose_name=_("Aktiv"))
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Erstellt am"))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Aktualisiert am"))
+    deleted_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Gelöscht am"))
+
+    objects     = ActiveManager()
+    all_objects = models.Manager()  # includes deleted, for admin/numbering
 
     class Meta:
         verbose_name = _("Account")
         verbose_name_plural = _("Accounts")
         ordering = ["name"]
 
+    def delete(self, *args, **kwargs):
+        """Soft-delete: marks as deleted and cascades to related projects."""
+        self.deleted_at = timezone.now()
+        self.save(update_fields=["deleted_at"])
+        for project in self.projects.all():
+            project.delete()
+
     def save(self, *args, **kwargs):
         if not self.account_number:
             from django.db import transaction
             with transaction.atomic():
                 last = (
-                    Account.objects
+                    Account.all_objects
                     .select_for_update()
                     .filter(account_number__regex=r"^KD-\d+$")
                     .order_by("-account_number")
@@ -324,18 +345,29 @@ class Project(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Erstellt am"))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Aktualisiert am"))
+    deleted_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Gelöscht am"))
+
+    objects     = ActiveManager()
+    all_objects = models.Manager()  # includes deleted, for admin/numbering
 
     class Meta:
         verbose_name = _("Projekt")
         verbose_name_plural = _("Projekte")
         ordering = ["-created_at"]
 
+    def delete(self, *args, **kwargs):
+        """Soft-delete: marks as deleted and cascades to offers + invoices."""
+        self.deleted_at = timezone.now()
+        self.save(update_fields=["deleted_at"])
+        self.offers.filter(status__in=["draft", "sent"]).update(deleted_at=timezone.now())
+        self.invoices.filter(status__in=["draft", "sent"]).update(deleted_at=timezone.now())
+
     def save(self, *args, **kwargs):
         if not self.project_number:
             from django.db import transaction
             with transaction.atomic():
                 last = (
-                    Project.objects
+                    Project.all_objects
                     .select_for_update()
                     .filter(project_number__regex=r"^PRJ-\d+$")
                     .order_by("-project_number")
@@ -744,6 +776,10 @@ class Offer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_order_confirmation = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Gelöscht am"))
+
+    objects     = ActiveManager()
+    all_objects = models.Manager()
 
     class Meta:
         ordering        = ["-offer_date", "-created_at"]
@@ -755,7 +791,7 @@ class Offer(models.Model):
             from django.db import transaction
             with transaction.atomic():
                 last = (
-                    Offer.objects
+                    Offer.all_objects
                     .select_for_update()
                     .filter(offer_number__regex=r"^ANG-\d+$")
                     .order_by("-offer_number")
@@ -851,11 +887,15 @@ class Invoice(models.Model):
     created_by     = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="created_invoices")
     created_at     = models.DateTimeField(auto_now_add=True)
     updated_at     = models.DateTimeField(auto_now=True)
+    deleted_at     = models.DateTimeField(null=True, blank=True, verbose_name=_("Gelöscht am"))
+
+    objects     = ActiveManager()
+    all_objects = models.Manager()
 
     def save(self, *args, **kwargs):
         if not self.invoice_number:
             with transaction.atomic():
-                last = Invoice.objects.select_for_update().filter(
+                last = Invoice.all_objects.select_for_update().filter(
                     invoice_number__regex=r"^RGN-\d+$"
                 ).order_by("-invoice_number").first()
                 if last:

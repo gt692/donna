@@ -241,6 +241,25 @@ class AccountUpdateView(AdminOrLeadMixin, UpdateView):
         return ctx
 
 
+class AccountDeleteView(AdminOrLeadMixin, View):
+    """Confirmation + soft-delete for Account (and its projects/offers/invoices)."""
+
+    def get(self, request, pk):
+        account = get_object_or_404(Account, pk=pk)
+        project_count = account.projects.count()
+        return render(request, "crm/account_confirm_delete.html", {
+            "account": account,
+            "project_count": project_count,
+        })
+
+    def post(self, request, pk):
+        account = get_object_or_404(Account, pk=pk)
+        name = account.name
+        account.delete()
+        messages.success(request, f'Account „{name}" wurde gelöscht.')
+        return redirect("crm:account_list")
+
+
 # ---------------------------------------------------------------------------
 # Projekt-Views
 # ---------------------------------------------------------------------------
@@ -505,6 +524,27 @@ class ProjectUpdateView(AdminOrLeadMixin, UpdateView):
             for p in self.object.predecessor_projects.all()
         ]
         return ctx
+
+
+class ProjectDeleteView(AdminOrLeadMixin, View):
+    """Confirmation + soft-delete for Project (cascades to open offers/invoices)."""
+
+    def get(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
+        offer_count   = project.offers.count()
+        invoice_count = project.invoices.count()
+        return render(request, "crm/project_confirm_delete.html", {
+            "project": project,
+            "offer_count": offer_count,
+            "invoice_count": invoice_count,
+        })
+
+    def post(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
+        name = project.name
+        project.delete()
+        messages.success(request, f'Projekt „{name}" wurde gelöscht.')
+        return redirect("crm:project_list")
 
 
 # ---------------------------------------------------------------------------

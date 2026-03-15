@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    AccountCreateView, AccountDetailView, AccountListView, AccountSearchView, AccountUpdateView,
+    AccountCreateView, AccountDeleteView, AccountDetailView, AccountListView, AccountSearchView, AccountUpdateView,
     ContactCreateView, ContactDetailView, ContactListView, ContactUpdateView,
     ContactVCardExportView, ContactVCardImportView,
     DocumentDeleteView, DocumentServeView, DocumentUploadView,
@@ -14,7 +14,7 @@ from .views import (
     ProductCatalogAPIView,
     ProjectActivityCreateView, ProjectActivityDeleteView,
     ProjectArchiveView, ProjectBudgetExtensionCreateView, ProjectBudgetExtensionDeleteView,
-    ProjectCreateView, ProjectDetailView, ProjectInvoiceCreateView, ProjectListView, ProjectUpdateView,
+    ProjectCreateView, ProjectDeleteView, ProjectDetailView, ProjectInvoiceCreateView, ProjectListView, ProjectUpdateView,
     QuickLeadCreateView,
 )
 
@@ -27,6 +27,7 @@ urlpatterns = [
     path("accounts/new/",            AccountCreateView.as_view(), name="account_create"),
     path("accounts/<uuid:pk>/",      AccountDetailView.as_view(), name="account_detail"),
     path("accounts/<uuid:pk>/edit/", AccountUpdateView.as_view(), name="account_edit"),
+    path("accounts/<uuid:pk>/delete/", AccountDeleteView.as_view(), name="account_delete"),
 
     # Kontakte
     path("contacts/",                     ContactListView.as_view(),       name="contact_list"),
@@ -42,6 +43,7 @@ urlpatterns = [
     path("projects/new/",          ProjectCreateView.as_view(), name="project_create"),
     path("projects/<uuid:pk>/",    ProjectDetailView.as_view(), name="project_detail"),
     path("projects/<uuid:pk>/edit/", ProjectUpdateView.as_view(), name="project_edit"),
+    path("projects/<uuid:pk>/delete/", ProjectDeleteView.as_view(), name="project_delete"),
     path("projects/<uuid:pk>/invoice/", ProjectInvoiceCreateView.as_view(), name="project_invoice_create"),
 
     # Kanban

@@ -1,0 +1,53 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<div class="max-w-lg mx-auto mt-12">
+  <div class="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden">
+    <div class="bg-red-50 border-b border-red-200 px-6 py-4 flex items-center gap-3">
+      <svg class="w-6 h-6 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+      </svg>
+      <h1 class="text-base font-semibold text-red-800">Projekt löschen</h1>
+    </div>
+
+    <div class="px-6 py-5 space-y-4">
+      <p class="text-sm text-slate-700">
+        Soll das Projekt <strong>{{ project.project_number }} – {{ project.name }}</strong> wirklich gelöscht werden?
+      </p>
+
+      {% if offer_count or invoice_count %}
+      <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 space-y-1">
+        <p class="font-medium">Folgende Daten werden ebenfalls gelöscht:</p>
+        <ul class="list-disc list-inside space-y-0.5 text-amber-700">
+          {% if offer_count %}
+          <li>{{ offer_count }} Angebot{{ offer_count|pluralize:"e" }} (Entwurf / Versendet)</li>
+          {% endif %}
+          {% if invoice_count %}
+          <li>{{ invoice_count }} Rechnung{{ invoice_count|pluralize:"en" }} (Entwurf / Versendet)</li>
+          {% endif %}
+        </ul>
+        <p class="text-xs text-amber-600 mt-1">Bereits bezahlte oder stornierte Dokumente bleiben zur Nachvollziehbarkeit erhalten.</p>
+      </div>
+      {% endif %}
+
+      <p class="text-xs text-slate-500">
+        Die Projektnummer <strong>{{ project.project_number }}</strong> wird dauerhaft reserviert und nie erneut vergeben.
+      </p>
+    </div>
+
+    <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+      <a href="{% url 'crm:project_detail' project.pk %}"
+         class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition">
+        Abbrechen
+      </a>
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit"
+                class="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition">
+          Endgültig löschen
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
