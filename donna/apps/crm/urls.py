@@ -8,12 +8,14 @@ from .views import (
     InvoiceListView, InvoicePDFView, InvoiceSendView, InvoiceStatusUpdateView, InvoiceUpdateView,
     InvoiceXRechnungView,
     KanbanView, ProjectKanbanMoveView,
+    LeadInquiryImportView, LeadInquiryPublicView,
     OfferCreateView, OfferDeleteView, OfferDetailView, OfferListView,
     OfferOrderConfirmationView, OfferPDFView, OfferSendView, OfferStatusUpdateView, OfferUpdateView,
     ProductCatalogAPIView,
     ProjectActivityCreateView, ProjectActivityDeleteView,
     ProjectArchiveView, ProjectBudgetExtensionCreateView, ProjectBudgetExtensionDeleteView,
     ProjectCreateView, ProjectDetailView, ProjectInvoiceCreateView, ProjectListView, ProjectUpdateView,
+    QuickLeadCreateView,
 )
 
 app_name = "crm"
@@ -99,4 +101,9 @@ urlpatterns = [
 
     # Produktkatalog API
     path("catalog/api/", ProductCatalogAPIView.as_view(), name="catalog_api"),
+
+    # Quick Lead
+    path("quick-lead/", QuickLeadCreateView.as_view(), name="quick_lead_create"),
+    path("anfrage/<uuid:token>/", LeadInquiryPublicView.as_view(), name="lead_inquiry_public"),
+    path("projects/<uuid:pk>/inquiry/import/", LeadInquiryImportView.as_view(), name="lead_inquiry_import"),
 ]

@@ -19,7 +19,7 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 
 import datetime
-from datetime import date
+from datetime import date, timedelta
 import logging
 
 logger = logging.getLogger(__name__)
@@ -33,10 +33,12 @@ from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils import timezone
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView, View
 
 from .forms import AccountForm, ContactForm, InvoiceForm, InvoiceItemForm, InvoiceItemFormSet, OfferForm, OfferItemFormSet, ProjectForm
-from .models import Account, CompanyProjectTypeMapping, Contact, Document, Invoice, InvoiceItem, Offer, OfferItem, Project, ProjectActivity, ProjectBudgetExtension, ProjectMemberRate
+from .models import Account, CompanyProjectTypeMapping, Contact, Document, Invoice, InvoiceItem, LeadInquiry, Offer, OfferItem, Project, ProjectActivity, ProjectBudgetExtension, ProjectMemberRate
 
 
 # ---------------------------------------------------------------------------
@@ -464,6 +466,11 @@ class ProjectDetailView(CRMMixin, DetailView):
             ("Abgeschlossen", False,                                                          s == "completed"),
         ]
         ctx["process_steps"] = [(label, "", done, active) for label, done, active in steps]
+
+        try:
+            ctx["lead_inquiry"] = project.lead_inquiry
+        except Exception:
+            ctx["lead_inquiry"] = None
 
         return ctx
 
@@ -1190,14 +1197,27 @@ class OfferCreateView(AdminOrLeadMixin, View):
         return get_object_or_404(Project, pk=pk)
 
     def get(self, request, pk):
-        project  = self._get_project(pk)
-        form     = OfferForm()
-        formset  = _build_offer_formset(request, extra=3)
+        project = self._get_project(pk)
+        initial = {"title": f"Angebot – {project.name}"}
+        # Pre-fill from GET params (e.g. from LeadInquiryImportView)
+        for field in ["recipient_name", "recipient_email", "recipient_address"]:
+            if request.GET.get(field):
+                initial[field] = request.GET[field]
+        # Pre-fill description into intro_text
+        if request.GET.get("description"):
+            initial["intro_text"] = request.GET["description"]
+        # Also try from account if not pre-filled
+        if project.account and not initial.get("recipient_name"):
+            initial["recipient_name"] = project.account.name
+            initial["recipient_email"] = project.account.billing_email or project.account.email
+        form    = OfferForm(initial=initial)
+        formset = _build_offer_formset(request, extra=3)
         return render(request, self.template_name, {
-            "form":    form,
-            "formset": formset,
-            "project": project,
-            "page_title": "Neues Angebot",
+            "form":         form,
+            "formset":      formset,
+            "project":      project,
+            "page_title":   "Neues Angebot",
+            "from_inquiry": bool(request.GET.get("recipient_name")),
         })
 
     def post(self, request, pk):
@@ -1872,3 +1892,177 @@ class ProductCatalogAPIView(LoginRequiredMixin, View):
                 "category": item["category"],
             })
         return JsonResponse({"items": result})
+
+
+# ---------------------------------------------------------------------------
+# Quick Lead — Schnell-Lead anlegen
+# ---------------------------------------------------------------------------
+
+class QuickLeadCreateView(AdminOrLeadMixin, View):
+    """Creates Account + Project from minimal data, optionally sends inquiry email."""
+
+    def post(self, request):
+        customer_name  = request.POST.get("customer_name", "").strip()
+        topic          = request.POST.get("topic", "").strip()
+        customer_email = request.POST.get("customer_email", "").strip()
+        company        = request.POST.get("company", "").strip()
+
+        if not customer_name or not topic:
+            return JsonResponse({"error": "Name und Stichwort sind erforderlich."}, status=400)
+
+        # Create Account
+        account = Account.objects.create(
+            name=customer_name,
+            email=customer_email,
+            account_type=Account.AccountType.COMPANY if company else Account.AccountType.PRIVATE,
+        )
+
+        # Create Project as LEAD
+        project = Project.objects.create(
+            name=topic,
+            account=account,
+            company=company or "",
+            status=Project.Status.LEAD,
+            created_by=request.user,
+        )
+
+        # Create LeadInquiry
+        inquiry = LeadInquiry.objects.create(project=project)
+
+        # Send inquiry email if email provided
+        if customer_email:
+            _send_inquiry_email(request, inquiry, customer_email, customer_name)
+            inquiry.sent_at    = timezone.now()
+            inquiry.expires_at = timezone.now() + timedelta(days=14)
+            inquiry.save(update_fields=["sent_at", "expires_at"])
+
+        return JsonResponse({
+            "success":        True,
+            "project_url":    request.build_absolute_uri(
+                reverse("crm:project_detail", kwargs={"pk": project.pk})
+            ),
+            "project_number": project.project_number,
+            "project_name":   project.name,
+            "email_sent":     bool(customer_email),
+        })
+
+
+def _send_inquiry_email(request, inquiry, recipient_email, recipient_name):
+    """Sends the inquiry link email to the customer."""
+    inquiry_url = request.build_absolute_uri(
+        reverse("crm:lead_inquiry_public", kwargs={"token": inquiry.token})
+    )
+    subject = "Ihre Anfrage — bitte ergänzen Sie Ihre Kontaktdaten"
+    body = (
+        f"Guten Tag{' ' + recipient_name if recipient_name else ''},\n\n"
+        "vielen Dank für Ihr Interesse. Um Ihre Anfrage optimal bearbeiten zu können, "
+        "bitten wir Sie, Ihre Kontaktdaten und eine kurze Beschreibung Ihres Anliegens "
+        "über folgenden Link zu ergänzen:\n\n"
+        f"{inquiry_url}\n\n"
+        "Dieser Link ist 14 Tage gültig.\n\n"
+        "Mit freundlichen Grüßen"
+    )
+    try:
+        from django.core.mail import EmailMessage as DjEmailMessage
+        msg = DjEmailMessage(
+            subject=subject,
+            body=body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[recipient_email],
+        )
+        msg.send()
+    except Exception:
+        pass  # fail silently — lead is created regardless
+
+
+class LeadInquiryPublicView(View):
+    """Public (unauthenticated) form for customer to fill in their details."""
+
+    def get(self, request, token):
+        inquiry = self._get_inquiry(token)
+        if inquiry is None:
+            return render(request, "crm/lead_inquiry_expired.html", {})
+        if inquiry.status == LeadInquiry.Status.SUBMITTED:
+            return render(request, "crm/lead_inquiry_thankyou.html", {"inquiry": inquiry})
+        return render(request, "crm/lead_inquiry_form.html", {
+            "inquiry": inquiry,
+            "project": inquiry.project,
+        })
+
+    def post(self, request, token):
+        inquiry = self._get_inquiry(token)
+        if inquiry is None:
+            return render(request, "crm/lead_inquiry_expired.html", {})
+        if inquiry.status == LeadInquiry.Status.SUBMITTED:
+            return render(request, "crm/lead_inquiry_thankyou.html", {"inquiry": inquiry})
+
+        inquiry.first_name          = request.POST.get("first_name", "").strip()
+        inquiry.last_name           = request.POST.get("last_name", "").strip()
+        inquiry.company_name        = request.POST.get("company_name", "").strip()
+        inquiry.email               = request.POST.get("email", "").strip()
+        inquiry.phone               = request.POST.get("phone", "").strip()
+        inquiry.street              = request.POST.get("street", "").strip()
+        inquiry.postal_code         = request.POST.get("postal_code", "").strip()
+        inquiry.city                = request.POST.get("city", "").strip()
+        inquiry.request_description = request.POST.get("request_description", "").strip()
+        inquiry.status              = LeadInquiry.Status.SUBMITTED
+        inquiry.submitted_at        = timezone.now()
+        inquiry.save()
+
+        # Update account with submitted data
+        account = inquiry.project.account
+        if account:
+            if inquiry.company_name:
+                account.name = inquiry.company_name
+            if inquiry.email:
+                account.email = inquiry.email
+            if inquiry.phone:
+                account.phone = inquiry.phone
+            if inquiry.street:
+                account.address_line1 = inquiry.street
+            if inquiry.postal_code:
+                account.postal_code = inquiry.postal_code
+            if inquiry.city:
+                account.city = inquiry.city
+            account.save()
+
+        return render(request, "crm/lead_inquiry_thankyou.html", {"inquiry": inquiry})
+
+    def _get_inquiry(self, token):
+        try:
+            inquiry = LeadInquiry.objects.select_related("project__account").get(token=token)
+        except LeadInquiry.DoesNotExist:
+            return None
+        if inquiry.is_expired:
+            return None
+        return inquiry
+
+
+class LeadInquiryImportView(AdminOrLeadMixin, View):
+    """Imports inquiry data into the offer creation form (pre-fills and redirects)."""
+
+    def post(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
+        try:
+            inquiry = project.lead_inquiry
+        except LeadInquiry.DoesNotExist:
+            messages.error(request, "Keine Anfrage vorhanden.")
+            return redirect("crm:project_detail", pk=project.pk)
+
+        if inquiry.status != LeadInquiry.Status.SUBMITTED:
+            messages.warning(request, "Anfrage noch nicht eingereicht.")
+            return redirect("crm:project_detail", pk=project.pk)
+
+        # Mark as imported
+        inquiry.status = LeadInquiry.Status.IMPORTED
+        inquiry.save(update_fields=["status"])
+
+        # Redirect to offer creation with pre-filled data via GET params
+        from urllib.parse import urlencode
+        params = urlencode({
+            "recipient_name":    inquiry.customer_full_name,
+            "recipient_email":   inquiry.email,
+            "recipient_address": f"{inquiry.street}\n{inquiry.postal_code} {inquiry.city}".strip(),
+            "description":       inquiry.request_description,
+        })
+        return redirect(f"{reverse('crm:offer_create', kwargs={'pk': project.pk})}?{params}")

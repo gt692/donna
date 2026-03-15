@@ -943,3 +943,52 @@ class ProductCatalog(models.Model):
     @property
     def net_amount(self):
         return (self.quantity * self.unit_price).quantize(Decimal("0.01"))
+
+
+# ---------------------------------------------------------------------------
+# LeadInquiry — Kontaktdaten-Anfrage für Quick-Lead-Projekte
+# ---------------------------------------------------------------------------
+
+class LeadInquiry(models.Model):
+    class Status(models.TextChoices):
+        PENDING   = "pending",   "Ausstehend"
+        SUBMITTED = "submitted", "Eingereicht"
+        IMPORTED  = "imported",  "Übernommen"
+
+    id          = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    token       = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
+    project     = models.OneToOneField("Project", on_delete=models.CASCADE, related_name="lead_inquiry")
+    status      = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+
+    # Customer-provided data (filled via public form)
+    first_name      = models.CharField(max_length=100, blank=True, verbose_name="Vorname")
+    last_name       = models.CharField(max_length=100, blank=True, verbose_name="Nachname")
+    company_name    = models.CharField(max_length=255, blank=True, verbose_name="Firma")
+    email           = models.EmailField(blank=True, verbose_name="E-Mail")
+    phone           = models.CharField(max_length=50, blank=True, verbose_name="Telefon")
+    street          = models.CharField(max_length=255, blank=True, verbose_name="Straße + Nr.")
+    postal_code     = models.CharField(max_length=20, blank=True, verbose_name="PLZ")
+    city            = models.CharField(max_length=100, blank=True, verbose_name="Stadt")
+    request_description = models.TextField(blank=True, verbose_name="Beschreibung des Anliegens")
+
+    sent_at         = models.DateTimeField(null=True, blank=True)
+    submitted_at    = models.DateTimeField(null=True, blank=True)
+    expires_at      = models.DateTimeField(null=True, blank=True)
+    created_at      = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Lead-Anfrage"
+        verbose_name_plural = "Lead-Anfragen"
+
+    def __str__(self):
+        return f"Anfrage für {self.project.name}"
+
+    @property
+    def is_expired(self):
+        from django.utils import timezone
+        return self.expires_at and timezone.now() > self.expires_at
+
+    @property
+    def customer_full_name(self):
+        parts = [self.first_name, self.last_name]
+        return " ".join(p for p in parts if p) or self.company_name or "—"

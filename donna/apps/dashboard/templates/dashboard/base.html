@@ -220,6 +220,16 @@
       </div>
       <div class="flex items-center gap-4">
         {% block topbar_actions %}{% endblock %}
+        <!-- Quick Lead Button (global) -->
+        {% if user.is_authenticated %}
+        <button type="button" id="btn-quick-lead"
+                class="flex items-center gap-2 bg-[#1666b0] hover:bg-[#1255a0] text-white text-sm font-medium px-3 py-2 rounded-lg transition flex-shrink-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          <span class="hidden sm:inline">Schnell-Lead</span>
+        </button>
+        {% endif %}
         <div class="text-right text-slate-400 text-xs leading-tight ml-2">
           <p class="font-medium text-slate-500">{% now "l" %}</p>
           <p>{% now "j. F Y" %}</p>
@@ -250,5 +260,153 @@
   </main>
 </div>
 {% block extra_js %}{% endblock %}
+
+<!-- Quick Lead Modal -->
+{% if user.is_authenticated %}
+<div id="quick-lead-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl shadow-xl w-full max-w-md">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+      <h3 class="text-base font-semibold text-slate-800">Schnell-Lead anlegen</h3>
+      <button type="button" id="btn-quick-lead-close" class="text-slate-400 hover:text-slate-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <form id="quick-lead-form" class="px-5 py-4 space-y-4">
+      {% csrf_token %}
+      <div>
+        <label class="block text-xs font-medium text-slate-500 mb-1">Kundenname <span class="text-red-500">*</span></label>
+        <input type="text" name="customer_name" id="ql-customer-name" required
+               class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1666b0]"
+               placeholder="z.B. Max Mustermann oder Mustermann GmbH">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-500 mb-1">Stichwort / Betreff <span class="text-red-500">*</span></label>
+        <input type="text" name="topic" id="ql-topic" required
+               class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1666b0]"
+               placeholder="z.B. Bewertung Wohnhaus München">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-500 mb-1">E-Mail des Kunden <span class="text-slate-400 font-normal">(optional — für Kontaktdaten-Anfrage)</span></label>
+        <input type="email" name="customer_email" id="ql-email"
+               class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1666b0]"
+               placeholder="kunde@beispiel.de">
+      </div>
+      <div id="ql-email-hint" class="hidden text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+        Der Kunde erhält einen Link, um seine Kontaktdaten und sein Anliegen selbst einzutragen.
+      </div>
+      <div id="quick-lead-error" class="hidden text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2"></div>
+      <div class="flex gap-3 pt-2">
+        <button type="submit" id="btn-quick-lead-submit"
+                class="flex-1 bg-[#1666b0] hover:bg-[#1255a0] text-white text-sm font-medium py-2 rounded-lg transition">
+          Lead anlegen
+        </button>
+        <button type="button" id="btn-quick-lead-cancel"
+                class="px-4 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium py-2 rounded-lg transition">
+          Abbrechen
+        </button>
+      </div>
+    </form>
+    <!-- Success state (hidden initially) -->
+    <div id="quick-lead-success" class="hidden px-5 py-6 text-center">
+      <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <p class="text-sm font-semibold text-slate-800 mb-1" id="ql-success-title">Lead angelegt!</p>
+      <p class="text-xs text-slate-500 mb-4" id="ql-success-msg"></p>
+      <a href="#" id="ql-project-link"
+         class="inline-block bg-[#1666b0] hover:bg-[#1255a0] text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+        Zum Projekt →
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const modal     = document.getElementById('quick-lead-modal');
+  const btnOpen   = document.getElementById('btn-quick-lead');
+  const btnClose  = document.getElementById('btn-quick-lead-close');
+  const btnCancel = document.getElementById('btn-quick-lead-cancel');
+  const form      = document.getElementById('quick-lead-form');
+  const emailInput = document.getElementById('ql-email');
+  const emailHint  = document.getElementById('ql-email-hint');
+  const errorDiv   = document.getElementById('quick-lead-error');
+  const successDiv = document.getElementById('quick-lead-success');
+  const btnSubmit  = document.getElementById('btn-quick-lead-submit');
+
+  if (btnOpen) {
+    btnOpen.addEventListener('click', function() {
+      modal.classList.remove('hidden');
+      document.getElementById('ql-customer-name').focus();
+    });
+  }
+
+  [btnClose, btnCancel].forEach(function(btn) {
+    if (btn) btn.addEventListener('click', closeModal);
+  });
+
+  modal.addEventListener('click', function(e) { if (e.target === modal) closeModal(); });
+
+  emailInput.addEventListener('input', function() {
+    emailHint.classList.toggle('hidden', !this.value.trim());
+  });
+
+  function closeModal() {
+    modal.classList.add('hidden');
+    setTimeout(function() {
+      form.reset();
+      form.classList.remove('hidden');
+      successDiv.classList.add('hidden');
+      errorDiv.classList.add('hidden');
+      emailHint.classList.add('hidden');
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = 'Lead anlegen';
+    }, 300);
+  }
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    errorDiv.classList.add('hidden');
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Wird angelegt...';
+
+    const data = new FormData(form);
+
+    fetch('{% url "crm:quick_lead_create" %}', {
+      method: 'POST',
+      body: data,
+      headers: {'X-CSRFToken': data.get('csrfmiddlewaretoken')},
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(result) {
+      if (result.error) {
+        errorDiv.textContent = result.error;
+        errorDiv.classList.remove('hidden');
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Lead anlegen';
+        return;
+      }
+      form.classList.add('hidden');
+      successDiv.classList.remove('hidden');
+      document.getElementById('ql-success-title').textContent = result.project_number + ' angelegt!';
+      document.getElementById('ql-success-msg').textContent = result.email_sent
+        ? 'Lead angelegt und Kontaktdaten-Anfrage per E-Mail versendet.'
+        : 'Lead angelegt.';
+      document.getElementById('ql-project-link').href = result.project_url;
+    })
+    .catch(function() {
+      errorDiv.textContent = 'Fehler beim Anlegen. Bitte versuche es erneut.';
+      errorDiv.classList.remove('hidden');
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = 'Lead anlegen';
+    });
+  });
+})();
+</script>
+{% endif %}
 </body>
 </html>
