@@ -46,7 +46,15 @@
       {% url 'worktrack:list' as url_wt %}
       {% url 'worktrack:calendar' as url_cal %}
       {% url 'worktrack:approval_list' as url_approve %}
+      {% url 'crm:lead_list' as url_leads %}
+      {% url 'crm:project_list' as url_projects %}
+      {% url 'crm:kanban' as url_kanban %}
+      {% url 'crm:account_list' as url_accounts %}
+      {% url 'crm:contact_list' as url_contacts %}
+      {% url 'crm:offer_list' as url_offers %}
+      {% url 'crm:invoice_list' as url_invoices %}
 
+      <!-- Dashboard -->
       <a href="{{ url_dash }}"
          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
                 {% if request.path == url_dash %}bg-[#1666b0] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
@@ -57,6 +65,7 @@
         Dashboard
       </a>
 
+      <!-- Zeiterfassung -->
       <a href="{{ url_wt }}"
          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
                 {% if '/worktrack' in request.path and '/approve' not in request.path and '/calendar' not in request.path %}bg-[#1666b0] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
@@ -66,6 +75,104 @@
         </svg>
         Zeiterfassung
       </a>
+
+      <!-- Kanban -->
+      <a href="{{ url_kanban }}"
+         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
+                {% if '/crm/kanban' in request.path %}bg-[#1666b0] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+        </svg>
+        Kanban
+      </a>
+
+      <!-- Projekte -->
+      <div class="pt-3 pb-1">
+        <p class="px-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Projekte</p>
+      </div>
+
+      <a href="{{ url_leads }}"
+         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
+                {% if '/crm/leads' in request.path %}bg-[#1666b0] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+        </svg>
+        Leads
+        {% if lead_pending_count %}
+          <span class="ml-auto bg-green-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+            {{ lead_pending_count }}
+          </span>
+        {% endif %}
+      </a>
+
+      <a href="{{ url_projects }}"
+         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
+                {% if '/crm/projects' in request.path %}bg-[#1666b0] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+        </svg>
+        Projekte
+      </a>
+
+      <!-- Billing -->
+      <div class="pt-3 pb-1">
+        <p class="px-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Billing</p>
+      </div>
+
+      <a href="{{ url_offers }}"
+         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
+                {% if '/crm/offers' in request.path %}bg-[#1666b0] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        Angebote
+      </a>
+
+      <a href="{{ url_invoices }}"
+         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
+                {% if '/crm/invoices' in request.path %}bg-[#1666b0] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        Rechnungen
+        {% if overdue_invoices_count %}
+          <span class="ml-auto bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ overdue_invoices_count }}</span>
+        {% endif %}
+      </a>
+
+      <!-- CRM -->
+      <div class="pt-3 pb-1">
+        <p class="px-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">CRM</p>
+      </div>
+
+      <a href="{{ url_accounts }}"
+         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
+                {% if '/crm/accounts' in request.path %}bg-[#1666b0] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+        </svg>
+        Accounts
+      </a>
+
+      <a href="{{ url_contacts }}"
+         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
+                {% if '/crm/contacts' in request.path %}bg-[#1666b0] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        Kontakte
+      </a>
+
+      <!-- Planung -->
+      <div class="pt-3 pb-1">
+        <p class="px-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">Planung</p>
+      </div>
 
       <a href="{{ url_cal }}"
          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
@@ -94,97 +201,9 @@
         </a>
       {% endif %}
 
-      <div class="pt-2 pb-1">
-        <p class="px-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">CRM</p>
-      </div>
-
-      {% url 'crm:lead_list' as url_leads %}
-      {% url 'crm:project_list' as url_projects %}
-      {% url 'crm:kanban' as url_kanban %}
-      {% url 'crm:account_list' as url_accounts %}
-      {% url 'crm:contact_list' as url_contacts %}
-      {% url 'crm:offer_list' as url_offers %}
-
-      <a href="{{ url_leads }}"
-         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
-                {% if '/crm/leads' in request.path %}bg-[#1666b0] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
-        </svg>
-        Leads
-        {% if lead_pending_count %}
-          <span class="ml-auto bg-green-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
-            {{ lead_pending_count }}
-          </span>
-        {% endif %}
-      </a>
-
-      <a href="{{ url_projects }}"
-         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
-                {% if '/crm/projects' in request.path %}bg-[#1666b0] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-        </svg>
-        Projekte
-      </a>
-
-      <a href="{{ url_kanban }}"
-         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
-                {% if '/crm/kanban' in request.path %}bg-[#1666b0] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
-        </svg>
-        Kanban
-      </a>
-
-      <a href="{{ url_accounts }}"
-         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
-                {% if '/crm/accounts' in request.path %}bg-[#1666b0] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-        </svg>
-        Accounts
-      </a>
-
-      <a href="{{ url_contacts }}"
-         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
-                {% if '/crm/contacts' in request.path %}bg-[#1666b0] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-        </svg>
-        Kontakte
-      </a>
-
-      <a href="{{ url_offers }}"
-         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
-                {% if '/crm/offers' in request.path %}bg-[#1666b0] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-        </svg>
-        Angebote
-      </a>
-
-      {% url 'crm:invoice_list' as url_invoices %}
-      <a href="{{ url_invoices }}"
-         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
-                {% if '/crm/invoices' in request.path %}bg-[#1666b0] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-        </svg>
-        Rechnungen
-        {% if overdue_invoices_count %}
-          <span class="ml-auto bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ overdue_invoices_count }}</span>
-        {% endif %}
-      </a>
-
+      <!-- System -->
       {% if request.user.is_admin %}
-        <div class="pt-2 pb-1">
+        <div class="pt-3 pb-1">
           <p class="px-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">System</p>
         </div>
         <a href="{% url 'dashboard:admin_index' %}"
