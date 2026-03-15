@@ -48,13 +48,13 @@ class UserAdmin(BaseUserAdmin):
             },
         ),
         (
-            _("TOTP / 2FA"),
+            _("2FA / Authenticator-App"),
             {
-                "fields": ("totp_secret", "totp_enabled"),
-                "classes": ("collapse",),
+                "fields": ("totp_required", "totp_enabled", "totp_secret"),
                 "description": _(
-                    "Das TOTP-Secret wird beim ersten Login-Setup automatisch generiert. "
-                    "Nur in Ausnahmefällen manuell setzen."
+                    "Mit '2FA Pflicht' legt der Admin fest, ob dieser User einen TOTP-Code "
+                    "beim Login eingeben muss. 'TOTP eingerichtet' und 'TOTP-Secret' werden "
+                    "automatisch gesetzt und sind schreibgeschützt."
                 ),
             },
         ),
@@ -88,12 +88,13 @@ class UserAdmin(BaseUserAdmin):
                     "first_name", "last_name",
                     "role", "reporting_to",
                     "password1", "password2",
+                    "totp_required",
                 ),
             },
         ),
     )
 
-    readonly_fields = ("last_login", "date_joined")
+    readonly_fields = ("last_login", "date_joined", "totp_enabled", "totp_secret")
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
@@ -101,6 +102,13 @@ class UserAdmin(BaseUserAdmin):
         if role_choices and "role" in form.base_fields:
             form.base_fields["role"].choices = role_choices
         return form
+
+    def save_model(self, request, obj, form, change):
+        if change and "totp_required" in form.changed_data and not obj.totp_required:
+            # Admin hat 2FA deaktiviert → Secret und Status zurücksetzen
+            obj.totp_enabled = False
+            obj.totp_secret = ""
+        super().save_model(request, obj, form, change)
 
     # ── Custom Display-Methoden ────────────────────────────────────────────
 

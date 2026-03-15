@@ -71,7 +71,13 @@ class User(AbstractUser):
     )
     totp_enabled = models.BooleanField(
         default=False,
-        verbose_name=_("TOTP aktiviert"),
+        verbose_name=_("TOTP eingerichtet"),
+        help_text=_("Wird automatisch gesetzt sobald der User den QR-Code bestätigt hat."),
+    )
+    totp_required = models.BooleanField(
+        default=True,
+        verbose_name=_("2FA Pflicht"),
+        help_text=_("Wenn aktiv, muss der User beim Login einen TOTP-Code eingeben. Nur vom Admin steuerbar."),
     )
 
     # Hierarchie: Wem berichtet dieser User? (Mitarbeiter → Teamleiter → Admin)
