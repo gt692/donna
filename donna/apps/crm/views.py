@@ -1850,3 +1850,25 @@ class OfferOrderConfirmationView(AdminOrLeadMixin, View):
         offer.is_order_confirmation = True
         offer.save(update_fields=["is_order_confirmation"])
         return redirect("crm:offer_pdf", pk=offer.pk)
+
+
+class ProductCatalogAPIView(LoginRequiredMixin, View):
+    """Returns JSON list of active catalog items for the quick-add modal."""
+    def get(self, request):
+        from .models import ProductCatalog
+        items = ProductCatalog.objects.filter(is_active=True).values(
+            "id", "name", "description", "unit", "quantity", "unit_price", "category"
+        )
+        # Convert Decimals to strings for JSON
+        result = []
+        for item in items:
+            result.append({
+                "id": item["id"],
+                "name": item["name"],
+                "description": item["description"],
+                "unit": item["unit"],
+                "quantity": str(item["quantity"]),
+                "unit_price": str(item["unit_price"]),
+                "category": item["category"],
+            })
+        return JsonResponse({"items": result})

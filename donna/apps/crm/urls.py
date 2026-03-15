@@ -10,6 +10,7 @@ from .views import (
     KanbanView, ProjectKanbanMoveView,
     OfferCreateView, OfferDeleteView, OfferDetailView, OfferListView,
     OfferOrderConfirmationView, OfferPDFView, OfferSendView, OfferStatusUpdateView, OfferUpdateView,
+    ProductCatalogAPIView,
     ProjectActivityCreateView, ProjectActivityDeleteView,
     ProjectArchiveView, ProjectBudgetExtensionCreateView, ProjectBudgetExtensionDeleteView,
     ProjectCreateView, ProjectDetailView, ProjectInvoiceCreateView, ProjectListView, ProjectUpdateView,
@@ -95,4 +96,7 @@ urlpatterns = [
     path("invoices/<uuid:pk>/delete/", InvoiceDeleteView.as_view(), name="invoice_delete"),
     path("invoices/<uuid:pk>/xrechnung/", InvoiceXRechnungView.as_view(), name="invoice_xrechnung"),
     path("offers/<uuid:pk>/ab/", OfferOrderConfirmationView.as_view(), name="offer_ab"),
+
+    # Produktkatalog API
+    path("catalog/api/", ProductCatalogAPIView.as_view(), name="catalog_api"),
 ]

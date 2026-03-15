@@ -914,3 +914,32 @@ class InvoiceItem(models.Model):
         ordering = ["position"]
         verbose_name = "Rechnungsposition"
         verbose_name_plural = "Rechnungspositionen"
+
+
+# ---------------------------------------------------------------------------
+# ProductCatalog — Standard-Produkte und Dienstleistungen
+# ---------------------------------------------------------------------------
+
+class ProductCatalog(models.Model):
+    """Standard products/services for quick-add in offers and invoices."""
+    name        = models.CharField(max_length=255, verbose_name="Bezeichnung")
+    description = models.TextField(blank=True, verbose_name="Beschreibung")
+    unit        = models.CharField(max_length=50, default="pauschal", verbose_name="Einheit")
+    quantity    = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("1"), verbose_name="Menge")
+    unit_price  = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Einzelpreis (Netto)")
+    category    = models.CharField(max_length=100, blank=True, verbose_name="Kategorie")
+    is_active   = models.BooleanField(default=True, verbose_name="Aktiv")
+    sort_order  = models.PositiveSmallIntegerField(default=0, verbose_name="Reihenfolge")
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["sort_order", "name"]
+        verbose_name = "Produkt / Dienstleistung"
+        verbose_name_plural = "Produktkatalog"
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def net_amount(self):
+        return (self.quantity * self.unit_price).quantize(Decimal("0.01"))

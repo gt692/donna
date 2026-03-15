@@ -8,7 +8,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.mail import send_mail
 from django.db.models import Q, Sum
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.views.generic import CreateView, ListView, TemplateView, UpdateView, View
@@ -16,7 +16,7 @@ from django.views.generic import CreateView, ListView, TemplateView, UpdateView,
 from decimal import Decimal
 
 from apps.core.models import CompanyCredential, CompanySettings, Lookup, Role, RoleHourlyRate, User
-from apps.crm.models import Account, CompanyProjectTypeMapping, Project, RevenueTarget
+from apps.crm.models import Account, CompanyProjectTypeMapping, ProductCatalog, Project, RevenueTarget
 from apps.worktrack.models import TimeEntry
 
 from .forms import CompanySettingsForm, UserCreateForm, UserEditForm
@@ -838,3 +838,58 @@ class CompanySettingsView(AdminRequiredMixin, View):
             messages.success(request, "Firmeneinstellungen gespeichert.")
             return redirect("dashboard:company_settings")
         return _render(request, self.template_name, {"form": form, "settings_obj": obj})
+
+
+# ---------------------------------------------------------------------------
+# Produktkatalog-Verwaltung
+# ---------------------------------------------------------------------------
+
+class ProductCatalogListView(AdminRequiredMixin, ListView):
+    model = ProductCatalog
+    template_name = "dashboard/admin/product_catalog_list.html"
+    context_object_name = "products"
+    queryset = ProductCatalog.objects.all().order_by("sort_order", "name")
+
+
+class ProductCatalogCreateView(AdminRequiredMixin, View):
+    template_name = "dashboard/admin/product_catalog_form.html"
+
+    def get(self, request):
+        from apps.dashboard.forms import ProductCatalogForm
+        return render(request, self.template_name, {"form": ProductCatalogForm(), "title": "Neues Produkt"})
+
+    def post(self, request):
+        from apps.dashboard.forms import ProductCatalogForm
+        form = ProductCatalogForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Produkt gespeichert.")
+            return redirect("dashboard:product_catalog_list")
+        return render(request, self.template_name, {"form": form, "title": "Neues Produkt"})
+
+
+class ProductCatalogUpdateView(AdminRequiredMixin, View):
+    template_name = "dashboard/admin/product_catalog_form.html"
+
+    def get(self, request, pk):
+        from apps.dashboard.forms import ProductCatalogForm
+        obj = get_object_or_404(ProductCatalog, pk=pk)
+        return render(request, self.template_name, {"form": ProductCatalogForm(instance=obj), "title": "Produkt bearbeiten", "object": obj})
+
+    def post(self, request, pk):
+        from apps.dashboard.forms import ProductCatalogForm
+        obj = get_object_or_404(ProductCatalog, pk=pk)
+        form = ProductCatalogForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Produkt gespeichert.")
+            return redirect("dashboard:product_catalog_list")
+        return render(request, self.template_name, {"form": form, "title": "Produkt bearbeiten", "object": obj})
+
+
+class ProductCatalogDeleteView(AdminRequiredMixin, View):
+    def post(self, request, pk):
+        obj = get_object_or_404(ProductCatalog, pk=pk)
+        obj.delete()
+        messages.success(request, "Produkt gelöscht.")
+        return redirect("dashboard:product_catalog_list")

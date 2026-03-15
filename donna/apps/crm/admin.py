@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from .models import Account, CompanyProjectTypeMapping, Document, Project, RevenueTarget
+from .models import Account, CompanyProjectTypeMapping, Document, ProductCatalog, Project, RevenueTarget
 
 
 # ---------------------------------------------------------------------------
@@ -355,3 +355,15 @@ class DocumentAdmin(admin.ModelAdmin):
             'border-radius:4px;font-size:11px;font-weight:600;">{label}</span>',
             bg=bg, fg=fg, label=obj.get_document_type_display(),
         )
+
+
+# ---------------------------------------------------------------------------
+# ProductCatalog Admin
+# ---------------------------------------------------------------------------
+
+@admin.register(ProductCatalog)
+class ProductCatalogAdmin(admin.ModelAdmin):
+    list_display  = ["name", "category", "unit_price", "unit", "quantity", "is_active", "sort_order"]
+    list_editable = ["unit_price", "is_active", "sort_order"]
+    list_filter   = ["is_active", "category"]
+    search_fields = ["name", "description"]

@@ -89,10 +89,19 @@
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <h2 class="text-sm font-semibold text-slate-700">Positionen</h2>
-          <button type="button" id="add-row"
-                  class="text-xs text-[#1666b0] hover:text-[#0d4f8c] font-medium transition">
-            + Position hinzufügen
-          </button>
+          <div class="flex items-center gap-3">
+            <button type="button" id="btn-catalog-open"
+                    class="flex items-center gap-2 border border-[#1666b0] text-[#1666b0] hover:bg-blue-50 text-xs font-medium px-3 py-1.5 rounded-lg transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+              </svg>
+              Aus Katalog
+            </button>
+            <button type="button" id="add-row"
+                    class="text-xs text-[#1666b0] hover:text-[#0d4f8c] font-medium transition">
+              + Position hinzufügen
+            </button>
+          </div>
         </div>
 
         <div class="overflow-x-auto">
@@ -229,6 +238,27 @@
   </tr>
 </template>
 
+<!-- Katalog-Modal -->
+<div id="catalog-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+      <h3 class="text-base font-semibold text-slate-800">Produkt aus Katalog hinzufügen</h3>
+      <button type="button" id="btn-catalog-close" class="text-slate-400 hover:text-slate-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="px-4 py-3 border-b border-slate-100">
+      <input type="text" id="catalog-search" placeholder="Suchen..."
+             class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1666b0]">
+    </div>
+    <div id="catalog-list" class="overflow-y-auto flex-1 divide-y divide-slate-50 px-2 py-2">
+      <p class="text-center text-slate-400 text-sm py-8">Lade Katalog...</p>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -340,6 +370,131 @@
   // Initial berechnen
   recalculate();
 
+})();
+
+// ── Produktkatalog Schnellauswahl ─────────────────────────────────────────
+(function() {
+  const modal = document.getElementById('catalog-modal');
+  const btnOpen = document.getElementById('btn-catalog-open');
+  const btnClose = document.getElementById('btn-catalog-close');
+  const searchInput = document.getElementById('catalog-search');
+  const catalogList = document.getElementById('catalog-list');
+  let catalogItems = [];
+
+  btnOpen.addEventListener('click', function() {
+    modal.classList.remove('hidden');
+    if (catalogItems.length === 0) loadCatalog();
+    searchInput.focus();
+  });
+
+  btnClose.addEventListener('click', function() {
+    modal.classList.add('hidden');
+  });
+
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) modal.classList.add('hidden');
+  });
+
+  searchInput.addEventListener('input', function() {
+    renderCatalog(this.value.toLowerCase());
+  });
+
+  function loadCatalog() {
+    fetch('{% url "crm:catalog_api" %}')
+      .then(r => r.json())
+      .then(data => {
+        catalogItems = data.items;
+        renderCatalog('');
+      })
+      .catch(() => {
+        catalogList.innerHTML = '<p class="text-center text-red-500 text-sm py-8">Fehler beim Laden.</p>';
+      });
+  }
+
+  function renderCatalog(query) {
+    const filtered = catalogItems.filter(item =>
+      item.name.toLowerCase().includes(query) ||
+      (item.category || '').toLowerCase().includes(query) ||
+      (item.description || '').toLowerCase().includes(query)
+    );
+    if (filtered.length === 0) {
+      catalogList.innerHTML = '<p class="text-center text-slate-400 text-sm py-8">Keine Produkte gefunden.</p>';
+      return;
+    }
+    // Group by category
+    const groups = {};
+    filtered.forEach(item => {
+      const cat = item.category || 'Allgemein';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(item);
+    });
+    let html = '';
+    Object.entries(groups).forEach(([cat, items]) => {
+      if (Object.keys(groups).length > 1) {
+        html += `<div class="px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wide bg-slate-50">${cat}</div>`;
+      }
+      items.forEach(item => {
+        html += `
+          <div class="flex items-center gap-3 px-3 py-3 hover:bg-blue-50 cursor-pointer rounded-lg catalog-item"
+               data-name="${escHtml(item.name)}"
+               data-description="${escHtml(item.description)}"
+               data-unit="${escHtml(item.unit)}"
+               data-quantity="${item.quantity}"
+               data-unit-price="${item.unit_price}">
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-slate-800">${escHtml(item.name)}</p>
+              ${item.description ? `<p class="text-xs text-slate-400 truncate">${escHtml(item.description)}</p>` : ''}
+            </div>
+            <div class="text-right flex-shrink-0">
+              <p class="text-sm font-mono text-slate-700">${parseFloat(item.unit_price).toFixed(2).replace('.', ',')} €</p>
+              <p class="text-xs text-slate-400">${item.quantity} ${escHtml(item.unit)}</p>
+            </div>
+            <div class="ml-1 text-[#1666b0]">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+            </div>
+          </div>`;
+      });
+    });
+    catalogList.innerHTML = html;
+    catalogList.querySelectorAll('.catalog-item').forEach(el => {
+      el.addEventListener('click', function() {
+        addCatalogItem({
+          name: this.dataset.name,
+          description: this.dataset.description,
+          unit: this.dataset.unit,
+          quantity: this.dataset.quantity,
+          unitPrice: this.dataset.unitPrice,
+        });
+        modal.classList.add('hidden');
+      });
+    });
+  }
+
+  function escHtml(str) {
+    return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function addCatalogItem(item) {
+    document.getElementById('add-row').click();
+    const rows = document.querySelectorAll('#items-tbody .item-row');
+    const lastRow = rows[rows.length - 1];
+    if (!lastRow) return;
+
+    const descInput = lastRow.querySelector('textarea[name$="-description"], input[name$="-description"]');
+    const qtyInput = lastRow.querySelector('input[name$="-quantity"]');
+    const unitInput = lastRow.querySelector('input[name$="-unit"]');
+    const priceInput = lastRow.querySelector('input[name$="-unit_price"]');
+
+    if (descInput) descInput.value = item.description ? item.name + '\n' + item.description : item.name;
+    if (qtyInput) qtyInput.value = item.quantity;
+    if (unitInput) unitInput.value = item.unit;
+    if (priceInput) priceInput.value = item.unitPrice;
+
+    if (priceInput) priceInput.dispatchEvent(new Event('input', {bubbles: true}));
+    if (qtyInput) qtyInput.dispatchEvent(new Event('input', {bubbles: true}));
+  }
 })();
 </script>
 {% endblock %}

@@ -9,6 +9,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 
 from apps.core.models import CompanySettings, Lookup, Role, User
+from apps.crm.models import ProductCatalog
 
 _TW = (
     "w-full px-3 py-2 border border-slate-200 rounded-lg text-sm "
@@ -136,4 +137,22 @@ class CompanySettingsForm(forms.ModelForm):
             "pdf_footer_text": forms.Textarea(attrs={"class": _TW_CS, "rows": 4}),
             "payment_days":    forms.NumberInput(attrs={"class": _TW_CS}),
             "primary_color":   forms.TextInput(attrs={"class": _TW_CS, "type": "color"}),
+        }
+
+
+_INPUT = "w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1666b0]"
+
+
+class ProductCatalogForm(forms.ModelForm):
+    class Meta:
+        model = ProductCatalog
+        fields = ["name", "description", "category", "unit", "quantity", "unit_price", "sort_order", "is_active"]
+        widgets = {
+            "name":        forms.TextInput(attrs={"class": _INPUT}),
+            "description": forms.Textarea(attrs={"class": _INPUT, "rows": 3}),
+            "category":    forms.TextInput(attrs={"class": _INPUT}),
+            "unit":        forms.TextInput(attrs={"class": _INPUT}),
+            "quantity":    forms.NumberInput(attrs={"class": _INPUT, "step": "0.01"}),
+            "unit_price":  forms.NumberInput(attrs={"class": _INPUT, "step": "0.01"}),
+            "sort_order":  forms.NumberInput(attrs={"class": _INPUT}),
         }

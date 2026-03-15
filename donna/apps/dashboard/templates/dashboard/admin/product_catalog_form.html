@@ -1,0 +1,150 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block page_heading %}{{ title }}{% endblock %}
+{% block page_subheading %}
+  <a href="{% url 'dashboard:admin_index' %}" class="hover:text-slate-600 transition">Administration</a>
+  &rsaquo;
+  <a href="{% url 'dashboard:product_catalog_list' %}" class="hover:text-slate-600 transition">Produktkatalog</a>
+  &rsaquo; {{ title }}
+{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'dashboard:product_catalog_list' %}"
+     class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Zurück
+  </a>
+{% endblock %}
+
+{% block content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Left: form sections -->
+    <div class="lg:col-span-2 space-y-6">
+
+      <!-- Produkt-Details -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+          <h3 class="text-sm font-semibold text-slate-700">Produkt-Details</h3>
+        </div>
+        <div class="px-6 py-5 space-y-4">
+
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.name.label }} *</label>
+            {{ form.name }}
+            {% if form.name.errors %}<p class="mt-1 text-xs text-red-600">{{ form.name.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.category.label }}</label>
+            {{ form.category }}
+            {% if form.category.errors %}<p class="mt-1 text-xs text-red-600">{{ form.category.errors|join:", " }}</p>{% endif %}
+            <p class="mt-1 text-xs text-slate-400">Optionale Gruppierung im Schnellauswahl-Dialog (z.B. "Beratung", "Scan", "Technik")</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.description.label }}</label>
+            {{ form.description }}
+            {% if form.description.errors %}<p class="mt-1 text-xs text-red-600">{{ form.description.errors|join:", " }}</p>{% endif %}
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Kalkulation -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+          <h3 class="text-sm font-semibold text-slate-700">Kalkulation</h3>
+        </div>
+        <div class="px-6 py-5">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+            <div>
+              <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.unit.label }}</label>
+              {{ form.unit }}
+              {% if form.unit.errors %}<p class="mt-1 text-xs text-red-600">{{ form.unit.errors|join:", " }}</p>{% endif %}
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.quantity.label }}</label>
+              {{ form.quantity }}
+              {% if form.quantity.errors %}<p class="mt-1 text-xs text-red-600">{{ form.quantity.errors|join:", " }}</p>{% endif %}
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.unit_price.label }} *</label>
+              {{ form.unit_price }}
+              {% if form.unit_price.errors %}<p class="mt-1 text-xs text-red-600">{{ form.unit_price.errors|join:", " }}</p>{% endif %}
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right: save sidebar -->
+    <div class="space-y-6">
+
+      <!-- Speichern -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Speichern</h3>
+        <button type="submit"
+                class="w-full bg-[#1666b0] hover:bg-[#1255a0] text-white font-medium text-sm py-2.5 rounded-lg transition mb-2">
+          {% if object %}Änderungen speichern{% else %}Produkt anlegen{% endif %}
+        </button>
+        <a href="{% url 'dashboard:product_catalog_list' %}"
+           class="block text-center text-sm text-slate-500 hover:text-slate-700 transition mt-2">
+          Abbrechen
+        </a>
+      </div>
+
+      <!-- Einstellungen -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+          <h3 class="text-sm font-semibold text-slate-700">Einstellungen</h3>
+        </div>
+        <div class="px-6 py-5 space-y-4">
+
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.sort_order.label }}</label>
+            {{ form.sort_order }}
+            {% if form.sort_order.errors %}<p class="mt-1 text-xs text-red-600">{{ form.sort_order.errors|join:", " }}</p>{% endif %}
+            <p class="mt-1 text-xs text-slate-400">Niedrigere Werte erscheinen zuerst</p>
+          </div>
+
+          <div class="flex items-center gap-3">
+            {{ form.is_active }}
+            <label class="text-sm font-medium text-slate-600">{{ form.is_active.label }}</label>
+          </div>
+          {% if form.is_active.errors %}<p class="text-xs text-red-600">{{ form.is_active.errors|join:", " }}</p>{% endif %}
+
+        </div>
+      </div>
+
+      {% if object %}
+      <!-- Löschen -->
+      <div class="bg-white rounded-xl border border-red-100 shadow-sm p-5">
+        <h3 class="text-xs font-semibold text-red-500 uppercase tracking-wide mb-3">Gefahrenzone</h3>
+        <form method="post" action="{% url 'dashboard:product_catalog_delete' object.pk %}"
+              onsubmit="return confirm('Produkt &quot;{{ object.name }}&quot; wirklich löschen?')">
+          {% csrf_token %}
+          <button type="submit"
+                  class="w-full border border-red-200 text-red-600 hover:bg-red-50 font-medium text-sm py-2 rounded-lg transition">
+            Produkt löschen
+          </button>
+        </form>
+      </div>
+      {% endif %}
+
+    </div>
+
+  </div>
+</form>
+{% endblock %}

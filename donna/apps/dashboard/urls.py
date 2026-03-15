@@ -14,6 +14,10 @@ from .views import (
     LookupDeleteView,
     LookupListView,
     LookupUpdateView,
+    ProductCatalogCreateView,
+    ProductCatalogDeleteView,
+    ProductCatalogListView,
+    ProductCatalogUpdateView,
     ProjectTypeMappingCreateView,
     ProjectTypeMappingDeleteView,
     ProjectTypeMappingListView,
@@ -67,6 +71,12 @@ urlpatterns = [
     path("admin/project-type-mappings/",              ProjectTypeMappingListView.as_view(),   name="project_type_mapping_list"),
     path("admin/project-type-mappings/new/",          ProjectTypeMappingCreateView.as_view(), name="project_type_mapping_create"),
     path("admin/project-type-mappings/<int:pk>/delete/", ProjectTypeMappingDeleteView.as_view(), name="project_type_mapping_delete"),
+
+    # Produktkatalog
+    path("admin/products/", ProductCatalogListView.as_view(), name="product_catalog_list"),
+    path("admin/products/new/", ProductCatalogCreateView.as_view(), name="product_catalog_create"),
+    path("admin/products/<int:pk>/edit/", ProductCatalogUpdateView.as_view(), name="product_catalog_update"),
+    path("admin/products/<int:pk>/delete/", ProductCatalogDeleteView.as_view(), name="product_catalog_delete"),
 
     # Firmeneinstellungen (Singleton)
     path("admin/company-settings/", CompanySettingsView.as_view(), name="company_settings"),
