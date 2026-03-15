@@ -1,0 +1,66 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Authenticator-App neu einrichten{% endblock %}
+{% block page_heading %}Authenticator-App neu einrichten{% endblock %}
+{% block page_subheading %}Richte eine neue Authenticator-App ein, z.B. nach Gerätewechsel{% endblock %}
+
+{% block content %}
+<div class="max-w-lg">
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-6">
+
+    <!-- Hinweis -->
+    <div class="flex gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+      <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd"
+          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+          clip-rule="evenodd"/>
+      </svg>
+      <p class="text-sm text-amber-800">
+        Deine bisherige Authenticator-App wird erst ersetzt, wenn du den neuen Code erfolgreich bestätigt hast.
+      </p>
+    </div>
+
+    <!-- Schritt 1: QR-Code -->
+    <div>
+      <p class="text-sm font-semibold text-slate-700 mb-3">
+        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#1666b0] text-white text-xs font-bold mr-2">1</span>
+        QR-Code mit Authenticator-App scannen
+      </p>
+      <div class="bg-white border border-slate-200 rounded-xl p-3 inline-block shadow-sm">
+        <img src="{{ qr_uri }}" alt="TOTP QR-Code" width="180" height="180" class="block">
+      </div>
+      <p class="mt-2 text-xs text-slate-400">
+        Kein Scanner? Gib den Code manuell ein:
+        <br>
+        <code class="font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-700 text-xs break-all">{{ secret }}</code>
+      </p>
+    </div>
+
+    <!-- Schritt 2: Code bestätigen -->
+    <div>
+      <p class="text-sm font-semibold text-slate-700 mb-3">
+        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#1666b0] text-white text-xs font-bold mr-2">2</span>
+        6-stelligen Code aus der App eingeben
+      </p>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.code }}
+        {% if form.code.errors %}
+          <p class="mt-1 text-xs text-red-600">{{ form.code.errors|join:", " }}</p>
+        {% endif %}
+        <div class="flex gap-3 mt-4">
+          <a href="{% url 'core:security_settings' %}"
+             class="flex-1 text-center px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition">
+            Abbrechen
+          </a>
+          <button type="submit"
+                  class="flex-1 bg-[#1666b0] hover:bg-[#1255a0] text-white font-semibold py-2.5 px-4 rounded-lg transition text-sm">
+            App aktivieren
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

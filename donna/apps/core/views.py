@@ -573,3 +573,57 @@ class SecuritySettingsView(View):
             "form": form,
             "user": request.user,
         })
+
+
+@method_decorator(login_required, name="dispatch")
+class TOTPReconfigureView(View):
+    """
+    GET/POST /auth/profile/totp/reconfigure/
+    Eingeloggte User können ihren TOTP-Secret neu einrichten (z.B. neues Gerät).
+    Kein Pre-Auth-Session-Slot nötig — User ist bereits vollständig eingeloggt.
+    """
+    template_name = "core/totp_reconfigure.html"
+    _SESSION_KEY = "_donna_totp_reconfig_secret"
+
+    def _build_qr_data_uri(self, user, secret: str) -> str:
+        import base64, io, qrcode
+        otp_uri = pyotp.TOTP(secret).provisioning_uri(
+            name=user.email, issuer_name="Donna Business OS"
+        )
+        img = qrcode.make(otp_uri)
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        return f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}"
+
+    def get(self, request):
+        secret = request.session.get(self._SESSION_KEY) or pyotp.random_base32()
+        request.session[self._SESSION_KEY] = secret
+        return render(request, self.template_name, {
+            "qr_uri": self._build_qr_data_uri(request.user, secret),
+            "secret": secret,
+            "form":   TOTPSetupForm(),
+        })
+
+    def post(self, request):
+        secret = request.session.get(self._SESSION_KEY)
+        if not secret:
+            return redirect("core:totp_reconfigure")
+
+        form = TOTPSetupForm(request.POST)
+        if form.is_valid():
+            code = form.cleaned_data["code"]
+            if pyotp.TOTP(secret).verify(code, valid_window=1):
+                request.user.totp_secret  = secret
+                request.user.totp_enabled = True
+                request.user.save(update_fields=["totp_secret", "totp_enabled"])
+                request.session.pop(self._SESSION_KEY, None)
+                messages.success(request, "Authenticator-App erfolgreich neu eingerichtet.")
+                logger.info("TOTP neu konfiguriert: %s", request.user.email)
+                return redirect("core:security_settings")
+            form.add_error("code", "Ungültiger Code. Bitte versuche es erneut.")
+
+        return render(request, self.template_name, {
+            "qr_uri": self._build_qr_data_uri(request.user, secret),
+            "secret": secret,
+            "form":   form,
+        })

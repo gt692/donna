@@ -11,6 +11,7 @@ from .views import (
     PasswordResetRequestView,
     PasswordResetSentView,
     SecuritySettingsView,
+    TOTPReconfigureView,
     TOTPSetupView,
     TOTPVerifyView,
 )
@@ -41,4 +42,5 @@ urlpatterns = [
 
     # Profil / Sicherheitseinstellungen
     path("profile/security/", SecuritySettingsView.as_view(), name="security_settings"),
+    path("profile/totp/reconfigure/", TOTPReconfigureView.as_view(), name="totp_reconfigure"),
 ]
