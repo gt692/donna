@@ -242,21 +242,32 @@ class AccountUpdateView(AdminOrLeadMixin, UpdateView):
 
 
 class AccountDeleteView(AdminOrLeadMixin, View):
-    """Confirmation + soft-delete for Account (and its projects/offers/invoices)."""
+    """Confirmation + soft-delete for Account."""
+
+    def _context(self, account):
+        projects = account.projects.all()
+        offer_count   = sum(p.offers.count()   for p in projects)
+        invoice_count = sum(p.invoices.count() for p in projects)
+        return {
+            "account": account,
+            "project_count": projects.count(),
+            "offer_count": offer_count,
+            "invoice_count": invoice_count,
+        }
 
     def get(self, request, pk):
         account = get_object_or_404(Account, pk=pk)
-        project_count = account.projects.count()
-        return render(request, "crm/account_confirm_delete.html", {
-            "account": account,
-            "project_count": project_count,
-        })
+        return render(request, "crm/account_confirm_delete.html", self._context(account))
 
     def post(self, request, pk):
         account = get_object_or_404(Account, pk=pk)
         name = account.name
-        account.delete()
-        messages.success(request, f'Account „{name}" wurde gelöscht.')
+        keep = request.POST.get("action") == "keep_projects"
+        account.delete(keep_projects=keep)
+        if keep:
+            messages.success(request, f'Account „{name}" wurde gelöscht. Die Projekte bleiben erhalten.')
+        else:
+            messages.success(request, f'Account „{name}" und alle zugehörigen Projekte wurden gelöscht.')
         return redirect("crm:account_list")
 
 

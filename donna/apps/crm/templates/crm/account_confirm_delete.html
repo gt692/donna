@@ -1,6 +1,8 @@
 {% extends "dashboard/base.html" %}
 {% block content %}
-<div class="max-w-lg mx-auto mt-12">
+<div class="max-w-xl mx-auto mt-12 space-y-4">
+
+  <!-- Header -->
   <div class="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden">
     <div class="bg-red-50 border-b border-red-200 px-6 py-4 flex items-center gap-3">
       <svg class="w-6 h-6 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -15,11 +17,20 @@
         Soll der Account <strong>{{ account.account_number }} – {{ account.name }}</strong> wirklich gelöscht werden?
       </p>
 
-      {% if project_count %}
+      <!-- Warnung betroffene Daten -->
+      {% if project_count or offer_count or invoice_count %}
       <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 space-y-1">
-        <p class="font-medium">Folgende Daten werden ebenfalls gelöscht:</p>
-        <ul class="list-disc list-inside text-amber-700">
-          <li>{{ project_count }} Projekt{{ project_count|pluralize:"e" }} (inkl. Angebote und Rechnungen)</li>
+        <p class="font-medium">Diesem Account sind folgende Daten zugeordnet:</p>
+        <ul class="list-disc list-inside space-y-0.5 text-amber-700">
+          {% if project_count %}
+          <li>{{ project_count }} Projekt{{ project_count|pluralize:"e" }}</li>
+          {% endif %}
+          {% if offer_count %}
+          <li>{{ offer_count }} Angebot{{ offer_count|pluralize:"e" }}</li>
+          {% endif %}
+          {% if invoice_count %}
+          <li>{{ invoice_count }} Rechnung{{ invoice_count|pluralize:"en" }}</li>
+          {% endif %}
         </ul>
       </div>
       {% endif %}
@@ -28,20 +39,76 @@
         Die Kundennummer <strong>{{ account.account_number }}</strong> wird dauerhaft reserviert und nie erneut vergeben.
       </p>
     </div>
+  </div>
 
-    <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
-      <a href="{% url 'crm:account_detail' account.pk %}"
-         class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition">
-        Abbrechen
-      </a>
-      <form method="post">
+  {% if project_count %}
+  <!-- Option A: Nur Account löschen, Projekte behalten -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div class="flex items-start gap-4">
+      <div class="flex-1">
+        <p class="text-sm font-semibold text-slate-800">Option A — Nur Account löschen</p>
+        <p class="text-xs text-slate-500 mt-1">
+          Der Account wird gelöscht. Die {{ project_count }} Projekt{{ project_count|pluralize:"e" }} (inkl. Angebote und Rechnungen) bleiben unverändert erhalten, sind aber keinem Kunden mehr zugeordnet.
+        </p>
+      </div>
+      <form method="post" class="flex-shrink-0">
         {% csrf_token %}
+        <input type="hidden" name="action" value="keep_projects">
         <button type="submit"
-                class="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition">
-          Endgültig löschen
+                class="px-4 py-2 text-sm font-semibold text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 rounded-lg transition whitespace-nowrap">
+          Nur Account löschen
         </button>
       </form>
     </div>
   </div>
+
+  <!-- Option B: Alles löschen -->
+  <div class="bg-white rounded-xl border border-red-200 shadow-sm p-5">
+    <div class="flex items-start gap-4">
+      <div class="flex-1">
+        <p class="text-sm font-semibold text-slate-800">Option B — Account + alle Projekte löschen</p>
+        <p class="text-xs text-slate-500 mt-1">
+          Der Account und alle zugehörigen Projekte werden gelöscht. Offene Angebote und Rechnungen werden ebenfalls entfernt.
+          {% if invoice_count %}
+          <span class="text-amber-700 font-medium">Bereits bezahlte Rechnungen bleiben zur Buchführung erhalten.</span>
+          {% endif %}
+        </p>
+      </div>
+      <form method="post" class="flex-shrink-0">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="delete_all">
+        <button type="submit"
+                class="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition whitespace-nowrap">
+          Alles löschen
+        </button>
+      </form>
+    </div>
+  </div>
+
+  {% else %}
+  <!-- Keine Projekte — einfache Bestätigung -->
+  <div class="flex justify-end gap-3">
+    <a href="{% url 'crm:account_detail' account.pk %}"
+       class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition">
+      Abbrechen
+    </a>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete_all">
+      <button type="submit"
+              class="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition">
+        Endgültig löschen
+      </button>
+    </form>
+  </div>
+  {% endif %}
+
+  <div class="text-right">
+    <a href="{% url 'crm:account_detail' account.pk %}"
+       class="text-sm text-slate-500 hover:text-slate-700 transition">
+      ← Abbrechen
+    </a>
+  </div>
+
 </div>
 {% endblock %}

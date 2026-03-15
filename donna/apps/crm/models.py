@@ -122,12 +122,15 @@ class Account(models.Model):
         verbose_name_plural = _("Accounts")
         ordering = ["name"]
 
-    def delete(self, *args, **kwargs):
-        """Soft-delete: marks as deleted and cascades to related projects."""
+    def delete(self, keep_projects=False, *args, **kwargs):
+        """Soft-delete. With keep_projects=True the projects are detached (account=None) instead of deleted."""
         self.deleted_at = timezone.now()
         self.save(update_fields=["deleted_at"])
-        for project in self.projects.all():
-            project.delete()
+        if keep_projects:
+            self.projects.all().update(account=None)
+        else:
+            for project in self.projects.all():
+                project.delete()
 
     def save(self, *args, **kwargs):
         if not self.account_number:
