@@ -83,6 +83,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.core.context_processors.pending_approvals",
+                "apps.core.context_processors.lead_pending_count",
             ],
         },
     },

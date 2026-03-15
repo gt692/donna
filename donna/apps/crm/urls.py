@@ -8,7 +8,7 @@ from .views import (
     InvoiceListView, InvoicePDFView, InvoiceSendView, InvoiceStatusUpdateView, InvoiceUpdateView,
     InvoiceXRechnungView,
     KanbanView, ProjectKanbanMoveView,
-    LeadInquiryImportView, LeadInquiryPublicView,
+    LeadCommissionView, LeadInquiryImportView, LeadInquiryPublicView, LeadListView,
     OfferCreateView, OfferDeleteView, OfferDetailView, OfferListView,
     OfferOrderConfirmationView, OfferPDFView, OfferSendView, OfferStatusUpdateView, OfferUpdateView,
     ProductCatalogAPIView,
@@ -108,4 +108,8 @@ urlpatterns = [
     path("quick-lead/", QuickLeadCreateView.as_view(), name="quick_lead_create"),
     path("anfrage/<uuid:token>/", LeadInquiryPublicView.as_view(), name="lead_inquiry_public"),
     path("projects/<uuid:pk>/inquiry/import/", LeadInquiryImportView.as_view(), name="lead_inquiry_import"),
+
+    # Lead-Pipeline
+    path("leads/", LeadListView.as_view(), name="lead_list"),
+    path("leads/<uuid:pk>/commission/", LeadCommissionView.as_view(), name="lead_commission"),
 ]

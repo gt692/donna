@@ -1,0 +1,227 @@
+{% extends "dashboard/base.html" %}
+{% load i18n donna_filters %}
+
+{% block title %}Leads{% endblock %}
+{% block page_heading %}Lead-Pipeline{% endblock %}
+{% block page_subheading %}{{ total_count }} Lead{{ total_count|pluralize:",s" }} gesamt{% endblock %}
+
+{% block topbar_actions %}
+  {% if request.user.can_approve_time_entries %}
+    <a href="{% url 'crm:project_create' %}"
+       class="flex items-center gap-2 bg-[#1666b0] hover:bg-[#1255a0] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Neuer Lead
+    </a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+
+  <!-- Filter-Tabs -->
+  <div class="flex items-center gap-1 mb-6 bg-white border border-slate-200 rounded-lg p-1 w-fit shadow-sm">
+    <a href="{% url 'crm:lead_list' %}"
+       class="px-4 py-1.5 rounded text-sm font-medium transition
+              {% if not filter %}bg-[#1666b0] text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-50{% endif %}">
+      Alle
+      <span class="ml-1 text-xs {% if not filter %}bg-white/20 text-white{% else %}bg-slate-100 text-slate-500{% endif %} px-1.5 py-0.5 rounded-full">{{ total_count }}</span>
+    </a>
+    <a href="{% url 'crm:lead_list' %}?filter=open"
+       class="px-4 py-1.5 rounded text-sm font-medium transition
+              {% if filter == 'open' %}bg-[#1666b0] text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-50{% endif %}">
+      Offen
+      <span class="ml-1 text-xs {% if filter == 'open' %}bg-white/20 text-white{% else %}bg-slate-100 text-slate-500{% endif %} px-1.5 py-0.5 rounded-full">{{ open_count }}</span>
+    </a>
+    <a href="{% url 'crm:lead_list' %}?filter=lost"
+       class="px-4 py-1.5 rounded text-sm font-medium transition
+              {% if filter == 'lost' %}bg-[#1666b0] text-white shadow-sm{% else %}text-slate-500 hover:text-slate-800 hover:bg-slate-50{% endif %}">
+      Verloren
+      <span class="ml-1 text-xs {% if filter == 'lost' %}bg-white/20 text-white{% else %}bg-slate-100 text-slate-500{% endif %} px-1.5 py-0.5 rounded-full">{{ lost_count }}</span>
+    </a>
+  </div>
+
+  <!-- Tabelle -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-slate-200 bg-slate-50 text-left">
+          <th class="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Projekt</th>
+          <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Kunde</th>
+          <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Pipeline</th>
+          <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Anfrage</th>
+          <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Angebote</th>
+          <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Erstellt</th>
+          <th class="px-2 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-50">
+        {% for lead in leads %}
+          {% with offers=lead.offers.all %}
+
+          {# Try to get inquiry — Django templates suppress DoesNotExist, returning "" #}
+          {% with inq=lead.lead_inquiry %}
+
+          <tr class="hover:bg-slate-50 transition">
+
+            {# --- Projekt-Spalte --- #}
+            <td class="px-5 py-3">
+              <div class="flex items-center gap-2">
+                <a href="{% url 'crm:project_detail' lead.pk %}"
+                   class="font-medium text-slate-800 hover:text-[#1666b0] transition">
+                  {{ lead.name }}
+                </a>
+                {% if inq and inq.status == "submitted" %}
+                  <span class="text-xs font-semibold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Neu</span>
+                {% endif %}
+              </div>
+              <div class="flex items-center gap-2 mt-0.5">
+                {% with co_color=company_colors|get_item:lead.company %}
+                  <span class="w-2 h-2 rounded-full flex-shrink-0"
+                        style="background-color: {{ co_color|default:'#94a3b8' }};"></span>
+                {% endwith %}
+                <span class="text-xs text-slate-400 font-mono">{{ lead.project_number }}</span>
+              </div>
+            </td>
+
+            {# --- Kunde-Spalte --- #}
+            <td class="px-4 py-3">
+              {% if lead.account %}
+                <a href="{% url 'crm:account_detail' lead.account.pk %}"
+                   class="text-slate-600 hover:text-[#1666b0] transition">{{ lead.account.name }}</a>
+              {% else %}
+                <span class="text-slate-300">—</span>
+              {% endif %}
+            </td>
+
+            {# --- Pipeline-Status-Spalte --- #}
+            <td class="px-4 py-3">
+              {# 4 steps: Lead → Anfrage → Angebot → Beauftragt #}
+              {# Determine current step #}
+              {% if lead.status == "offer_lost" %}
+                {# Lost — show red indicator instead of pipeline #}
+                <span class="text-xs font-semibold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Verloren</span>
+              {% else %}
+                {% with offer_count=offers|length %}
+                  {# step 1=lead, 2=inquiry submitted, 3=offer exists, 4=commissioned #}
+                  {% if offer_count > 0 or lead.status == "offer_sent" %}
+                    {% with current_step=3 %}
+                    {% include "crm/_pipeline_steps.html" %}
+                    {% endwith %}
+                  {% elif inq and inq.status == "submitted" %}
+                    {% with current_step=2 %}
+                    {% include "crm/_pipeline_steps.html" %}
+                    {% endwith %}
+                  {% else %}
+                    {% with current_step=1 %}
+                    {% include "crm/_pipeline_steps.html" %}
+                    {% endwith %}
+                  {% endif %}
+                {% endwith %}
+              {% endif %}
+            </td>
+
+            {# --- Anfrage-Spalte --- #}
+            <td class="px-4 py-3">
+              {% if inq %}
+                {% if inq.status == "pending" %}
+                  <span class="text-xs font-medium bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">Ausstehend</span>
+                {% elif inq.status == "submitted" %}
+                  <span class="text-xs font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">&#10003; Eingegangen</span>
+                {% elif inq.status == "imported" %}
+                  <span class="text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Übernommen</span>
+                {% endif %}
+              {% else %}
+                <span class="text-slate-300">—</span>
+              {% endif %}
+            </td>
+
+            {# --- Angebote-Spalte --- #}
+            <td class="px-4 py-3">
+              {% with offer_count=offers|length %}
+                {% if offer_count > 0 %}
+                  <div class="flex items-center gap-2">
+                    <span class="text-slate-600 font-medium">{{ offer_count }}</span>
+                    {# Show latest offer status #}
+                    {% with latest=offers.0 %}
+                      {% if latest.status == "draft" %}
+                        <span class="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">Entwurf</span>
+                      {% elif latest.status == "sent" %}
+                        <span class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Versendet</span>
+                      {% elif latest.status == "accepted" %}
+                        <span class="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Akzeptiert</span>
+                      {% elif latest.status == "rejected" %}
+                        <span class="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">Abgelehnt</span>
+                      {% endif %}
+                    {% endwith %}
+                  </div>
+                {% else %}
+                  <span class="text-slate-300">—</span>
+                {% endif %}
+              {% endwith %}
+            </td>
+
+            {# --- Erstellt-Spalte --- #}
+            <td class="px-4 py-3 text-slate-400 text-xs whitespace-nowrap">
+              {{ lead.created_at|date:"d.m.Y" }}
+            </td>
+
+            {# --- Aktionen-Spalte --- #}
+            <td class="px-2 py-3">
+              {% if request.user.can_approve_time_entries %}
+                <div class="flex items-center gap-1">
+                  {% if lead.status == "lead" %}
+                    <a href="{% url 'crm:offer_create' lead.pk %}"
+                       class="text-xs font-medium bg-[#1666b0] hover:bg-[#1255a0] text-white px-2.5 py-1 rounded-lg transition whitespace-nowrap">
+                      Angebot erstellen
+                    </a>
+                  {% elif lead.status == "offer_sent" and offers %}
+                    <a href="{% url 'crm:lead_commission' lead.pk %}"
+                       class="text-xs font-medium bg-green-600 hover:bg-green-700 text-white px-2.5 py-1 rounded-lg transition whitespace-nowrap">
+                      Beauftragen
+                    </a>
+                  {% endif %}
+                  <a href="{% url 'crm:project_edit' lead.pk %}"
+                     class="text-slate-400 hover:text-[#1666b0] p-1 rounded transition flex-shrink-0"
+                     title="Bearbeiten">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                  </a>
+                </div>
+              {% endif %}
+            </td>
+
+          </tr>
+
+          {% endwith %}
+          {% endwith %}
+        {% empty %}
+          <tr>
+            <td colspan="7" class="px-5 py-12 text-center text-slate-400">
+              {% if filter == 'open' %}Keine offenen Leads vorhanden.
+              {% elif filter == 'lost' %}Keine verlorenen Leads vorhanden.
+              {% else %}Noch keine Leads vorhanden.{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if is_paginated %}
+    <div class="flex justify-center gap-1 mt-6">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if filter %}&filter={{ filter }}{% endif %}"
+           class="px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition">‹</a>
+      {% endif %}
+      <span class="px-3 py-1.5 text-sm text-slate-500">Seite {{ page_obj.number }} von {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if filter %}&filter={{ filter }}{% endif %}"
+           class="px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition">›</a>
+      {% endif %}
+    </div>
+  {% endif %}
+
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends "dashboard/base.html" %}
+{% load i18n donna_filters %}
+
+{% block title %}Beauftragen — {{ project.name }}{% endblock %}
+{% block page_heading %}Projekt beauftragen{% endblock %}
+{% block page_subheading %}Dieses Projekt als aktiv markieren und Beauftragung bestätigen{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+
+  <!-- Projekt-Info-Karte -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <div class="flex items-start gap-4">
+      <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <div class="flex-1 min-w-0">
+        <h2 class="text-lg font-semibold text-slate-800">{{ project.name }}</h2>
+        <div class="flex items-center gap-3 mt-1">
+          <span class="text-xs text-slate-400 font-mono">{{ project.project_number }}</span>
+          {% if project.account %}
+            <span class="text-sm text-slate-500">
+              Kunde:
+              <a href="{% url 'crm:account_detail' project.account.pk %}"
+                 class="text-[#1666b0] hover:underline">{{ project.account.name }}</a>
+            </span>
+          {% endif %}
+        </div>
+        {% with co_color=company_colors|get_item:project.company %}
+          {% if co_color %}
+            <div class="flex items-center gap-1.5 mt-1.5">
+              <span class="w-2 h-2 rounded-full" style="background-color: {{ co_color }};"></span>
+              <span class="text-xs text-slate-400">{{ project.company }}</span>
+            </div>
+          {% endif %}
+        {% endwith %}
+      </div>
+    </div>
+
+    <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
+      <strong>Achtung:</strong> Nach der Bestätigung wird das Projekt auf den Status <strong>„Aktiv"</strong> gesetzt.
+      Diese Aktion kann nicht automatisch rückgängig gemacht werden.
+    </div>
+  </div>
+
+  <!-- Bestätigungsformular -->
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <!-- Angebot auswählen -->
+    {% if offers %}
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <h3 class="text-sm font-semibold text-slate-700 mb-3">Beauftragtes Angebot</h3>
+        <p class="text-xs text-slate-400 mb-4">
+          Wähle das Angebot, das beauftragt wurde. Es wird auf „Beauftragt" gesetzt.
+        </p>
+        <div class="space-y-2">
+          {% for offer in offers %}
+            <label class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition
+                          border-slate-200 hover:border-[#1666b0] hover:bg-[#f0f9fe]">
+              <input type="radio" name="offer_pk" value="{{ offer.pk }}"
+                     class="mt-0.5 accent-[#1666b0]"
+                     {% if forloop.first and offer.status == "sent" %}checked{% endif %}>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-medium text-slate-800">{{ offer.title }}</span>
+                  {% if offer.status == "draft" %}
+                    <span class="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">Entwurf</span>
+                  {% elif offer.status == "sent" %}
+                    <span class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Versendet</span>
+                  {% elif offer.status == "accepted" %}
+                    <span class="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Beauftragt</span>
+                  {% elif offer.status == "rejected" %}
+                    <span class="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">Abgelehnt</span>
+                  {% endif %}
+                </div>
+                <div class="text-xs text-slate-400 mt-0.5">
+                  {{ offer.offer_number }}
+                  {% if offer.offer_date %} · {{ offer.offer_date|date:"d.m.Y" }}{% endif %}
+                </div>
+              </div>
+            </label>
+          {% endfor %}
+          <label class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition
+                        border-slate-200 hover:border-slate-300 hover:bg-slate-50">
+            <input type="radio" name="offer_pk" value=""
+                   class="mt-0.5 accent-[#1666b0]">
+            <span class="text-sm text-slate-500 italic">Kein Angebot zuordnen</span>
+          </label>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Datei-Upload -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+      <h3 class="text-sm font-semibold text-slate-700 mb-1">Auftragsbestätigung / Vertrag <span class="text-slate-400 font-normal">(optional)</span></h3>
+      <p class="text-xs text-slate-400 mb-4">Lade das unterzeichnete Dokument hoch. Es wird als Dokument am Projekt gespeichert.</p>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Dokument-Titel</label>
+          <input type="text" name="file_title"
+                 placeholder="z.B. Auftragsbestätigung vom 15.03.2026"
+                 class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 bg-white
+                        focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent transition">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Datei</label>
+          <input type="file" name="commission_file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                 class="w-full text-sm text-slate-500 file:mr-3 file:py-1.5 file:px-3
+                        file:rounded-lg file:border file:border-slate-200 file:text-xs file:font-medium
+                        file:bg-white file:text-slate-700 hover:file:bg-slate-50 transition
+                        file:cursor-pointer cursor-pointer">
+          <p class="text-xs text-slate-400 mt-1">PDF, Word oder Bild (max. 10 MB)</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aktions-Buttons -->
+    <div class="flex items-center gap-3">
+      <button type="submit"
+              class="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700
+                     text-white font-semibold py-3 rounded-xl transition text-sm">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        Beauftragen &amp; Aktivieren
+      </button>
+      <a href="{% url 'crm:lead_list' %}"
+         class="px-6 py-3 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600
+                font-medium text-sm rounded-xl transition">
+        Abbrechen
+      </a>
+    </div>
+
+  </form>
+
+</div>
+{% endblock %}

@@ -2126,3 +2126,113 @@ class LeadInquiryImportView(AdminOrLeadMixin, View):
             "description":       inquiry.request_description,
         })
         return redirect(f"{reverse('crm:offer_create', kwargs={'pk': project.pk})}?{params}")
+
+
+# ---------------------------------------------------------------------------
+# Lead-Pipeline
+# ---------------------------------------------------------------------------
+
+class LeadListView(AdminOrLeadMixin, ListView):
+    """
+    Zeigt alle Projekte in der Lead-Pipeline:
+    status in [lead, offer_sent, offer_lost].
+    """
+    model               = Project
+    template_name       = "crm/lead_list.html"
+    context_object_name = "leads"
+    paginate_by         = 50
+
+    def get_queryset(self):
+        f = self.request.GET.get("filter", "")
+        qs = (
+            Project.objects
+            .filter(deleted_at__isnull=True)
+            .select_related("account", "created_by")
+            .prefetch_related("offers", "lead_inquiry")
+        )
+        if f == "open":
+            qs = qs.filter(status__in=["lead", "offer_sent"])
+        elif f == "lost":
+            qs = qs.filter(status="offer_lost")
+        else:
+            qs = qs.filter(status__in=["lead", "offer_sent", "offer_lost"])
+        return qs.order_by("-created_at")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["filter"] = self.request.GET.get("filter", "")
+        ctx["total_count"] = Project.objects.filter(
+            status__in=["lead", "offer_sent", "offer_lost"],
+            deleted_at__isnull=True,
+        ).count()
+        ctx["open_count"] = Project.objects.filter(
+            status__in=["lead", "offer_sent"],
+            deleted_at__isnull=True,
+        ).count()
+        ctx["lost_count"] = Project.objects.filter(
+            status="offer_lost",
+            deleted_at__isnull=True,
+        ).count()
+        return ctx
+
+
+class LeadCommissionView(AdminOrLeadMixin, View):
+    """
+    GET:  Bestätigungsseite — zeigt Projekt + Angebote, optional Datei-Upload.
+    POST: Setzt Projektstatus auf 'active', Angebot auf 'accepted', speichert Dokument.
+    """
+    template_name = "crm/lead_commission.html"
+
+    def get(self, request, pk):
+        project = get_object_or_404(Project, pk=pk, deleted_at__isnull=True)
+        offers  = project.offers.all().order_by("-offer_date")
+        return render(request, self.template_name, {
+            "project": project,
+            "offers":  offers,
+            **self._base_ctx(),
+        })
+
+    def post(self, request, pk):
+        project = get_object_or_404(Project, pk=pk, deleted_at__isnull=True)
+
+        # Accept the selected offer
+        offer_pk = request.POST.get("offer_pk", "").strip()
+        if offer_pk:
+            try:
+                offer = project.offers.get(pk=offer_pk)
+                offer.status = Offer.Status.ACCEPTED
+                offer.save(update_fields=["status"])
+            except Offer.DoesNotExist:
+                pass
+
+        # Optional file upload
+        uploaded_file = request.FILES.get("commission_file")
+        if uploaded_file:
+            title = request.POST.get("file_title", "").strip() or uploaded_file.name
+            Document.objects.create(
+                project=project,
+                document_type=Document.DocumentType.COMMISSION,
+                title=title,
+                file=uploaded_file,
+                uploaded_by=request.user,
+            )
+
+        # Activate the project
+        project.status = Project.Status.ACTIVE
+        project.save(update_fields=["status"])
+
+        messages.success(
+            request,
+            f'Projekt „{project.name}" wurde beauftragt und ist jetzt aktiv.',
+        )
+        return redirect("crm:project_detail", pk=project.pk)
+
+    def _base_ctx(self):
+        from apps.core.models import Lookup
+        return {
+            "company_colors": {e["value"]: e["color"] for e in Lookup.entries_for("company")},
+            "companies":      Lookup.entries_for("company"),
+            "overdue_invoices_count": Invoice.objects.filter(
+                status=Invoice.Status.SENT, due_date__lt=date.today()
+            ).count(),
+        }
