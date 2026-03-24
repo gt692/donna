@@ -12,11 +12,6 @@
         {{ form.name }}
         {% if form.name.errors %}<p class="text-xs text-red-600 mt-1">{{ form.name.errors|join:", " }}</p>{% endif %}
       </div>
-      <div>
-        <label class="block text-xs font-medium text-slate-600 mb-1">Reihenfolge</label>
-        {{ form.sort_order }}
-        <p class="text-xs text-slate-400 mt-1">Kleinere Zahl = weiter oben in der Liste</p>
-      </div>
     </div>
     <div class="flex items-center gap-3">
       <button type="submit"

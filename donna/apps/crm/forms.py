@@ -331,10 +331,11 @@ InvoiceItemFormSet = forms.inlineformset_factory(
 class TextBlockForm(forms.ModelForm):
     class Meta:
         model = TextBlock
-        fields = ["name", "category", "content"]
+        fields = ["name", "category", "scope", "content"]
         widgets = {
             "name":     forms.TextInput(attrs={"class": _INPUT, "placeholder": "Name des Bausteins"}),
             "category": forms.Select(attrs={"class": _SELECT}),
+            "scope":    forms.Select(attrs={"class": _SELECT}),
             "content":  forms.Textarea(attrs={"class": _INPUT, "rows": 6, "placeholder": "Inhalt …"}),
         }
 
@@ -342,8 +343,7 @@ class TextBlockForm(forms.ModelForm):
 class UnitForm(forms.ModelForm):
     class Meta:
         model = Unit
-        fields = ["name", "sort_order"]
+        fields = ["name"]
         widgets = {
-            "name":       forms.TextInput(attrs={"class": _INPUT, "placeholder": "z.B. Stunden, Stück, pauschal"}),
-            "sort_order": forms.NumberInput(attrs={"class": _INPUT, "min": "0"}),
+            "name": forms.TextInput(attrs={"class": _INPUT, "placeholder": "z.B. Stunden, Stück, pauschal"}),
         }

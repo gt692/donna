@@ -2534,12 +2534,15 @@ class TextBlockDeleteView(AdminOrLeadMixin, View):
 
 
 class TextBlockAPIView(CRMMixin, View):
-    """AJAX: Textbausteine per Kategorie laden."""
+    """AJAX: Textbausteine per Kategorie und Scope laden."""
     def get(self, request):
         category = request.GET.get("category", "")
+        scope    = request.GET.get("scope", "")
         qs = TextBlock.objects.all()
         if category:
             qs = qs.filter(category=category)
+        if scope:
+            qs = qs.filter(scope__in=[scope, "both"])
         return JsonResponse({"blocks": [{"id": tb.pk, "name": tb.name, "content": tb.content} for tb in qs]})
 
 
@@ -2594,6 +2597,16 @@ class UnitDeleteView(AdminOrLeadMixin, View):
         get_object_or_404(Unit, pk=pk).delete()
         messages.success(request, "Einheit gelöscht.")
         return redirect("crm:unit_list")
+
+
+class UnitReorderView(AdminOrLeadMixin, View):
+    """AJAX POST: Reihenfolge der Einheiten via Drag-and-Drop speichern."""
+    def post(self, request):
+        import json
+        data = json.loads(request.body)
+        for idx, pk in enumerate(data.get("order", [])):
+            Unit.objects.filter(pk=pk).update(sort_order=idx)
+        return JsonResponse({"ok": True})
 
 
 class UnitAPIView(CRMMixin, View):

@@ -1071,8 +1071,14 @@ class TextBlock(models.Model):
         PAYMENT = "payment", _("Zahlungsbedingung")
         OTHER   = "other",   _("Sonstiges")
 
+    class Scope(models.TextChoices):
+        BOTH    = "both",    _("Angebote & Rechnungen")
+        OFFER   = "offer",   _("Nur Angebote")
+        INVOICE = "invoice", _("Nur Rechnungen")
+
     name     = models.CharField(max_length=100, verbose_name=_("Name"))
     category = models.CharField(max_length=20, choices=Category.choices, verbose_name=_("Kategorie"))
+    scope    = models.CharField(max_length=10, choices=Scope.choices, default="both", verbose_name=_("Gilt für"))
     content  = models.TextField(verbose_name=_("Inhalt"))
     created_at = models.DateTimeField(auto_now_add=True)
 

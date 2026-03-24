@@ -12,7 +12,7 @@ from .views import (
     OfferCreateStandaloneView, OfferCreateView, OfferDeleteView, OfferDetailView, OfferListView,
     RecipientSearchView,
     TextBlockAPIView, TextBlockCreateView, TextBlockDeleteView, TextBlockListView, TextBlockUpdateView,
-    UnitAPIView, UnitCreateView, UnitDeleteView, UnitListView, UnitUpdateView,
+    UnitAPIView, UnitCreateView, UnitDeleteView, UnitListView, UnitReorderView, UnitUpdateView,
     OfferOrderConfirmationView, OfferPDFView, OfferSendView, OfferStatusUpdateView, OfferUpdateView,
     ProductCatalogAPIView,
     ProjectActivityCreateView, ProjectActivityDeleteView,
@@ -122,6 +122,7 @@ urlpatterns = [
     path("units/new/",          UnitCreateView.as_view(), name="unit_create"),
     path("units/<int:pk>/edit/", UnitUpdateView.as_view(), name="unit_edit"),
     path("units/<int:pk>/delete/", UnitDeleteView.as_view(), name="unit_delete"),
+    path("units/reorder/",      UnitReorderView.as_view(), name="unit_reorder"),
     path("units/api/",          UnitAPIView.as_view(),    name="unit_api"),
 
     # Produktkatalog API

@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ page_title }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
   <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
   <script>
     tailwind.config = {
@@ -264,16 +265,8 @@
 
         <!-- Positionen -->
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+          <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-200">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Positionen</span>
-            <button type="button" id="add-row"
-                    class="flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-800
-                           border border-emerald-600 hover:bg-emerald-50 px-3 py-1.5 rounded-lg transition">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-              </svg>
-              Position hinzufügen
-            </button>
           </div>
 
           <div id="items-container" class="divide-y divide-slate-100">
@@ -286,6 +279,11 @@
               {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
 
               <div class="flex items-center gap-2 mb-2">
+                <span class="drag-handle flex-none cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-400 transition" title="Ziehen zum Sortieren">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/>
+                  </svg>
+                </span>
                 <span class="pos-number flex-none w-7 h-7 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center">
                   {{ forloop.counter }}
                 </span>
@@ -353,6 +351,18 @@
               </div>
             </div>
             {% endfor %}
+          </div>
+
+          <!-- Position hinzufügen -->
+          <div class="px-4 py-3 border-t border-slate-100">
+            <button type="button" id="add-row"
+                    class="flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-800
+                           border border-emerald-600 hover:bg-emerald-50 px-3 py-1.5 rounded-lg transition">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              Position hinzufügen
+            </button>
           </div>
 
           <!-- Summen -->
@@ -479,6 +489,11 @@
     <div class="pos-card px-4 py-3 new-row border-b border-slate-100" data-type="normal">
       <input type="hidden" name="items-__prefix__-id" value="">
       <div class="flex items-center gap-2 mb-2">
+        <span class="drag-handle flex-none cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-400 transition" title="Ziehen zum Sortieren">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/>
+          </svg>
+        </span>
         <span class="pos-number flex-none w-7 h-7 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center">1</span>
         <select name="items-__prefix__-item_type"
                 class="flex-none text-xs font-medium px-2.5 py-1 rounded-full border border-slate-200 bg-white cursor-pointer item-type-select focus:outline-none focus:border-emerald-500">
@@ -598,6 +613,14 @@
       num++;
     });
   }
+
+  // Drag-and-Drop Sortierung der Positionen
+  Sortable.create(document.getElementById('items-container'), {
+    animation: 150,
+    handle: '.drag-handle',
+    ghostClass: 'bg-emerald-50',
+    onEnd: function() { renumberAll(); recalculate(); },
+  });
 
   function recalculate() {
     let subtotal = 0;
@@ -941,7 +964,7 @@
   function loadBlocks(category, dropdown) {
     if (cache[category]) { renderBlocks(cache[category], dropdown); return; }
     dropdown.innerHTML = '<div class="px-4 py-3 text-xs text-slate-400">Lade …</div>';
-    fetch(`${tbUrl}?category=${encodeURIComponent(category)}`)
+    fetch(`${tbUrl}?category=${encodeURIComponent(category)}&scope=invoice`)
       .then(r => r.json())
       .then(data => { cache[category] = data.blocks || []; renderBlocks(cache[category], dropdown); })
       .catch(() => { dropdown.innerHTML = '<div class="px-4 py-3 text-xs text-red-500">Fehler beim Laden.</div>'; });
