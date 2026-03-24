@@ -1,6 +1,6 @@
 {% load donna_filters %}
 <div class="kanban-card bg-white rounded-xl border border-slate-200 shadow-sm p-3
-            hover:border-[#14b0e4] hover:shadow-md transition cursor-grab active:cursor-grabbing"
+            hover:border-[#2EC4D6] hover:shadow-md transition cursor-grab active:cursor-grabbing"
      draggable="true"
      data-id="{{ project.pk }}"
      data-company="{{ project.company }}">
@@ -23,7 +23,7 @@
 
   <a href="{% url 'crm:project_detail' project.pk %}"
      class="block text-sm font-semibold text-slate-800 leading-snug mb-1
-            hover:text-[#1255a0] transition"
+            hover:text-[#265e99] transition"
      onclick="event.stopPropagation()">
     {{ project.name }}
   </a>
@@ -33,8 +33,8 @@
   <div class="flex items-center justify-between pt-2 border-t border-slate-100">
     {% if not hide_lead and project.team_lead %}
       <div class="flex items-center gap-1">
-        <div class="w-4 h-4 rounded-full bg-[#ddf1fb] flex items-center justify-center
-                    text-[#1666b0] text-xs font-bold flex-shrink-0">
+        <div class="w-4 h-4 rounded-full bg-[#CFFAFE] flex items-center justify-center
+                    text-[#2F6FB3] text-xs font-bold flex-shrink-0">
           {{ project.team_lead.first_name|first|upper }}{{ project.team_lead.last_name|first|upper }}
         </div>
         <span class="text-xs text-slate-400 truncate max-w-24">{{ project.team_lead.last_name }}</span>

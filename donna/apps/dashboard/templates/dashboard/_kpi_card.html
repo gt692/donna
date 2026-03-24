@@ -5,7 +5,7 @@ Verwendung:
 color: indigo | amber | green | purple | red
 {% endcomment %}
 
-{% with color_map="indigo:bg-[#f0f9fe] text-[#1666b0]|amber:bg-amber-50 text-amber-600|green:bg-green-50 text-green-600|purple:bg-purple-50 text-purple-600|red:bg-red-50 text-red-600" %}
+{% with color_map="indigo:bg-[#EFF6FF] text-[#2F6FB3]|amber:bg-amber-50 text-amber-600|green:bg-green-50 text-green-600|purple:bg-purple-50 text-purple-600|red:bg-red-50 text-red-600" %}
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
   <div class="flex items-start justify-between">
     <div>
@@ -16,9 +16,9 @@ color: indigo | amber | green | purple | red
       {% endif %}
     </div>
     <div class="w-10 h-10 rounded-lg flex items-center justify-center
-      {% if color == 'indigo' %}bg-[#f0f9fe]{% elif color == 'amber' %}bg-amber-50{% elif color == 'green' %}bg-green-50{% elif color == 'purple' %}bg-purple-50{% else %}bg-slate-50{% endif %}">
+      {% if color == 'indigo' %}bg-[#EFF6FF]{% elif color == 'amber' %}bg-amber-50{% elif color == 'green' %}bg-green-50{% elif color == 'purple' %}bg-purple-50{% else %}bg-slate-50{% endif %}">
       <svg class="w-5 h-5
-        {% if color == 'indigo' %}text-[#1666b0]{% elif color == 'amber' %}text-amber-600{% elif color == 'green' %}text-green-600{% elif color == 'purple' %}text-purple-600{% else %}text-slate-400{% endif %}"
+        {% if color == 'indigo' %}text-[#2F6FB3]{% elif color == 'amber' %}text-amber-600{% elif color == 'green' %}text-green-600{% elif color == 'purple' %}text-purple-600{% else %}text-slate-400{% endif %}"
         fill="none" stroke="currentColor" viewBox="0 0 24 24">
         {% if icon == "clock" or icon == "timer" %}
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

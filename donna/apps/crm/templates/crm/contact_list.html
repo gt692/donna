@@ -21,7 +21,7 @@
     </form>
   </label>
   <a href="{% url 'crm:contact_create' %}"
-     class="flex items-center gap-2 bg-[#1666b0] hover:bg-[#1255a0] text-white
+     class="flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white
             font-medium text-sm px-4 py-2 rounded-lg transition">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -36,10 +36,10 @@
   <form method="get" class="flex gap-3 flex-1">
     <input type="text" name="q" value="{{ q }}" placeholder="Name, Firma oder E-Mail …"
            class="flex-1 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm
-                  focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent">
+                  focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:border-transparent">
     <select name="role"
             class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm cursor-pointer
-                   focus:outline-none focus:ring-2 focus:ring-[#1666b0]">
+                   focus:outline-none focus:ring-2 focus:ring-[#2F6FB3]">
       <option value="">Alle Rollen</option>
       {% for val, label in role_choices %}
         <option value="{{ val }}" {% if role_filter == val %}selected{% endif %}>{{ label }}</option>
@@ -76,13 +76,13 @@
       <tr class="hover:bg-slate-50 transition">
         <td class="px-5 py-3">
           <a href="{% url 'crm:contact_detail' contact.pk %}"
-             class="font-medium text-slate-800 hover:text-[#1666b0] transition">
+             class="font-medium text-slate-800 hover:text-[#2F6FB3] transition">
             {{ contact.last_name }}, {{ contact.first_name }}
           </a>
         </td>
         <td class="px-4 py-3">
           {% if contact.role %}
-            <span class="text-xs px-2 py-0.5 rounded-full bg-[#ddf1fb] text-[#1255a0] font-medium">
+            <span class="text-xs px-2 py-0.5 rounded-full bg-[#CFFAFE] text-[#265e99] font-medium">
               {{ contact.get_role_display }}
             </span>
           {% else %}
@@ -93,7 +93,7 @@
         <td class="px-4 py-3">
           <div class="space-y-0.5">
             {% if contact.email %}
-              <a href="mailto:{{ contact.email }}" class="block text-[#1666b0] hover:underline truncate max-w-48">{{ contact.email }}</a>
+              <a href="mailto:{{ contact.email }}" class="block text-[#2F6FB3] hover:underline truncate max-w-48">{{ contact.email }}</a>
             {% endif %}
             {% if contact.phone %}
               <a href="tel:{{ contact.phone }}" class="block text-slate-500 text-xs">{{ contact.phone }}</a>
@@ -112,7 +112,7 @@
         <td class="px-4 py-3 text-right">
           <a href="{% url 'crm:contact_vcard_export' contact.pk %}"
              title="vCard exportieren"
-             class="text-slate-300 hover:text-[#1666b0] transition text-xs mr-2">↓ vcf</a>
+             class="text-slate-300 hover:text-[#2F6FB3] transition text-xs mr-2">↓ vcf</a>
           <a href="{% url 'crm:contact_edit' contact.pk %}"
              class="text-slate-400 hover:text-slate-700 transition text-xs">Bearbeiten</a>
         </td>

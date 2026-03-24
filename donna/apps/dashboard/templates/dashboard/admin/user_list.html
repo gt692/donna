@@ -14,7 +14,7 @@
     Administration
   </a>
   <a href="{% url 'dashboard:user_create' %}"
-     class="flex items-center gap-2 bg-[#1666b0] hover:bg-[#1255a0] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
+     class="flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
     </svg>
@@ -34,10 +34,10 @@
       </svg>
       <input type="text" name="q" value="{{ q }}" placeholder="Name oder E-Mail suchen …"
              class="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 bg-white
-                    text-sm focus:outline-none focus:ring-2 focus:ring-[#1666b0] transition">
+                    text-sm focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] transition">
     </div>
     <select name="role"
-            class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1666b0] cursor-pointer transition"
+            class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] cursor-pointer transition"
             onchange="this.form.submit()">
       <option value="">Alle Rollen</option>
       {% for val, label in roles %}
@@ -46,7 +46,7 @@
     </select>
     {% if q %}
       <button type="submit"
-              class="bg-[#1666b0] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#1255a0] transition">
+              class="bg-[#2F6FB3] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#265e99] transition">
         Suchen
       </button>
     {% endif %}
@@ -120,7 +120,7 @@
             <td class="px-5 py-3 text-right">
               <div class="flex items-center gap-2 justify-end">
                 <a href="{% url 'dashboard:user_edit' u.pk %}"
-                   class="text-xs font-medium text-[#1666b0] hover:text-[#0d4f8c] transition px-2 py-1 rounded hover:bg-[#f0f9fe]">
+                   class="text-xs font-medium text-[#2F6FB3] hover:text-[#1e4d82] transition px-2 py-1 rounded hover:bg-[#EFF6FF]">
                   Bearbeiten
                 </a>
                 {% if u != request.user %}

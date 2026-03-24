@@ -8,7 +8,7 @@
 {% block topbar_actions %}
   {% if request.user.can_approve_time_entries %}
     <a href="{% url 'crm:project_create' %}"
-       class="flex items-center gap-2 bg-[#1666b0] hover:bg-[#1255a0] text-white
+       class="flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white
               font-medium text-sm px-4 py-2 rounded-lg transition">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -29,8 +29,8 @@
       <div class="flex items-center gap-2">
         {% if col.employee_col %}
           {% if col.team_lead %}
-            <div class="w-5 h-5 rounded-full bg-[#ddf1fb] flex items-center justify-center
-                        text-[#1666b0] text-xs font-bold flex-shrink-0">
+            <div class="w-5 h-5 rounded-full bg-[#CFFAFE] flex items-center justify-center
+                        text-[#2F6FB3] text-xs font-bold flex-shrink-0">
               {{ col.team_lead.first_name|first|upper }}{{ col.team_lead.last_name|first|upper }}
             </div>
           {% else %}
@@ -153,10 +153,10 @@
   });
 
   function highlight(zone) {
-    zone.classList.add('ring-2', 'ring-[#14b0e4]', 'bg-[#f0f9fe]', 'rounded-xl');
+    zone.classList.add('ring-2', 'ring-[#2EC4D6]', 'bg-[#EFF6FF]', 'rounded-xl');
   }
   function clearHighlight(zone) {
-    zone.classList.remove('ring-2', 'ring-[#14b0e4]', 'bg-[#f0f9fe]', 'rounded-xl');
+    zone.classList.remove('ring-2', 'ring-[#2EC4D6]', 'bg-[#EFF6FF]', 'rounded-xl');
   }
   function updateCounts() {
     document.querySelectorAll('.kanban-col').forEach(col => {

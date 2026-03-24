@@ -14,7 +14,7 @@
     Administration
   </a>
   <a href="{% url 'dashboard:lookup_create' %}"
-     class="flex items-center gap-2 bg-[#1666b0] hover:bg-[#1255a0] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
+     class="flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
     </svg>
@@ -27,7 +27,7 @@
   <!-- Filter -->
   <form method="get" class="flex items-center gap-3 mb-6">
     <select name="category"
-            class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1666b0] cursor-pointer transition"
+            class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] cursor-pointer transition"
             onchange="this.form.submit()">
       <option value="">Alle Kategorien</option>
       {% for cat in categories %}
@@ -82,7 +82,7 @@
             <td class="px-5 py-3 text-right">
               <div class="flex items-center gap-2 justify-end">
                 <a href="{% url 'dashboard:lookup_edit' lookup.pk %}"
-                   class="text-xs font-medium text-[#1666b0] hover:text-[#0d4f8c] transition px-2 py-1 rounded hover:bg-[#f0f9fe]">
+                   class="text-xs font-medium text-[#2F6FB3] hover:text-[#1e4d82] transition px-2 py-1 rounded hover:bg-[#EFF6FF]">
                   Bearbeiten
                 </a>
                 <form method="post" action="{% url 'dashboard:lookup_delete' lookup.pk %}"

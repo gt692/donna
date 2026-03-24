@@ -7,7 +7,7 @@
 
 {% block topbar_actions %}
   <a href="{% url 'dashboard:product_catalog_create' %}"
-     class="flex items-center gap-2 bg-[#1666b0] hover:bg-[#1255a0] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
+     class="flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
     </svg>
@@ -70,7 +70,7 @@
             <td class="px-6 py-4 text-right">
               <div class="flex items-center justify-end gap-3">
                 <a href="{% url 'dashboard:product_catalog_update' product.pk %}"
-                   class="text-xs text-[#1666b0] hover:text-[#0d4f8c] font-medium transition">Bearbeiten</a>
+                   class="text-xs text-[#2F6FB3] hover:text-[#1e4d82] font-medium transition">Bearbeiten</a>
                 <form method="post" action="{% url 'dashboard:product_catalog_delete' product.pk %}"
                       onsubmit="return confirm('Produkt &quot;{{ product.name }}&quot; wirklich löschen?')">
                   {% csrf_token %}
@@ -92,7 +92,7 @@
       <p class="text-slate-500 text-sm font-medium mb-1">Noch keine Produkte angelegt</p>
       <p class="text-slate-400 text-xs mb-4">Lege Standard-Produkte und Dienstleistungen an, um sie schnell in Angebote und Rechnungen einzufügen.</p>
       <a href="{% url 'dashboard:product_catalog_create' %}"
-         class="inline-flex items-center gap-2 bg-[#1666b0] hover:bg-[#1255a0] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
+         class="inline-flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
         Erstes Produkt anlegen
       </a>
     </div>

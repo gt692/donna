@@ -37,7 +37,7 @@
     </a>
   {% endif %}
   <a href="{% url 'worktrack:create' %}?project={{ project.pk }}"
-     class="flex items-center gap-2 bg-[#1666b0] hover:bg-[#1255a0] text-white
+     class="flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white
             font-medium text-sm px-4 py-2 rounded-lg transition">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -56,13 +56,13 @@
     <div class="flex items-center {% if not forloop.last %}flex-1{% endif %}">
       <div class="flex flex-col items-center min-w-0">
         <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0
-          {% if step_active %}bg-[#1666b0] text-white
+          {% if step_active %}bg-[#2F6FB3] text-white
           {% elif step_done %}bg-green-500 text-white
           {% else %}bg-slate-100 text-slate-400{% endif %}">
           {% if step_done %}✓{% else %}{{ forloop.counter }}{% endif %}
         </div>
         <span class="text-xs mt-1 font-medium whitespace-nowrap
-          {% if step_active %}text-[#1666b0]
+          {% if step_active %}text-[#2F6FB3]
           {% elif step_done %}text-green-600
           {% else %}text-slate-400{% endif %}">
           {{ step_label }}
@@ -109,7 +109,7 @@
           <p class="text-xs text-slate-400 mt-1">von {{ project.budget_hours }} h Budget</p>
           <div class="mt-2 w-full bg-slate-100 rounded-full h-1.5">
             <div class="h-1.5 rounded-full transition-all
-              {% if budget_pct >= 90 %}bg-red-500{% elif budget_pct >= 75 %}bg-amber-500{% else %}bg-[#1666b0]{% endif %}"
+              {% if budget_pct >= 90 %}bg-red-500{% elif budget_pct >= 75 %}bg-amber-500{% else %}bg-[#2F6FB3]{% endif %}"
               style="width: {{ budget_pct|default:0 }}%"></div>
           </div>
           <p class="text-xs mt-0.5 {% if budget_pct >= 90 %}text-red-600{% elif budget_pct >= 75 %}text-amber-600{% else %}text-slate-400{% endif %}">
@@ -166,12 +166,12 @@
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
         <h2 class="text-sm font-semibold text-slate-700">Letzte Zeitbuchungen</h2>
-        <a href="{% url 'worktrack:list' %}" class="text-xs text-[#1666b0] hover:text-[#0d4f8c] transition">Alle anzeigen →</a>
+        <a href="{% url 'worktrack:list' %}" class="text-xs text-[#2F6FB3] hover:text-[#1e4d82] transition">Alle anzeigen →</a>
       </div>
       <div class="divide-y divide-slate-50">
         {% for entry in time_entries %}
           <div class="flex items-center gap-4 px-5 py-3">
-            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-[#ddf1fb] flex items-center justify-center text-[#1255a0] text-xs font-bold">
+            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-[#CFFAFE] flex items-center justify-center text-[#265e99] text-xs font-bold">
               {{ entry.user.first_name|first|upper }}{{ entry.user.last_name|first|upper }}
             </div>
             <div class="flex-1 min-w-0">
@@ -199,7 +199,7 @@
         <h2 class="text-sm font-semibold text-slate-700">Dokumente</h2>
         {% if request.user.can_approve_time_entries %}
           <button onclick="document.getElementById('upload-form').classList.toggle('hidden')"
-                  class="text-xs text-[#1666b0] hover:text-[#0d4f8c] transition font-medium">
+                  class="text-xs text-[#2F6FB3] hover:text-[#1e4d82] transition font-medium">
             + Hochladen
           </button>
         {% endif %}
@@ -216,7 +216,7 @@
               <select name="document_type" id="upload-doc-type"
                       onchange="document.getElementById('upload-net-amount-row').classList.toggle('hidden', this.value !== 'invoice')"
                       class="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 bg-white
-                             focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent cursor-pointer">
+                             focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:border-transparent cursor-pointer">
                 <option value="offer">Angebot</option>
                 <option value="commission">Beauftragung</option>
                 <option value="invoice">Rechnung</option>
@@ -228,29 +228,29 @@
               <label class="block text-xs font-medium text-slate-600 mb-1">Bezeichnung (optional)</label>
               <input type="text" name="title" placeholder="Wird aus Dateiname übernommen"
                      class="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 bg-white
-                            focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent">
+                            focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:border-transparent">
             </div>
             <div id="upload-net-amount-row" class="col-span-2 hidden">
               <label class="block text-xs font-medium text-slate-600 mb-1">Nettobetrag (€)</label>
               <input type="text" name="net_amount" placeholder="z.B. 9600"
                      class="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 bg-white
-                            focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent">
+                            focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:border-transparent">
             </div>
           </div>
           <!-- Drag & Drop Zone -->
           <div id="drop-zone"
                class="mb-3 border-2 border-dashed border-slate-300 rounded-xl p-5
-                      text-center cursor-pointer transition-all hover:border-[#1666b0] hover:bg-[#f0f9fe]">
+                      text-center cursor-pointer transition-all hover:border-[#2F6FB3] hover:bg-[#EFF6FF]">
             <input type="file" name="file" id="file-input" accept=".pdf,application/pdf" required class="hidden">
             <svg id="drop-icon" class="w-8 h-8 mx-auto mb-2 text-slate-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                     d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
             </svg>
-            <p id="drop-label" class="text-xs text-slate-500 font-medium">PDF hier ablegen oder <span class="text-[#1666b0] underline">auswählen</span></p>
-            <p id="drop-filename" class="text-xs text-[#1255a0] font-semibold mt-1 hidden"></p>
+            <p id="drop-label" class="text-xs text-slate-500 font-medium">PDF hier ablegen oder <span class="text-[#2F6FB3] underline">auswählen</span></p>
+            <p id="drop-filename" class="text-xs text-[#265e99] font-semibold mt-1 hidden"></p>
           </div>
           <button type="submit"
-                  class="w-full bg-[#1666b0] hover:bg-[#1255a0] text-white text-xs font-medium
+                  class="w-full bg-[#2F6FB3] hover:bg-[#265e99] text-white text-xs font-medium
                          py-2 rounded-lg transition">
             Dokument speichern
           </button>
@@ -277,7 +277,7 @@
               {% if doc.file %}
                 <a href="{% url 'crm:document_serve' project.pk doc.pk %}"
                    target="_blank"
-                   class="text-xs text-[#1666b0] hover:text-[#0d4f8c] transition font-medium"
+                   class="text-xs text-[#2F6FB3] hover:text-[#1e4d82] transition font-medium"
                    title="Im Browser anzeigen">
                   Anzeigen
                 </a>
@@ -312,7 +312,7 @@
         <h2 class="text-sm font-semibold text-slate-700">Angebote</h2>
         {% if request.user.can_approve_time_entries %}
           <a href="{% url 'crm:offer_create' project.pk %}"
-             class="text-xs text-[#1666b0] hover:text-[#0d4f8c] transition font-medium">
+             class="text-xs text-[#2F6FB3] hover:text-[#1e4d82] transition font-medium">
             + Neues Angebot
           </a>
         {% endif %}
@@ -323,7 +323,7 @@
           <div class="flex items-center gap-3 px-5 py-3">
             <div class="flex-1 min-w-0">
               <a href="{% url 'crm:offer_detail' offer.pk %}"
-                 class="text-sm font-medium text-[#1666b0] hover:text-[#0d4f8c] transition truncate block">
+                 class="text-sm font-medium text-[#2F6FB3] hover:text-[#1e4d82] transition truncate block">
                 {{ offer.offer_number }} — {{ offer.title }}
               </a>
               <p class="text-xs text-slate-400">{{ offer.offer_date|date:"d.m.Y" }}</p>
@@ -358,7 +358,7 @@
         <h2 class="text-sm font-semibold text-slate-700">Rechnungen</h2>
         {% if request.user.can_approve_time_entries %}
         <a href="{% url 'crm:invoice_create' project.pk %}"
-           class="text-xs text-[#1666b0] hover:text-[#0d4f8c] transition font-medium">
+           class="text-xs text-[#2F6FB3] hover:text-[#1e4d82] transition font-medium">
           + Neue Rechnung
         </a>
         {% endif %}
@@ -369,7 +369,7 @@
         <div class="flex items-center gap-3 px-5 py-3 {% if inv.is_overdue %}bg-red-50{% endif %}">
           <div class="flex-1 min-w-0">
             <a href="{% url 'crm:invoice_detail' inv.pk %}"
-               class="text-sm font-medium text-[#1666b0] hover:text-[#0d4f8c] truncate block">
+               class="text-sm font-medium text-[#2F6FB3] hover:text-[#1e4d82] truncate block">
               {{ inv.invoice_number }} — {{ inv.title }}
             </a>
             <p class="text-xs text-slate-400">
@@ -403,7 +403,7 @@
       <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
         <h2 class="text-sm font-semibold text-slate-700">Aktivitäten</h2>
         <button onclick="document.getElementById('activity-form').classList.toggle('hidden')"
-                class="text-xs text-[#1666b0] hover:text-[#0d4f8c] transition font-medium">
+                class="text-xs text-[#2F6FB3] hover:text-[#1e4d82] transition font-medium">
           + Aktivität erfassen
         </button>
       </div>
@@ -418,7 +418,7 @@
               <label class="block text-xs font-medium text-slate-600 mb-1">Typ</label>
               <select name="activity_type"
                       class="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 bg-white
-                             focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent cursor-pointer">
+                             focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:border-transparent cursor-pointer">
                 {% for val, label in activity_types %}
                   <option value="{{ val }}">{{ label }}</option>
                 {% endfor %}
@@ -428,14 +428,14 @@
               <label class="block text-xs font-medium text-slate-600 mb-1">Titel</label>
               <input type="text" name="title" required placeholder="Kurze Zusammenfassung"
                      class="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 bg-white
-                            focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent">
+                            focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:border-transparent">
             </div>
           </div>
           <div class="mb-3">
             <label class="block text-xs font-medium text-slate-600 mb-1">Inhalt (optional)</label>
             <textarea name="body" rows="3" placeholder="Details, Ergebnisse, Gesprächsnotizen …"
                       class="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 bg-white
-                             focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent resize-none"></textarea>
+                             focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:border-transparent resize-none"></textarea>
           </div>
           <div class="grid grid-cols-2 gap-3 mb-3">
             <div>
@@ -443,20 +443,20 @@
               <input type="datetime-local" name="occurred_at"
                      value="{% now "Y-m-d" %}T{% now "H:i" %}"
                      class="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 bg-white
-                            focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent">
+                            focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:border-transparent">
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Dateianhang (optional)</label>
               <input type="file" name="attachment"
                      class="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 bg-white
-                            focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent
+                            focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:border-transparent
                             file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0
                             file:text-xs file:font-medium file:bg-slate-100 file:text-slate-600
                             hover:file:bg-slate-200 cursor-pointer">
             </div>
           </div>
           <button type="submit"
-                  class="w-full bg-[#1666b0] hover:bg-[#1255a0] text-white text-xs font-medium
+                  class="w-full bg-[#2F6FB3] hover:bg-[#265e99] text-white text-xs font-medium
                          py-2 rounded-lg transition">
             Aktivität speichern
           </button>
@@ -524,7 +524,7 @@
               {% endif %}
               {% if act.attachment %}
                 <a href="{{ act.attachment.url }}" target="_blank"
-                   class="inline-flex items-center gap-1 mt-1.5 text-xs text-[#1666b0] hover:text-[#0d4f8c] transition">
+                   class="inline-flex items-center gap-1 mt-1.5 text-xs text-[#2F6FB3] hover:text-[#1e4d82] transition">
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
@@ -664,7 +664,7 @@
         <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Budget-Erweiterungen</h3>
         {% if request.user.can_approve_time_entries %}
           <button onclick="document.getElementById('ext-form').classList.toggle('hidden')"
-                  class="text-xs text-[#1666b0] hover:text-[#0d4f8c] transition font-medium">+ Hinzufügen</button>
+                  class="text-xs text-[#2F6FB3] hover:text-[#1e4d82] transition font-medium">+ Hinzufügen</button>
         {% endif %}
       </div>
 
@@ -699,23 +699,23 @@
               <label class="block text-xs font-medium text-slate-600 mb-1">Betrag (€ netto)</label>
               <input type="number" name="amount" step="1" min="1" required placeholder="z.B. 5000"
                      class="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 bg-white
-                            focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent">
+                            focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:border-transparent">
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">Freigabedatum</label>
               <input type="date" name="approved_at" required value="{{ today }}"
                      class="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 bg-white
-                            focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent">
+                            focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:border-transparent">
             </div>
           </div>
           <div class="mb-3">
             <label class="block text-xs font-medium text-slate-600 mb-1">Anmerkung (optional)</label>
             <input type="text" name="note" placeholder="z.B. Nachtrag vom Kunden per E-Mail"
                    class="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 bg-white
-                          focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent">
+                          focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:border-transparent">
           </div>
           <button type="submit"
-                  class="w-full bg-[#1666b0] hover:bg-[#1255a0] text-white text-xs font-medium
+                  class="w-full bg-[#2F6FB3] hover:bg-[#265e99] text-white text-xs font-medium
                          py-2 rounded-lg transition">
             Budget-Erweiterung speichern
           </button>
@@ -735,7 +735,7 @@
         <div class="space-y-1.5 mb-3">
           {% for p in preds %}
             <a href="{% url 'crm:project_detail' p.pk %}"
-               class="flex items-center gap-2 text-sm text-[#1666b0] hover:text-[#0d4f8c] transition">
+               class="flex items-center gap-2 text-sm text-[#2F6FB3] hover:text-[#1e4d82] transition">
               <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"/>
               </svg>
@@ -749,7 +749,7 @@
         <div class="space-y-1.5">
           {% for p in succs %}
             <a href="{% url 'crm:project_detail' p.pk %}"
-               class="flex items-center gap-2 text-sm text-[#1666b0] hover:text-[#0d4f8c] transition">
+               class="flex items-center gap-2 text-sm text-[#2F6FB3] hover:text-[#1e4d82] transition">
               <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
               </svg>
@@ -767,7 +767,7 @@
       <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Team</h3>
       {% if project.team_lead %}
         <div class="flex items-center gap-2 mb-3 pb-3 border-b border-slate-100">
-          <div class="w-7 h-7 rounded-full bg-[#1666b0] flex items-center justify-center text-white text-xs font-bold">
+          <div class="w-7 h-7 rounded-full bg-[#2F6FB3] flex items-center justify-center text-white text-xs font-bold">
             {{ project.team_lead.first_name|first|upper }}{{ project.team_lead.last_name|first|upper }}
           </div>
           <div>
@@ -814,7 +814,7 @@
       <form method="post" action="{% url 'crm:lead_inquiry_import' project.pk %}">
         {% csrf_token %}
         <button type="submit"
-                class="w-full bg-[#1666b0] hover:bg-[#1255a0] text-white text-xs font-medium py-2 rounded-lg transition">
+                class="w-full bg-[#2F6FB3] hover:bg-[#265e99] text-white text-xs font-medium py-2 rounded-lg transition">
           In Angebot übernehmen →
         </button>
       </form>
@@ -856,9 +856,9 @@
     filename.textContent = file.name;
     filename.classList.remove('hidden');
     label.classList.add('hidden');
-    zone.classList.add('border-[#1666b0]', 'bg-[#f0f9fe]');
+    zone.classList.add('border-[#2F6FB3]', 'bg-[#EFF6FF]');
     zone.classList.remove('border-slate-300');
-    icon.classList.add('text-[#1666b0]');
+    icon.classList.add('text-[#2F6FB3]');
     icon.classList.remove('text-slate-300');
   }
 
@@ -867,12 +867,12 @@
 
   zone.addEventListener('dragover', e => {
     e.preventDefault();
-    zone.classList.add('border-[#1666b0]', 'bg-[#f0f9fe]');
+    zone.classList.add('border-[#2F6FB3]', 'bg-[#EFF6FF]');
     zone.classList.remove('border-slate-300');
   });
   zone.addEventListener('dragleave', e => {
     if (!zone.contains(e.relatedTarget) && !input.files[0]) {
-      zone.classList.remove('border-[#1666b0]', 'bg-[#f0f9fe]');
+      zone.classList.remove('border-[#2F6FB3]', 'bg-[#EFF6FF]');
       zone.classList.add('border-slate-300');
     }
   });

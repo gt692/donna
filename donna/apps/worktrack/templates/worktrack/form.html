@@ -69,7 +69,7 @@
             <label class="block text-sm font-medium text-slate-600 mb-1">
               {{ form.duration_hours.label }}
               <span id="duration-auto-badge"
-                    class="hidden ml-1 text-xs font-normal text-[#1666b0]">(berechnet)</span>
+                    class="hidden ml-1 text-xs font-normal text-[#2F6FB3]">(berechnet)</span>
             </label>
             {{ form.duration_hours }}
             {% if form.duration_hours.errors %}
@@ -112,9 +112,9 @@
            class="text-sm text-slate-500 hover:text-slate-700 transition">Abbrechen</a>
         <div class="flex items-center gap-2">
           <button type="submit" name="action" value="save"
-                  class="bg-[#1666b0] hover:bg-[#1255a0] text-white font-medium text-sm
+                  class="bg-[#2F6FB3] hover:bg-[#265e99] text-white font-medium text-sm
                          px-5 py-2.5 rounded-lg transition focus:outline-none focus:ring-2
-                         focus:ring-[#1666b0] focus:ring-offset-2">
+                         focus:ring-[#2F6FB3] focus:ring-offset-2">
             {{ submit_label }}
           </button>
           {% if not object %}

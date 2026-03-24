@@ -507,7 +507,7 @@ class CompanySettings(models.Model):
     website         = models.URLField(blank=True, verbose_name="Website")
     pdf_footer_text = models.TextField(blank=True, verbose_name="PDF-Fußzeile")
     payment_days    = models.PositiveSmallIntegerField(default=14, verbose_name="Zahlungsziel (Tage)")
-    primary_color   = models.CharField(max_length=7, default="#1666b0", verbose_name="Primärfarbe (Hex)")
+    primary_color   = models.CharField(max_length=7, default="#2F6FB3", verbose_name="Primärfarbe (Hex)")
     updated_at      = models.DateTimeField(auto_now=True)
 
     class Meta:

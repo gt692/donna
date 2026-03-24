@@ -6,8 +6,8 @@
 {% block card_content %}
   <!-- Header -->
   <div class="flex items-center gap-3 mb-6">
-    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-[#ddf1fb] flex items-center justify-center">
-      <svg class="w-5 h-5 text-[#1666b0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-[#CFFAFE] flex items-center justify-center">
+      <svg class="w-5 h-5 text-[#2F6FB3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
       </svg>
@@ -36,9 +36,9 @@
     </div>
 
     <button type="submit"
-            class="w-full bg-[#1666b0] hover:bg-[#1255a0] active:bg-[#0d4f8c]
+            class="w-full bg-[#2F6FB3] hover:bg-[#265e99] active:bg-[#1e4d82]
                    text-white font-semibold py-3 px-4 rounded-lg transition
-                   focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:ring-offset-2 text-sm">
+                   focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:ring-offset-2 text-sm">
       Bestätigen & Anmelden
     </button>
   </form>
@@ -49,7 +49,7 @@
       <form method="post" action="{% url 'core:email_mfa_send' %}">
         {% csrf_token %}
         <button type="submit"
-                class="text-sm text-[#1666b0] hover:text-[#1255a0] hover:underline transition">
+                class="text-sm text-[#2F6FB3] hover:text-[#265e99] hover:underline transition">
           Code per E-Mail anfordern
         </button>
       </form>

@@ -17,7 +17,7 @@
   </a>
   {% if request.user.can_approve_time_entries %}
     <a href="{% url 'crm:project_create' %}"
-       class="flex items-center gap-2 bg-[#1666b0] hover:bg-[#1255a0] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
+       class="flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
       </svg>
@@ -38,10 +38,10 @@
       </svg>
       <input type="text" name="q" value="{{ q }}" placeholder="Projekt oder Kunde suchen …"
              class="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 bg-white
-                    text-sm focus:outline-none focus:ring-2 focus:ring-[#1666b0] transition">
+                    text-sm focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] transition">
     </div>
     <select name="status"
-            class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1666b0] transition cursor-pointer"
+            class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] transition cursor-pointer"
             onchange="this.form.submit()">
       <option value="">Alle Status</option>
       {% for val, label in status_choices %}
@@ -49,7 +49,7 @@
       {% endfor %}
     </select>
     <label class="flex items-center gap-2 cursor-pointer select-none px-3 py-2 rounded-lg border transition
-                  {% if mine_filter == '1' %}border-[#1666b0] bg-[#f0f9fe] text-[#1255a0]{% else %}border-slate-200 bg-white text-slate-500 hover:border-slate-300{% endif %}">
+                  {% if mine_filter == '1' %}border-[#2F6FB3] bg-[#EFF6FF] text-[#265e99]{% else %}border-slate-200 bg-white text-slate-500 hover:border-slate-300{% endif %}">
       <input type="checkbox" name="mine" value="1" class="hidden"
              {% if mine_filter == '1' %}checked{% endif %}
              onchange="this.form.submit()">
@@ -59,7 +59,7 @@
       </svg>
       <span class="text-sm font-medium whitespace-nowrap">Meine Projekte</span>
     </label>
-    {% if q %}<button type="submit" class="bg-[#1666b0] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#1255a0] transition">Suchen</button>{% endif %}
+    {% if q %}<button type="submit" class="bg-[#2F6FB3] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#265e99] transition">Suchen</button>{% endif %}
   </form>
 
   <!-- Tabelle -->
@@ -80,7 +80,7 @@
           <tr class="hover:bg-slate-50 transition">
             <td class="px-5 py-3">
               <a href="{% url 'crm:project_detail' project.pk %}"
-                 class="font-medium text-slate-800 hover:text-[#1666b0] transition">
+                 class="font-medium text-slate-800 hover:text-[#2F6FB3] transition">
                 {{ project.name }}
               </a>
               <div class="flex items-center gap-2 mt-0.5">
@@ -94,7 +94,7 @@
             </td>
             <td class="px-4 py-3">
               <a href="{% url 'crm:account_detail' project.account.pk %}"
-                 class="text-slate-600 hover:text-[#1666b0] transition">{{ project.account.name }}</a>
+                 class="text-slate-600 hover:text-[#2F6FB3] transition">{{ project.account.name }}</a>
             </td>
             <td class="px-4 py-3">
               {% with s=project.status %}
@@ -121,7 +121,7 @@
             <td class="px-2 py-3">
               {% if request.user.can_approve_time_entries %}
                 <a href="{% url 'crm:project_edit' project.pk %}"
-                   class="text-slate-400 hover:text-[#1666b0] p-1 rounded transition"
+                   class="text-slate-400 hover:text-[#2F6FB3] p-1 rounded transition"
                    title="Bearbeiten">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

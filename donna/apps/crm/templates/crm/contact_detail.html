@@ -16,7 +16,7 @@
     vCard exportieren
   </a>
   <a href="{% url 'crm:contact_edit' contact.pk %}"
-     class="flex items-center gap-2 bg-[#1666b0] hover:bg-[#1255a0] text-white
+     class="flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white
             font-medium text-sm px-4 py-2 rounded-lg transition">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -39,7 +39,7 @@
         {% if contact.email %}
         <div>
           <p class="text-xs text-slate-400 mb-0.5">E-Mail</p>
-          <a href="mailto:{{ contact.email }}" class="text-[#1666b0] hover:underline">{{ contact.email }}</a>
+          <a href="mailto:{{ contact.email }}" class="text-[#2F6FB3] hover:underline">{{ contact.email }}</a>
         </div>
         {% endif %}
         {% if contact.phone %}
@@ -110,14 +110,14 @@
     <!-- Steckbrief -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
       <div class="flex items-center gap-4 mb-4">
-        <div class="w-14 h-14 rounded-full bg-[#ddf1fb] flex items-center justify-center
-                    text-[#1666b0] text-xl font-bold flex-shrink-0">
+        <div class="w-14 h-14 rounded-full bg-[#CFFAFE] flex items-center justify-center
+                    text-[#2F6FB3] text-xl font-bold flex-shrink-0">
           {{ contact.first_name|first|upper }}{{ contact.last_name|first|upper }}
         </div>
         <div>
           <p class="font-semibold text-slate-800">{{ contact }}</p>
           {% if contact.role %}
-            <span class="text-xs px-2 py-0.5 rounded-full bg-[#ddf1fb] text-[#1255a0] font-medium">
+            <span class="text-xs px-2 py-0.5 rounded-full bg-[#CFFAFE] text-[#265e99] font-medium">
               {{ contact.get_role_display }}
             </span>
           {% endif %}
@@ -131,7 +131,7 @@
           <p class="text-xs text-slate-400 mb-2">Verknüpfte Accounts</p>
           {% for acc in contact.accounts.all %}
             <a href="{% url 'crm:account_detail' acc.pk %}"
-               class="block text-sm text-[#1666b0] hover:underline truncate">{{ acc.name }}</a>
+               class="block text-sm text-[#2F6FB3] hover:underline truncate">{{ acc.name }}</a>
           {% endfor %}
         </div>
       {% endif %}

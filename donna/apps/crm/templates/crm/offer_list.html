@@ -6,7 +6,7 @@
 
 {% block topbar_actions %}
   <a href="{% url 'crm:offer_create_standalone' %}"
-     class="flex items-center gap-1.5 bg-[#1666b0] hover:bg-[#1255a0] text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+     class="flex items-center gap-1.5 bg-[#2F6FB3] hover:bg-[#265e99] text-white text-sm font-medium px-4 py-2 rounded-lg transition">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
     </svg>
@@ -20,17 +20,17 @@
 <form method="get" class="mb-5 flex items-center gap-3">
   <input type="text" name="q" value="{{ q }}" placeholder="Suche nach Nummer, Titel, Projekt …"
          class="w-72 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm
-                focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent transition">
+                focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:border-transparent transition">
   <select name="status"
           class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm cursor-pointer
-                 focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent transition">
+                 focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:border-transparent transition">
     <option value="">Alle Status</option>
     {% for val, label in status_choices %}
       <option value="{{ val }}" {% if val == status_filter %}selected{% endif %}>{{ label }}</option>
     {% endfor %}
   </select>
   <button type="submit"
-          class="px-4 py-2 bg-[#1666b0] hover:bg-[#1255a0] text-white text-sm font-medium rounded-lg transition">
+          class="px-4 py-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white text-sm font-medium rounded-lg transition">
     Filtern
   </button>
   {% if q or status_filter %}
@@ -58,18 +58,18 @@
       <tr class="hover:bg-slate-50 transition">
         <td class="px-5 py-3">
           <a href="{% url 'crm:offer_detail' offer.pk %}"
-             class="font-mono text-xs text-[#1666b0] hover:text-[#0d4f8c] transition font-semibold">
+             class="font-mono text-xs text-[#2F6FB3] hover:text-[#1e4d82] transition font-semibold">
             {{ offer.offer_number }}
           </a>
         </td>
         <td class="px-5 py-3 text-slate-700 font-medium max-w-xs truncate">
           <a href="{% url 'crm:offer_detail' offer.pk %}"
-             class="hover:text-[#1666b0] transition">{{ offer.title }}</a>
+             class="hover:text-[#2F6FB3] transition">{{ offer.title }}</a>
         </td>
         <td class="px-5 py-3">
           {% if offer.project %}
           <a href="{% url 'crm:project_detail' offer.project.pk %}"
-             class="text-slate-500 hover:text-[#1666b0] transition text-xs">
+             class="text-slate-500 hover:text-[#2F6FB3] transition text-xs">
             {{ offer.project.project_number }} · {{ offer.project.name }}
           </a>
           {% else %}

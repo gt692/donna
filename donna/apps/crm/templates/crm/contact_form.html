@@ -108,7 +108,7 @@
           <p class="text-sm font-medium text-slate-600 mb-2">{{ form.projects.label }}</p>
           <div class="space-y-1 max-h-48 overflow-y-auto">
             {% for checkbox in form.projects %}
-              <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer hover:text-[#1666b0]">
+              <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer hover:text-[#2F6FB3]">
                 {{ checkbox.tag }}
                 {{ checkbox.choice_label }}
               </label>
@@ -119,7 +119,7 @@
           <p class="text-sm font-medium text-slate-600 mb-2">{{ form.accounts.label }}</p>
           <div class="space-y-1 max-h-48 overflow-y-auto">
             {% for checkbox in form.accounts %}
-              <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer hover:text-[#1666b0]">
+              <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer hover:text-[#2F6FB3]">
                 {{ checkbox.tag }}
                 {{ checkbox.choice_label }}
               </label>
@@ -144,9 +144,9 @@
       <a href="{% url 'crm:contact_list' %}"
          class="text-sm text-slate-500 hover:text-slate-700 transition">Abbrechen</a>
       <button type="submit"
-              class="bg-[#1666b0] hover:bg-[#1255a0] text-white font-medium text-sm
+              class="bg-[#2F6FB3] hover:bg-[#265e99] text-white font-medium text-sm
                      px-6 py-2.5 rounded-lg transition focus:outline-none focus:ring-2
-                     focus:ring-[#1666b0] focus:ring-offset-2">
+                     focus:ring-[#2F6FB3] focus:ring-offset-2">
         {{ submit_label }}
       </button>
     </div>

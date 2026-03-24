@@ -85,7 +85,7 @@
                  value="{{ post.title|default:project.name }}"
                  placeholder="{{ project.name }}"
                  class="w-full px-3 py-2 rounded-lg border {% if errors.title %}border-red-400{% else %}border-slate-200{% endif %}
-                        bg-white focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent text-sm transition">
+                        bg-white focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:border-transparent text-sm transition">
           {% if use_lexoffice %}
             <p class="mt-1 text-xs text-slate-400">Erscheint als Leistungsbeschreibung auf der Rechnung in Lexoffice.</p>
           {% endif %}
@@ -103,7 +103,7 @@
                  value="{{ post.lexoffice_document_number|default:'' }}"
                  placeholder="z.B. RE-2026-0042"
                  class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white
-                        focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent text-sm transition">
+                        focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:border-transparent text-sm transition">
         </div>
         {% endif %}
 
@@ -115,7 +115,7 @@
           <input type="date" name="document_date"
                  value="{{ post.document_date|default:today }}"
                  class="w-full px-3 py-2 rounded-lg border {% if errors.document_date %}border-red-400{% else %}border-slate-200{% endif %}
-                        bg-white focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent text-sm transition">
+                        bg-white focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:border-transparent text-sm transition">
           {% if errors.document_date %}<p class="mt-1 text-xs text-red-600">{{ errors.document_date }}</p>{% endif %}
         </div>
 
@@ -129,7 +129,7 @@
                    value="{{ post.net_amount|default:'' }}"
                    placeholder="z.B. 9600"
                    class="w-full pr-8 px-3 py-2 rounded-lg border {% if errors.net_amount %}border-red-400{% else %}border-slate-200{% endif %}
-                          bg-white focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent text-sm transition">
+                          bg-white focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:border-transparent text-sm transition">
             <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">€</span>
           </div>
           <p class="mt-1 text-xs text-slate-400">Netto-Rechnungsbetrag. Brutto (19 % Umsatzsteuer) wird automatisch berechnet.</p>
@@ -147,7 +147,7 @@
                  value="{{ post.payment_term_days|default:'30' }}"
                  min="0" max="365"
                  class="w-32 px-3 py-2 rounded-lg border border-slate-200 bg-white
-                        focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent text-sm transition">
+                        focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:border-transparent text-sm transition">
           <p class="mt-1 text-xs text-slate-400">Erscheint als Zahlungsbedingung in Lexoffice. Standard: 30 Tage.</p>
         </div>
         {% endif %}
@@ -164,7 +164,7 @@
       <div class="px-6 py-5">
         <div id="drop-zone"
              class="border-2 border-dashed {% if errors.file %}border-red-400{% else %}border-slate-300{% endif %}
-                    rounded-xl p-6 text-center cursor-pointer transition-all hover:border-[#1666b0] hover:bg-[#f0f9fe]">
+                    rounded-xl p-6 text-center cursor-pointer transition-all hover:border-[#2F6FB3] hover:bg-[#EFF6FF]">
           <input type="file" name="file" id="file-input" accept=".pdf,application/pdf" class="hidden">
           <svg id="drop-icon" class="w-10 h-10 mx-auto mb-2 text-slate-300 transition-colors"
                fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -172,9 +172,9 @@
                   d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
           </svg>
           <p id="drop-label" class="text-sm text-slate-500 font-medium">
-            PDF hier ablegen oder <span class="text-[#1666b0] underline">auswählen</span>
+            PDF hier ablegen oder <span class="text-[#2F6FB3] underline">auswählen</span>
           </p>
-          <p id="drop-filename" class="text-sm text-[#1255a0] font-semibold mt-1 hidden"></p>
+          <p id="drop-filename" class="text-sm text-[#265e99] font-semibold mt-1 hidden"></p>
         </div>
         {% if errors.file %}<p class="mt-2 text-xs text-red-600">{{ errors.file }}</p>{% endif %}
       </div>
@@ -233,11 +233,11 @@
     const filename = document.getElementById('drop-filename');
 
     zone.addEventListener('click', () => input.click());
-    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('border-[#1666b0]', 'bg-[#f0f9fe]'); });
-    zone.addEventListener('dragleave', () => zone.classList.remove('border-[#1666b0]', 'bg-[#f0f9fe]'));
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('border-[#2F6FB3]', 'bg-[#EFF6FF]'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('border-[#2F6FB3]', 'bg-[#EFF6FF]'));
     zone.addEventListener('drop', e => {
       e.preventDefault();
-      zone.classList.remove('border-[#1666b0]', 'bg-[#f0f9fe]');
+      zone.classList.remove('border-[#2F6FB3]', 'bg-[#EFF6FF]');
       if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
     });
     input.addEventListener('change', () => { if (input.files.length) setFile(input.files[0]); });
