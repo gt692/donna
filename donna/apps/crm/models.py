@@ -397,14 +397,9 @@ class Project(models.Model):
 # ---------------------------------------------------------------------------
 
 class RevenueTarget(models.Model):
-    """Jahresziel für ein bestimmtes internes Unternehmen (z.B. 'gt_immo')."""
+    """Jahresziel (Umsatz) pro Jahr."""
 
-    company = models.CharField(
-        max_length=50,
-        verbose_name=_("Unternehmen"),
-        help_text=_("Interner Wert, z.B. 'gt_immo'."),
-    )
-    year = models.IntegerField(verbose_name=_("Jahr"))
+    year = models.IntegerField(unique=True, verbose_name=_("Jahr"))
     target_amount = models.DecimalField(
         max_digits=14,
         decimal_places=2,
@@ -412,13 +407,12 @@ class RevenueTarget(models.Model):
     )
 
     class Meta:
-        unique_together     = [("company", "year")]
         verbose_name        = _("Umsatzziel")
         verbose_name_plural = _("Umsatzziele")
-        ordering            = ["-year", "company"]
+        ordering            = ["-year"]
 
     def __str__(self) -> str:
-        return f"Umsatzziel {self.company} {self.year}: {self.target_amount:,.0f} €"
+        return f"Umsatzziel {self.year}: {self.target_amount:,.0f} €"
 
 
 # ---------------------------------------------------------------------------

@@ -239,12 +239,10 @@ class ProjectAdmin(admin.ModelAdmin):
 
 @admin.register(RevenueTarget)
 class RevenueTargetAdmin(admin.ModelAdmin):
-    list_display  = ("company", "year", "target_amount")
+    list_display  = ("year", "target_amount")
     list_editable = ("target_amount",)
-    list_filter   = ("company", "year")
-    ordering      = ("-year", "company")
-
-    pass
+    list_filter   = ("year",)
+    ordering      = ("-year",)
 
 
 # ---------------------------------------------------------------------------

@@ -14,7 +14,6 @@ from .views import (
     ProjectTypeUpdateView,
     RevenueTargetCreateView,
     RevenueTargetDeleteView,
-    RevenueTargetListView,
     RevenueTargetUpdateView,
     UserCreateView,
     UserDeleteView,
@@ -54,10 +53,9 @@ urlpatterns = [
     path("admin/user-roles/<int:pk>/edit/",   UserRoleUpdateView.as_view(), name="user_role_update"),
     path("admin/user-roles/<int:pk>/delete/", UserRoleDeleteView.as_view(), name="user_role_delete"),
 
-    # Umsatzziele
-    path("admin/revenue-targets/",              RevenueTargetListView.as_view(),   name="revenue_target_list"),
-    path("admin/revenue-targets/new/",          RevenueTargetCreateView.as_view(), name="revenue_target_create"),
-    path("admin/revenue-targets/<int:pk>/edit/", RevenueTargetUpdateView.as_view(), name="revenue_target_edit"),
+    # Umsatzziele (eingebettet in Firmeneinstellungen)
+    path("admin/revenue-targets/new/",             RevenueTargetCreateView.as_view(), name="revenue_target_create"),
+    path("admin/revenue-targets/<int:pk>/edit/",   RevenueTargetUpdateView.as_view(), name="revenue_target_edit"),
     path("admin/revenue-targets/<int:pk>/delete/", RevenueTargetDeleteView.as_view(), name="revenue_target_delete"),
 
     # Projekttypen

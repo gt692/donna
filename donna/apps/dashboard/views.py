@@ -483,54 +483,54 @@ class UserRoleReorderView(AdminRequiredMixin, View):
 # Umsatzziele-Verwaltung
 # ---------------------------------------------------------------------------
 
-class RevenueTargetListView(AdminRequiredMixin, TemplateView):
-    template_name = "dashboard/admin/revenue_target_list.html"
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["targets"] = RevenueTarget.objects.order_by("-year", "company")
-        return ctx
-
-
 class RevenueTargetCreateView(AdminRequiredMixin, CreateView):
     model = RevenueTarget
-    fields = ["company", "year", "target_amount"]
+    fields = ["year", "target_amount"]
     template_name = "dashboard/admin/revenue_target_form.html"
-    success_url = reverse_lazy("dashboard:revenue_target_list")
+    success_url = reverse_lazy("dashboard:company_settings")
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        form.fields["year"].initial = __import__("datetime").date.today().year
+        import datetime
+        form.fields["year"].initial = datetime.date.today().year
+        _tw = "w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] transition"
+        for f in form.fields.values():
+            f.widget.attrs.setdefault("class", _tw)
         return form
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["page_title"] = "Neues Umsatzziel"
+        ctx["page_title"]   = "Neues Umsatzziel"
         ctx["submit_label"] = "Ziel anlegen"
         return ctx
 
     def form_valid(self, form):
-        response = super().form_valid(form)
         messages.success(self.request, "Umsatzziel wurde angelegt.")
-        return response
+        return super().form_valid(form)
 
 
 class RevenueTargetUpdateView(AdminRequiredMixin, UpdateView):
     model = RevenueTarget
-    fields = ["company", "year", "target_amount"]
+    fields = ["year", "target_amount"]
     template_name = "dashboard/admin/revenue_target_form.html"
-    success_url = reverse_lazy("dashboard:revenue_target_list")
+    success_url = reverse_lazy("dashboard:company_settings")
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        _tw = "w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] transition"
+        for f in form.fields.values():
+            f.widget.attrs.setdefault("class", _tw)
+        return form
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["page_title"] = f"Umsatzziel bearbeiten"
+        ctx["page_title"]   = "Umsatzziel bearbeiten"
         ctx["submit_label"] = "Speichern"
         return ctx
 
     def form_valid(self, form):
-        response = super().form_valid(form)
         messages.success(self.request, "Umsatzziel wurde aktualisiert.")
-        return response
+        return super().form_valid(form)
 
 
 class RevenueTargetDeleteView(AdminRequiredMixin, View):
@@ -538,7 +538,7 @@ class RevenueTargetDeleteView(AdminRequiredMixin, View):
         target = get_object_or_404(RevenueTarget, pk=pk)
         target.delete()
         messages.success(request, "Umsatzziel wurde gelöscht.")
-        return redirect("dashboard:revenue_target_list")
+        return redirect("dashboard:company_settings")
 
 
 # ---------------------------------------------------------------------------
@@ -614,11 +614,18 @@ class ProjectTypeDeleteView(AdminRequiredMixin, View):
 class CompanySettingsView(AdminRequiredMixin, View):
     template_name = "dashboard/admin/company_settings.html"
 
+    def _ctx(self, form, obj):
+        return {
+            "form":        form,
+            "settings_obj": obj,
+            "targets":     RevenueTarget.objects.all(),
+        }
+
     def get(self, request):
         from django.shortcuts import render as _render
         obj = CompanySettings.get()
         form = CompanySettingsForm(instance=obj)
-        return _render(request, self.template_name, {"form": form, "settings_obj": obj})
+        return _render(request, self.template_name, self._ctx(form, obj))
 
     def post(self, request):
         from django.shortcuts import render as _render
@@ -642,7 +649,7 @@ class CompanySettingsView(AdminRequiredMixin, View):
                 )
             messages.success(request, "Firmeneinstellungen gespeichert.")
             return redirect("dashboard:company_settings")
-        return _render(request, self.template_name, {"form": form, "settings_obj": obj})
+        return _render(request, self.template_name, self._ctx(form, obj))
 
 
 # ---------------------------------------------------------------------------
