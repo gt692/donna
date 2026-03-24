@@ -2525,7 +2525,7 @@ class TextBlockSetDefaultView(AdminOrLeadMixin, View):
 
 
 class TextBlockAPIView(CRMMixin, View):
-    """AJAX: Textbausteine per Kategorie und Scope laden."""
+    """AJAX: Textbausteine per Kategorie und Scope laden oder Quick-Create."""
     def get(self, request):
         category = request.GET.get("category", "")
         scope    = request.GET.get("scope", "")
@@ -2535,6 +2535,21 @@ class TextBlockAPIView(CRMMixin, View):
         if scope:
             qs = qs.filter(scope__in=[scope, "both"])
         return JsonResponse({"blocks": [{"id": tb.pk, "name": tb.name, "content": tb.content} for tb in qs]})
+
+    def post(self, request):
+        import json as _json
+        data = _json.loads(request.body)
+        name     = (data.get("name") or "").strip()
+        category = (data.get("category") or "").strip()
+        scope    = (data.get("scope") or "both").strip()
+        content  = (data.get("content") or "").strip()
+        if not name or not category or not content:
+            return JsonResponse({"error": "Name, Kategorie und Inhalt sind Pflichtfelder."}, status=400)
+        valid_cats = [c[0] for c in TextBlock.Category.choices]
+        if category not in valid_cats:
+            return JsonResponse({"error": "Ungültige Kategorie."}, status=400)
+        tb = TextBlock.objects.create(name=name, category=category, scope=scope, content=content)
+        return JsonResponse({"ok": True, "block": {"id": tb.pk, "name": tb.name, "content": tb.content}})
 
 
 # ---------------------------------------------------------------------------
@@ -2601,7 +2616,18 @@ class UnitReorderView(AdminOrLeadMixin, View):
 
 
 class UnitAPIView(CRMMixin, View):
-    """AJAX: Alle Einheiten für Datalist/Autocomplete."""
+    """AJAX: Alle Einheiten für Datalist/Autocomplete oder Quick-Create."""
     def get(self, request):
         units = list(Unit.objects.values_list("name", flat=True))
         return JsonResponse({"units": units})
+
+    def post(self, request):
+        import json as _json
+        data = _json.loads(request.body)
+        name = (data.get("name") or "").strip()
+        if not name:
+            return JsonResponse({"error": "Name ist ein Pflichtfeld."}, status=400)
+        unit, created = Unit.objects.get_or_create(name=name)
+        if not created:
+            return JsonResponse({"error": f'Einheit „{name}" existiert bereits.'}, status=400)
+        return JsonResponse({"ok": True, "name": unit.name})
