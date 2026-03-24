@@ -159,27 +159,6 @@
             <span class="ml-auto bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{{ overdue_invoices_count }}</span>
           {% endif %}
         </a>
-        {% if request.user.is_admin %}
-        <!-- Eingerückte Unterpunkte -->
-        <a href="{% url 'crm:textblock_list' %}"
-           class="flex items-center gap-3 pl-7 pr-3 py-1.5 rounded-lg text-sm font-medium transition
-                  {% if '/crm/textblocks' in request.path %}bg-[#2F6FB3] text-white{% else %}text-slate-500 hover:bg-slate-800 hover:text-white{% endif %}">
-          <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2"/>
-          </svg>
-          Textbausteine
-        </a>
-        <a href="{% url 'crm:unit_list' %}"
-           class="flex items-center gap-3 pl-7 pr-3 py-1.5 rounded-lg text-sm font-medium transition
-                  {% if '/crm/units' in request.path %}bg-[#2F6FB3] text-white{% else %}text-slate-500 hover:bg-slate-800 hover:text-white{% endif %}">
-          <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-          </svg>
-          Einheiten
-        </a>
-        {% endif %}
       </div>
 
       <!-- ── CRM ─────────────────────────────── -->
@@ -248,6 +227,57 @@
         </a>
         {% endif %}
       </div>
+
+      <!-- ── Vorlagen ────────────────────────── -->
+      {% if request.user.is_admin %}
+      <div class="pt-2">
+        <button type="button" data-section="vorlagen"
+                class="nav-section-btn w-full flex items-center justify-between px-1 py-1 group">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider group-hover:text-slate-300 transition">Vorlagen</span>
+          <svg class="nav-chevron w-3.5 h-3.5 text-slate-500 transition-transform duration-200 group-hover:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </button>
+      </div>
+      <div data-section-body="vorlagen" class="space-y-0.5">
+        <a href="{% url 'dashboard:lookup_list' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
+                  {% if '/dashboard/admin/lookups' in request.path %}bg-[#2F6FB3] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+          </svg>
+          Projekttypen
+        </a>
+        <a href="{% url 'dashboard:product_catalog_list' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
+                  {% if '/dashboard/admin/products' in request.path %}bg-[#2F6FB3] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+          </svg>
+          Produktkatalog
+        </a>
+        <a href="{% url 'crm:textblock_list' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
+                  {% if '/crm/textblocks' in request.path %}bg-[#2F6FB3] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2"/>
+          </svg>
+          Textbausteine
+        </a>
+        <a href="{% url 'crm:unit_list' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
+                  {% if '/crm/units' in request.path %}bg-[#2F6FB3] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 6h18M3 12h18M3 18h18"/>
+          </svg>
+          Einheiten
+        </a>
+      </div>
+      {% endif %}
 
       <!-- ── System ──────────────────────────── -->
       {% if request.user.is_admin %}
