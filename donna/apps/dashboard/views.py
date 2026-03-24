@@ -565,7 +565,21 @@ class CompanySettingsView(AdminRequiredMixin, View):
         obj = CompanySettings.get()
         form = CompanySettingsForm(request.POST, request.FILES, instance=obj)
         if form.is_valid():
-            form.save()
+            settings_obj = form.save()
+            if settings_obj.payment_days:
+                from apps.crm.models import TextBlock
+                TextBlock.objects.update_or_create(
+                    name="Zahlungsbedingungen (Standard)",
+                    defaults={
+                        "category":   TextBlock.Category.PAYMENT,
+                        "scope":      TextBlock.Scope.BOTH,
+                        "content":    (
+                            f"Rechnungen sind innerhalb von {settings_obj.payment_days} Tagen "
+                            f"nach Rechnungserhalt ohne Abzug zu bezahlen."
+                        ),
+                        "is_default": True,
+                    },
+                )
             messages.success(request, "Firmeneinstellungen gespeichert.")
             return redirect("dashboard:company_settings")
         return _render(request, self.template_name, {"form": form, "settings_obj": obj})
