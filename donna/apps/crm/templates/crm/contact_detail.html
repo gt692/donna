@@ -79,7 +79,7 @@
            class="flex items-center justify-between px-5 py-3 hover:bg-slate-50 transition">
           <div>
             <p class="text-sm font-medium text-slate-700">{{ project.name }}</p>
-            <p class="text-xs text-slate-400">{{ project.account.name }} · {{ project.get_project_type_display }}</p>
+            <p class="text-xs text-slate-400">{{ project.account.name }} · {{ project.project_type.name }}</p>
           </div>
           <span class="text-xs px-2 py-0.5 rounded-full
             {% if project.status == 'active' %}bg-green-100 text-green-700

@@ -28,14 +28,7 @@
             </span>
           {% endif %}
         </div>
-        {% with co_color=company_colors|get_item:project.company %}
-          {% if co_color %}
-            <div class="flex items-center gap-1.5 mt-1.5">
-              <span class="w-2 h-2 rounded-full" style="background-color: {{ co_color }};"></span>
-              <span class="text-xs text-slate-400">{{ project.company }}</span>
-            </div>
-          {% endif %}
-        {% endwith %}
+
       </div>
     </div>
 

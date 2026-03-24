@@ -579,7 +579,7 @@
         </div>
         <div class="flex justify-between">
           <dt class="text-slate-500">Typ</dt>
-          <dd class="text-slate-700 font-medium">{{ project.get_project_type_display }}</dd>
+          <dd class="text-slate-700 font-medium">{{ project.project_type.name }}</dd>
         </div>
         {% if project.internal_reference %}
           <div class="flex justify-between"><dt class="text-slate-500">Ref.</dt><dd class="font-mono text-slate-700">{{ project.internal_reference }}</dd></div>
