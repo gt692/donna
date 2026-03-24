@@ -6,6 +6,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ page_title }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            donna: { DEFAULT: "#2F6FB3", dark: "#265e99", accent: "#2EC4D6", light: "#EFF6FF", subtle: "#CFFAFE" }
+          },
+          fontFamily: {
+            donna: ['"Satoshi"', 'Georgia', 'serif'],
+            sans:  ['"Inter"', 'ui-sans-serif', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
   <style>
     .field-wrap { position: relative; }
     .field-wrap label {
@@ -38,7 +54,7 @@
     }
     .field-wrap input:focus,
     .field-wrap textarea:focus,
-    .field-wrap select:focus { border-color: #1666b0; }
+    .field-wrap select:focus { border-color: #2F6FB3; }
     .field-wrap textarea { resize: vertical; }
     * { box-sizing: border-box; }
 
@@ -65,7 +81,7 @@
       width: 100%;
       transition: border-color 0.15s;
     }
-    .pos-input:focus { border-color: #1666b0; }
+    .pos-input:focus { border-color: #2F6FB3; }
     .pos-input[type="number"] { text-align: right; }
     textarea.pos-input { resize: vertical; min-height: 5rem; text-align: left; font-family: inherit; }
 
@@ -111,7 +127,7 @@
           Aus Katalog
         </button>
         <button type="submit" form="offer-form"
-                class="bg-[#1666b0] hover:bg-[#1255a0] text-white font-semibold text-sm px-5 py-2 rounded-lg transition">
+                class="bg-[#2F6FB3] hover:bg-[#265e99] text-white font-semibold text-sm px-5 py-2 rounded-lg transition">
           {% if offer %}Speichern{% else %}Angebot erstellen{% endif %}
         </button>
       </div>
@@ -220,7 +236,7 @@
           <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Einleitungstext</span>
             <div class="relative">
-              <button type="button" class="tb-btn text-xs text-[#1666b0] hover:text-[#0d4f8c] font-medium flex items-center gap-1"
+              <button type="button" class="tb-btn text-xs text-[#2F6FB3] hover:text-[#1e4d82] font-medium flex items-center gap-1"
                       data-target="{{ form.intro_text.id_for_label }}" data-category="intro">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -242,8 +258,8 @@
           <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Positionen</span>
             <button type="button" id="add-row"
-                    class="flex items-center gap-1.5 text-xs font-medium text-[#1666b0] hover:text-[#0d4f8c]
-                           border border-[#1666b0] hover:bg-blue-50 px-3 py-1.5 rounded-lg transition">
+                    class="flex items-center gap-1.5 text-xs font-medium text-[#2F6FB3] hover:text-[#1e4d82]
+                           border border-[#2F6FB3] hover:bg-blue-50 px-3 py-1.5 rounded-lg transition">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
               </svg>
@@ -367,7 +383,7 @@
             <!-- "Gesamtrabatt hinzufügen"-Link -->
             <div id="discount-add" class="{% if form.instance.discount_percent or form.instance.discount_amount_eur %}hidden{% endif %} px-5 py-2 bg-slate-50 border-b border-slate-100">
               <button type="button" id="discount-show"
-                      class="text-xs text-slate-400 hover:text-[#1666b0] transition">
+                      class="text-xs text-slate-400 hover:text-[#2F6FB3] transition">
                 + Gesamtrabatt hinzufügen
               </button>
             </div>
@@ -409,7 +425,7 @@
           <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Zahlungsbedingung</span>
             <div class="relative">
-              <button type="button" class="tb-btn text-xs text-[#1666b0] hover:text-[#0d4f8c] font-medium flex items-center gap-1"
+              <button type="button" class="tb-btn text-xs text-[#2F6FB3] hover:text-[#1e4d82] font-medium flex items-center gap-1"
                       data-target="{{ form.payment_terms.id_for_label }}" data-category="payment">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -431,7 +447,7 @@
           <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Nachbemerkung</span>
             <div class="relative">
-              <button type="button" class="tb-btn text-xs text-[#1666b0] hover:text-[#0d4f8c] font-medium flex items-center gap-1"
+              <button type="button" class="tb-btn text-xs text-[#2F6FB3] hover:text-[#1e4d82] font-medium flex items-center gap-1"
                       data-target="{{ form.closing_text.id_for_label }}" data-category="closing">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -468,7 +484,7 @@
       <div class="flex items-center gap-2 mb-2">
         <span class="pos-number flex-none w-7 h-7 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center">1</span>
         <select name="items-__prefix__-item_type"
-                class="flex-none text-xs font-medium px-2.5 py-1 rounded-full border border-slate-200 bg-white cursor-pointer item-type-select focus:outline-none focus:border-[#1666b0]">
+                class="flex-none text-xs font-medium px-2.5 py-1 rounded-full border border-slate-200 bg-white cursor-pointer item-type-select focus:outline-none focus:border-[#2F6FB3]">
           <option value="normal">Normal</option>
           <option value="optional">Optional</option>
           <option value="text">Freitext</option>
@@ -546,7 +562,7 @@
       </div>
       <div class="px-4 py-3 border-b border-slate-100">
         <input type="text" id="catalog-search" placeholder="Suchen..."
-               class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1666b0]">
+               class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#2F6FB3]">
       </div>
       <div id="catalog-list" class="overflow-y-auto flex-1 divide-y divide-slate-50 px-2 py-2">
         <p class="text-center text-slate-400 text-sm py-8">Lade Katalog...</p>
@@ -906,7 +922,7 @@
               <p class="text-sm font-mono text-slate-700">${parseFloat(item.unit_price).toFixed(2).replace('.', ',')} €</p>
               <p class="text-xs text-slate-400">${item.quantity} ${escHtml(item.unit)}</p>
             </div>
-            <div class="ml-1 text-[#1666b0]">
+            <div class="ml-1 text-[#2F6FB3]">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
               </svg>
@@ -974,7 +990,7 @@
   function renderBlocks(blocks, dropdown) {
     if (blocks.length === 0) {
       dropdown.innerHTML = `<div class="px-4 py-3 text-xs text-slate-400">Keine Textbausteine in dieser Kategorie.<br>
-        <a href="{% url 'crm:textblock_create' %}" target="_blank" class="text-[#1666b0] hover:underline">Jetzt anlegen</a></div>`;
+        <a href="{% url 'crm:textblock_create' %}" target="_blank" class="text-[#2F6FB3] hover:underline">Jetzt anlegen</a></div>`;
       return;
     }
     let html = '';
@@ -1044,7 +1060,7 @@
           if (data.results.length === 0) {
             dropdown.innerHTML = `<div class="px-4 py-2 text-xs text-slate-400">Kein Treffer —
               <a href="${contactCreateUrl}" target="_blank"
-                 class="text-[#1666b0] hover:underline font-medium">Neuen Kontakt anlegen</a></div>`;
+                 class="text-[#2F6FB3] hover:underline font-medium">Neuen Kontakt anlegen</a></div>`;
           } else {
             data.results.forEach(r => {
               const el = document.createElement('div');
@@ -1063,7 +1079,7 @@
             });
             const newEl = document.createElement('div');
             newEl.className = 'px-4 py-2 text-xs text-slate-400 border-t border-slate-100';
-            newEl.innerHTML = `Nicht dabei? <a href="${contactCreateUrl}" target="_blank" class="text-[#1666b0] hover:underline font-medium">Neuen Kontakt anlegen</a>`;
+            newEl.innerHTML = `Nicht dabei? <a href="${contactCreateUrl}" target="_blank" class="text-[#2F6FB3] hover:underline font-medium">Neuen Kontakt anlegen</a>`;
             dropdown.appendChild(newEl);
           }
           dropdown.classList.remove('hidden');

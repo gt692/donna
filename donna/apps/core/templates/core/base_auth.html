@@ -5,19 +5,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Donna{% endblock %} — Donna Business OS</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Rufina:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            donna: { DEFAULT: "#1666b0", dark: "#1255a0", light: "#e0e7ff" }
+            donna: {
+              DEFAULT: "#2F6FB3",
+              dark:    "#265e99",
+              accent:  "#2EC4D6",
+              light:   "#EFF6FF",
+              subtle:  "#CFFAFE"
+            }
           },
           fontFamily: {
-            donna: ['"Rufina"', 'Georgia', 'serif']
+            donna: ['"Satoshi"', 'Georgia', 'serif'],
+            sans:  ['"Inter"', 'ui-sans-serif', 'system-ui', 'sans-serif']
           }
         }
       }
