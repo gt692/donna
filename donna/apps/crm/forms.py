@@ -5,7 +5,6 @@ from django import forms
 from django.forms import inlineformset_factory
 from django.utils.translation import gettext_lazy as _
 
-from apps.core.models import Lookup
 from .models import Account, Contact, Invoice, InvoiceItem, Offer, OfferItem, Project, TextBlock, Unit
 
 _INPUT = (
@@ -63,7 +62,7 @@ class ContactForm(forms.ModelForm):
     class Meta:
         model  = Contact
         fields = [
-            "first_name", "last_name", "company_name", "role",
+            "first_name", "last_name", "company_name",
             "email", "phone", "mobile",
             "address_line1", "postal_code", "city", "country",
             "projects", "accounts",
@@ -73,7 +72,6 @@ class ContactForm(forms.ModelForm):
             "first_name":   forms.TextInput(attrs={"class": _INPUT, "placeholder": "Vorname"}),
             "last_name":    forms.TextInput(attrs={"class": _INPUT, "placeholder": "Nachname"}),
             "company_name": forms.TextInput(attrs={"class": _INPUT, "placeholder": "Firmenname (optional)"}),
-            "role":         forms.Select(attrs={"class": _SELECT}),
             "email":        forms.EmailInput(attrs={"class": _INPUT}),
             "phone":        forms.TextInput(attrs={"class": _INPUT, "placeholder": "+49 30 …"}),
             "mobile":       forms.TextInput(attrs={"class": _INPUT, "placeholder": "+49 170 …"}),
@@ -88,8 +86,6 @@ class ContactForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["role"].choices = [("", "— Rolle auswählen —")] + Lookup.choices_for("contact_role")
-        self.fields["role"].required = False
         self.fields["company_name"].required = False
         self.fields["email"].required = False
         self.fields["phone"].required = False
@@ -112,7 +108,7 @@ class ProjectForm(forms.ModelForm):
     class Meta:
         model  = Project
         fields = [
-            "company", "name", "project_type", "account", "status", "description",
+            "name", "project_type", "account", "status", "description",
             "team_lead", "team_members", "predecessor_projects",
             "start_date", "end_date",
             "budget_hours", "budget_amount",
@@ -120,7 +116,6 @@ class ProjectForm(forms.ModelForm):
             "storage_path", "lexoffice_id",
         ]
         widgets = {
-            "company":      forms.Select(attrs={"class": _SELECT, "id": "id_company"}),
             "name":         forms.TextInput(attrs={"class": _INPUT, "placeholder": "Projektname"}),
             "project_type": forms.Select(attrs={"class": _SELECT, "id": "id_project_type"}),
             "account":      forms.Select(attrs={"class": _SELECT}),
@@ -170,10 +165,6 @@ class ProjectForm(forms.ModelForm):
         self.fields["predecessor_projects"].queryset = predecessors_qs
         self.fields["predecessor_projects"].required = False
 
-        company_choices = [("", "Unternehmen auswählen …")] + Lookup.choices_for("company")
-        self.fields["company"].choices = company_choices
-        self.fields["company"].widget.choices = company_choices
-        self.fields["company"].required = True
         from apps.crm.models import ProjectType as ProjectTypeModel
         self.fields["project_type"].queryset = ProjectTypeModel.objects.filter(is_active=True)
         self.fields["project_type"].empty_label = "— Projekttyp wählen —"

@@ -71,8 +71,8 @@ def _all_projects_list(exclude_pk=None) -> list:
 
 def _member_rates_data(form, project=None) -> dict:
     """Baut ein Dict {user_pk: {name, role, default_rate, current_rate}} für das Template."""
-    from apps.core.models import Lookup
-    role_labels = {e["value"]: e["label"] for e in Lookup.entries_for("user_role")}
+    from apps.core.models import Role
+    role_labels = dict(Role.choices)
     data = {}
     for user in form.fields["team_members"].queryset:
         data[str(user.pk)] = {
@@ -116,11 +116,6 @@ class CRMMixin(LoginRequiredMixin):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        from apps.core.models import Lookup
-        ctx["company_colors"] = {
-            e["value"]: e["color"] for e in Lookup.entries_for("company")
-        }
-        ctx["companies"] = Lookup.entries_for("company")
         ctx["overdue_invoices_count"] = Invoice.objects.filter(
             status=Invoice.Status.SENT, due_date__lt=date.today()
         ).count()
@@ -151,7 +146,6 @@ def _save_inline_contact(request, account):
         email=request.POST.get("new_contact_email", "").strip(),
         phone=request.POST.get("new_contact_phone", "").strip(),
         mobile=request.POST.get("new_contact_mobile", "").strip(),
-        role=request.POST.get("new_contact_role", "") or "",
     )
     contact.accounts.add(account)
     account.primary_contact = contact
@@ -204,7 +198,6 @@ class AccountCreateView(AdminOrLeadMixin, CreateView):
         ctx = super().get_context_data(**kwargs)
         ctx["page_title"]           = "Neuer Account"
         ctx["submit_label"]         = "Account erstellen"
-        ctx["contact_role_choices"] = Contact.Role.choices
         ctx["contact_emails"]       = {str(k): v for k, v in Contact.objects.values_list("id", "email")}
         ctx["google_maps_api_key"]  = dj_settings.GOOGLE_MAPS_API_KEY
         return ctx
@@ -240,7 +233,6 @@ class AccountUpdateView(AdminOrLeadMixin, UpdateView):
         ctx = super().get_context_data(**kwargs)
         ctx["page_title"]           = f"{self.object.name} bearbeiten"
         ctx["submit_label"]         = "Speichern"
-        ctx["contact_role_choices"] = Contact.Role.choices
         ctx["contact_emails"]       = {str(k): v for k, v in Contact.objects.values_list("id", "email")}
         ctx["google_maps_api_key"]  = dj_settings.GOOGLE_MAPS_API_KEY
         return ctx
@@ -678,10 +670,6 @@ class KanbanView(CRMMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
-        from apps.core.models import Lookup
-        company_colors = {e["value"]: e["color"] for e in Lookup.entries_for("company")}
-        company_labels = {e["value"]: e["label"] for e in Lookup.entries_for("company")}
-
         projects = list(
             Project.objects
             .exclude(status__in=Project.ARCHIVED_STATUSES)
@@ -717,19 +705,11 @@ class KanbanView(CRMMixin, TemplateView):
             active_by_lead.setdefault(key, []).append(p)
 
         # Fixed "Beauftragt" column — active projects without team_lead (pool to claim)
-        def _company_groups(proj_list):
-            sorted_p = sorted(proj_list, key=lambda p: (company_labels.get(p.company, p.company).lower(), p.name.lower()))
-            groups, seen = [], {}
-            for p in sorted_p:
-                if p.company not in seen:
-                    seen[p.company] = []
-                    groups.append({"company": p.company, "label": company_labels.get(p.company, p.company),
-                                   "color": company_colors.get(p.company, "#94a3b8"), "projects": seen[p.company]})
-                seen[p.company].append(p)
-            return sorted_p, groups
+        def _sorted_projects(proj_list):
+            return sorted(proj_list, key=lambda p: p.name.lower()), [{"projects": sorted(proj_list, key=lambda p: p.name.lower())}]
 
         unassigned = active_by_lead.get("__none__", [])
-        unassigned_sorted, unassigned_groups = _company_groups(unassigned)
+        unassigned_sorted, unassigned_groups = _sorted_projects(unassigned)
         columns.append({
             "status": "active",
             "employee_col": True,
@@ -746,8 +726,7 @@ class KanbanView(CRMMixin, TemplateView):
         all_leads_data = [(lead, active_by_lead.get(str(lead.pk), [])) for lead in eligible_leads]
 
         for lead, lead_projects in all_leads_data:
-            # Sort projects within column by company label then name
-            sorted_projects, company_groups = _company_groups(lead_projects)
+            sorted_projects, company_groups = _sorted_projects(lead_projects)
 
             columns.append({
                 "status": "active",
@@ -768,8 +747,6 @@ class KanbanView(CRMMixin, TemplateView):
             columns.append({**col_def, "projects": col_projects, "count": len(col_projects)})
 
         ctx["columns"] = columns
-        ctx["company_colors"] = company_colors
-        ctx["company_labels"] = company_labels
         ctx["accepted_offer_pids"] = accepted_offer_pids
         return ctx
 
@@ -896,8 +873,7 @@ class ProjectInvoiceCreateView(AdminOrLeadMixin, View):
 
     @staticmethod
     def _lexoffice_configured(project) -> bool:
-        from apps.core.models import CompanyCredential
-        return bool(CompanyCredential.get_lexoffice_key(project.company))
+        return False
 
     def get(self, request, pk):
         project = self._get_project(pk)
@@ -1020,12 +996,11 @@ class ProjectInvoiceCreateView(AdminOrLeadMixin, View):
     @staticmethod
     def _ctx(project):
         import datetime as _dt
-        from apps.core.models import CompanyCredential
         return {
             "project": project,
             "today": _dt.date.today().isoformat(),
             "page_title": f"Rechnung stellen — {project.name}",
-            "use_lexoffice": bool(CompanyCredential.get_lexoffice_key(project.company)),
+            "use_lexoffice": False,
         }
 
 
@@ -1135,8 +1110,6 @@ def _contact_to_vcard(contact: Contact) -> str:
     ]
     if contact.company_name:
         lines.append(f"ORG:{_vcard_escape(contact.company_name)}")
-    if contact.role:
-        lines.append(f"TITLE:{_vcard_escape(contact.get_role_display())}")
     if contact.email:
         lines.append(f"EMAIL;TYPE=INTERNET:{_vcard_escape(contact.email)}")
     if contact.phone:
@@ -1234,16 +1207,11 @@ class ContactListView(CRMMixin, ListView):
                 Q(company_name__icontains=q) |
                 Q(email__icontains=q)
             )
-        role = self.request.GET.get("role", "")
-        if role:
-            qs = qs.filter(role=role)
         return qs
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["q"]            = self.request.GET.get("q", "")
-        ctx["role_filter"]  = self.request.GET.get("role", "")
-        ctx["role_choices"] = Contact.Role.choices
+        ctx["q"] = self.request.GET.get("q", "")
         return ctx
 
 
@@ -2485,10 +2453,7 @@ class LeadCommissionView(AdminOrLeadMixin, View):
         return redirect("crm:project_detail", pk=project.pk)
 
     def _base_ctx(self):
-        from apps.core.models import Lookup
         return {
-            "company_colors": {e["value"]: e["color"] for e in Lookup.entries_for("company")},
-            "companies":      Lookup.entries_for("company"),
             "overdue_invoices_count": Invoice.objects.filter(
                 status=Invoice.Status.SENT, due_date__lt=date.today()
             ).count(),

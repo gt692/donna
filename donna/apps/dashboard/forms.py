@@ -8,7 +8,7 @@ from __future__ import annotations
 from django import forms
 from django.core.exceptions import ValidationError
 
-from apps.core.models import CompanySettings, Lookup, Role, User
+from apps.core.models import CompanySettings, Role, User
 from apps.crm.models import ProductCatalog
 
 _TW = (
@@ -44,7 +44,8 @@ class UserCreateForm(forms.ModelForm):
         self.fields["reporting_to"].queryset = User.objects.filter(is_active=True).order_by(
             "last_name", "first_name"
         )
-        self.fields["role"].widget.choices = [("", "— Rolle auswählen —")] + Lookup.choices_for("user_role")
+        role_choices = [(r.value, r.label) for r in Role]
+        self.fields["role"].widget.choices = [("", "— Rolle auswählen —")] + role_choices
 
     def clean_email(self):
         email = self.cleaned_data.get("email", "").lower().strip()
@@ -88,7 +89,8 @@ class UserEditForm(forms.ModelForm):
         if exclude_pk:
             qs = qs.exclude(pk=exclude_pk)
         self.fields["reporting_to"].queryset = qs
-        self.fields["role"].widget.choices = [("", "— Rolle auswählen —")] + Lookup.choices_for("user_role")
+        role_choices = [(r.value, r.label) for r in Role]
+        self.fields["role"].widget.choices = [("", "— Rolle auswählen —")] + role_choices
 
     def clean_email(self):
         email = self.cleaned_data.get("email", "").lower().strip()

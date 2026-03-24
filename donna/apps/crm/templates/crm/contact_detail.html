@@ -3,7 +3,7 @@
 
 {% block title %}{{ contact }}{% endblock %}
 {% block page_heading %}{{ contact }}{% endblock %}
-{% block page_subheading %}{{ contact.get_role_display }}{% if contact.company_name %} · {{ contact.company_name }}{% endif %}{% endblock %}
+{% block page_subheading %}{% if contact.company_name %}{{ contact.company_name }}{% endif %}{% endblock %}
 
 {% block topbar_actions %}
   <a href="{% url 'crm:contact_vcard_export' contact.pk %}"
@@ -116,11 +116,6 @@
         </div>
         <div>
           <p class="font-semibold text-slate-800">{{ contact }}</p>
-          {% if contact.role %}
-            <span class="text-xs px-2 py-0.5 rounded-full bg-[#CFFAFE] text-[#265e99] font-medium">
-              {{ contact.get_role_display }}
-            </span>
-          {% endif %}
         </div>
       </div>
       {% if contact.company_name %}

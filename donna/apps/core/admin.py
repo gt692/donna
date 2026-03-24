@@ -8,7 +8,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from .models import CompanyCredential, CompanySettings, Lookup, NotificationLog, NotificationSubscription, NotificationTemplate, RoleHourlyRate, User
+from .models import CompanySettings, NotificationLog, NotificationSubscription, NotificationTemplate, Role, RoleHourlyRate, User
 
 
 # ---------------------------------------------------------------------------
@@ -98,9 +98,6 @@ class UserAdmin(BaseUserAdmin):
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
-        role_choices = Lookup.choices_for("user_role")
-        if role_choices and "role" in form.base_fields:
-            form.base_fields["role"].choices = role_choices
         return form
 
     def save_model(self, request, obj, form, change):
@@ -121,9 +118,8 @@ class UserAdmin(BaseUserAdmin):
             "project_assistant": ("#7c3aed", "#ede9fe"),
         }
         fg, bg = colors.get(obj.role, ("#6b7280", "#f3f4f6"))
-        # Label aus Lookup holen, Fallback auf den rohen Wert
-        label_map = dict(Lookup.choices_for("user_role"))
-        label = label_map.get(obj.role, obj.role)
+        role_labels = dict(Role.choices)
+        label = role_labels.get(obj.role, obj.role)
         return format_html(
             '<span style="background:{bg};color:{fg};padding:2px 8px;'
             'border-radius:4px;font-size:11px;font-weight:600;">{label}</span>',
@@ -148,45 +144,6 @@ class UserAdmin(BaseUserAdmin):
             )
         return format_html(
             '<span style="color:#dc2626;">✗ Inaktiv</span>'
-        )
-
-
-# ---------------------------------------------------------------------------
-# Lookup Admin
-# ---------------------------------------------------------------------------
-
-@admin.register(Lookup)
-class LookupAdmin(admin.ModelAdmin):
-    list_display  = ("category_badge", "label", "value", "order", "is_active")
-    list_filter   = ("category", "is_active")
-    search_fields = ("label", "value")
-    ordering      = ("category", "order", "label")
-    list_editable = ("order", "is_active")
-
-    fieldsets = (
-        (None, {
-            "fields": ("category", "label", "value", "order", "is_active"),
-            "description": _(
-                "Wert: Interner Schlüssel (Kleinbuchstaben, Unterstriche, keine Leerzeichen). "
-                "Bezeichnung: Angezeigter Text im Dropdown. "
-                "Reihenfolge: Niedrigere Zahl = weiter oben."
-            ),
-        }),
-    )
-
-    @admin.display(description=_("Kategorie"), ordering="category")
-    def category_badge(self, obj: Lookup) -> str:
-        colors = {
-            "contact_role": ("#1666b0", "#dbeafe"),
-            "project_type": ("#16a34a", "#dcfce7"),
-            "company":      ("#7c3aed", "#ede9fe"),
-            "user_role":    ("#dc2626", "#fee2e2"),
-        }
-        fg, bg = colors.get(obj.category, ("#6b7280", "#f3f4f6"))
-        return format_html(
-            '<span style="background:{bg};color:{fg};padding:2px 8px;'
-            'border-radius:4px;font-size:11px;font-weight:600;">{label}</span>',
-            bg=bg, fg=fg, label=obj.get_category_display(),
         )
 
 
@@ -259,10 +216,6 @@ class NotificationLogAdmin(admin.ModelAdmin):
 
 
 # ---------------------------------------------------------------------------
-# CompanyCredential Admin
-# ---------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------------
 # CompanySettings Admin
 # ---------------------------------------------------------------------------
 
@@ -297,26 +250,3 @@ class CompanySettingsAdmin(admin.ModelAdmin):
         return False
 
 
-# ---------------------------------------------------------------------------
-# CompanyCredential Admin
-# ---------------------------------------------------------------------------
-
-@admin.register(CompanyCredential)
-class CompanyCredentialAdmin(admin.ModelAdmin):
-    list_display  = ("company", "lexoffice_key_status")
-    ordering      = ("company",)
-
-    def get_form(self, request, obj=None, **kwargs):
-        from django import forms as dj_forms
-        form = super().get_form(request, obj, **kwargs)
-        company_choices = [("", "---------")] + Lookup.choices_for("company")
-        form.base_fields["company"].widget = dj_forms.Select(choices=company_choices)
-        return form
-
-    @admin.display(description="Lexoffice API-Key")
-    def lexoffice_key_status(self, obj: CompanyCredential) -> str:
-        if obj.lexoffice_api_key:
-            return format_html(
-                '<span style="color:#16a34a;font-weight:600;">✓ konfiguriert</span>'
-            )
-        return format_html('<span style="color:#9ca3af;">— nicht gesetzt</span>')

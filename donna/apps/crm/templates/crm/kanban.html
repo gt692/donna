@@ -52,33 +52,13 @@
          data-status="{{ col.status }}"
          data-team-lead-id="{{ col.team_lead_id|default:'' }}">
 
-      {% if col.employee_col %}
-        {% comment %}Projekte nach Unternehmen gruppiert{% endcomment %}
-        {% for group in col.company_groups %}
-          {% if col.company_groups|length > 1 %}
-            <div class="flex items-center gap-1.5 px-1 pt-1">
-              <span class="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                    style="background-color: {{ group.color }};"></span>
-              <span class="text-xs text-slate-400 font-medium">{{ group.label }}</span>
-            </div>
-          {% endif %}
-          {% for project in group.projects %}
-            {% include "crm/_kanban_card.html" with project=project company_colors=company_colors hide_lead=True %}
-          {% endfor %}
-        {% empty %}
-          <div class="rounded-xl border border-dashed border-slate-200 p-4 text-center">
-            <p class="text-xs text-slate-400">Keine Projekte</p>
-          </div>
-        {% endfor %}
-      {% else %}
-        {% for project in col.projects %}
-          {% include "crm/_kanban_card.html" with project=project company_colors=company_colors hide_lead=False %}
-        {% empty %}
-          <div class="rounded-xl border border-dashed border-slate-200 p-4 text-center">
-            <p class="text-xs text-slate-400">Keine Projekte</p>
-          </div>
-        {% endfor %}
-      {% endif %}
+      {% for project in col.projects %}
+        {% include "crm/_kanban_card.html" with project=project hide_lead=col.employee_col %}
+      {% empty %}
+        <div class="rounded-xl border border-dashed border-slate-200 p-4 text-center">
+          <p class="text-xs text-slate-400">Keine Projekte</p>
+        </div>
+      {% endfor %}
 
     </div>
   </div>

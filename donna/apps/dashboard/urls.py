@@ -2,18 +2,10 @@ from django.urls import path
 
 from .views import (
     AdminIndexView,
-    CompanyCredentialCreateView,
-    CompanyCredentialDeleteView,
-    CompanyCredentialListView,
-    CompanyCredentialUpdateView,
     CompanySettingsView,
     DashboardHomeView,
     HourlyRateListView,
     HourlyRateUpdateView,
-    LookupCreateView,
-    LookupDeleteView,
-    LookupListView,
-    LookupUpdateView,
     ProductCatalogCreateView,
     ProductCatalogDeleteView,
     ProductCatalogListView,
@@ -52,12 +44,6 @@ urlpatterns = [
     path("admin/users/<uuid:pk>/2fa/off/",  UserTOTPDisableView.as_view(),       name="user_totp_disable"),
     path("admin/users/<uuid:pk>/reinvite/", UserResendInvitationView.as_view(),  name="user_reinvite"),
 
-    # Lookup-Verwaltung
-    path("admin/lookups/",                  LookupListView.as_view(),   name="lookup_list"),
-    path("admin/lookups/new/",              LookupCreateView.as_view(), name="lookup_create"),
-    path("admin/lookups/<int:pk>/edit/",    LookupUpdateView.as_view(), name="lookup_edit"),
-    path("admin/lookups/<int:pk>/delete/",  LookupDeleteView.as_view(), name="lookup_delete"),
-
     # Stundensätze
     path("admin/hourly-rates/",             HourlyRateListView.as_view(),  name="hourly_rate_list"),
     path("admin/hourly-rates/<int:pk>/edit/", HourlyRateUpdateView.as_view(), name="hourly_rate_edit"),
@@ -82,10 +68,4 @@ urlpatterns = [
 
     # Firmeneinstellungen (Singleton)
     path("admin/company-settings/", CompanySettingsView.as_view(), name="company_settings"),
-
-    # Firmen-Zugangsdaten (Lexoffice)
-    path("admin/credentials/",                  CompanyCredentialListView.as_view(),   name="company_credential_list"),
-    path("admin/credentials/new/",              CompanyCredentialCreateView.as_view(), name="company_credential_create"),
-    path("admin/credentials/<int:pk>/edit/",    CompanyCredentialUpdateView.as_view(), name="company_credential_edit"),
-    path("admin/credentials/<int:pk>/delete/",  CompanyCredentialDeleteView.as_view(), name="company_credential_delete"),
 ]

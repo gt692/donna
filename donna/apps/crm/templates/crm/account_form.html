@@ -127,16 +127,6 @@
                    placeholder="Nachname">
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-600 mb-1">Rolle</label>
-            <select name="new_contact_role"
-                    class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] transition">
-              <option value="">— Rolle —</option>
-              {% for val, label in contact_role_choices %}
-                <option value="{{ val }}">{{ label }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div>
             <label class="block text-sm font-medium text-slate-600 mb-1">E-Mail</label>
             <input type="email" name="new_contact_email"
                    class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] focus:border-transparent transition"

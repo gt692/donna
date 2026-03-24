@@ -244,13 +244,7 @@ class RevenueTargetAdmin(admin.ModelAdmin):
     list_filter   = ("company", "year")
     ordering      = ("-year", "company")
 
-    def get_form(self, request, obj=None, **kwargs):
-        from django import forms as dj_forms
-        from apps.core.models import Lookup
-        form = super().get_form(request, obj, **kwargs)
-        company_choices = [("", "---------")] + Lookup.choices_for("company")
-        form.base_fields["company"].widget = dj_forms.Select(choices=company_choices)
-        return form
+    pass
 
 
 # ---------------------------------------------------------------------------
@@ -262,16 +256,6 @@ class ProjectTypeAdmin(admin.ModelAdmin):
     list_display  = ("name", "color", "order", "is_active")
     list_editable = ("order", "is_active")
     ordering      = ("order", "name")
-
-    def get_form(self, request, obj=None, **kwargs):
-        from django import forms as dj_forms
-        from apps.core.models import Lookup
-        form = super().get_form(request, obj, **kwargs)
-        company_choices = [("", "---------")] + Lookup.choices_for("company")
-        pt_choices      = [("", "---------")] + Lookup.choices_for("project_type")
-        form.base_fields["company"].widget      = dj_forms.Select(choices=company_choices)
-        form.base_fields["project_type"].widget = dj_forms.Select(choices=pt_choices)
-        return form
 
 
 # ---------------------------------------------------------------------------

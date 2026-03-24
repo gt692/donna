@@ -35,21 +35,9 @@
         </thead>
         <tbody class="divide-y divide-slate-50">
           {% for t in targets %}
-            {% with co=companies|dictsort:"value" %}
             <tr class="hover:bg-slate-50 transition">
               <td class="px-6 py-4">
-                <span class="inline-flex items-center gap-2">
-                  {% for co in companies %}
-                    {% if co.value == t.company %}
-                      <span class="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                            style="background-color:{{ co.color|default:'#94a3b8' }};"></span>
-                      <span class="font-medium text-slate-700">{{ co.label }}</span>
-                    {% endif %}
-                  {% endfor %}
-                  {% if not t.company in companies|join:"," %}
-                    <span class="font-medium text-slate-700">{{ t.company }}</span>
-                  {% endif %}
-                </span>
+                <span class="font-medium text-slate-700">{{ t.company }}</span>
               </td>
               <td class="px-6 py-4 text-slate-600">{{ t.year }}</td>
               <td class="px-6 py-4 text-right font-semibold text-slate-800">{{ t.target_amount|eur_de }}</td>
@@ -65,7 +53,6 @@
                 </div>
               </td>
             </tr>
-            {% endwith %}
           {% endfor %}
         </tbody>
       </table>

@@ -187,11 +187,6 @@ class Project(models.Model):
     - storage_path für Laufwerk-Integration
     - lexoffice_id für spätere Rechnungs-Synchronisation
     """
-    class Company(models.TextChoices):
-        DIRESO     = "direso",     _("DIRESO")
-        GT_IMMO    = "gt_immo",    _("GT Immo")
-        GT_PROJEKT = "gt_projekt", _("GT Projekt")
-
     class Status(models.TextChoices):
         LEAD       = "lead",       _("Lead")
         OFFER_SENT = "offer_sent", _("Angebot versendet")
@@ -206,13 +201,6 @@ class Project(models.Model):
     ARCHIVED_STATUSES = {Status.COMPLETED, Status.CANCELLED, Status.OFFER_LOST}
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
-    company = models.CharField(
-        max_length=20,
-        blank=True,
-        default="",
-        verbose_name=_("Unternehmen"),
-    )
 
     project_number = models.CharField(
         max_length=20,
@@ -509,26 +497,10 @@ class ProjectBudgetExtension(models.Model):
 # ---------------------------------------------------------------------------
 
 class Contact(models.Model):
-    class Role(models.TextChoices):
-        ARCHITECT   = "architect",   _("Architekt")
-        AUTHORITY   = "authority",   _("Behörde")
-        BANK        = "bank",        _("Bank / Finanzierer")
-        BROKER      = "broker",      _("Makler")
-        BUYER       = "buyer",       _("Käufer")
-        LAWYER      = "lawyer",      _("Anwalt")
-        NOTARY      = "notary",      _("Notar")
-        PM          = "pm",          _("Projektentwickler")
-        SELLER      = "seller",      _("Verkäufer")
-        TAX_ADVISOR = "tax_advisor", _("Steuerberater")
-        OTHER       = "other",       _("Sonstiges")
-
     id         = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     first_name = models.CharField(max_length=100, verbose_name=_("Vorname"))
     last_name  = models.CharField(max_length=100, verbose_name=_("Nachname"))
     company_name = models.CharField(max_length=255, blank=True, verbose_name=_("Firma"))
-    role = models.CharField(
-        max_length=20, blank=True, verbose_name=_("Rolle")
-    )
 
     email  = models.EmailField(blank=True, verbose_name=_("E-Mail"))
     phone  = models.CharField(max_length=50, blank=True, verbose_name=_("Telefon"))

@@ -266,80 +266,6 @@ class NotificationSubscription(models.Model):
         return f"{self.user} → {self.get_event_display()}{project_label}"
 
 
-# ---------------------------------------------------------------------------
-# Lookup — Admin-editierbare Auswahloptionen
-# ---------------------------------------------------------------------------
-
-class Lookup(models.Model):
-    """
-    Zentrale Tabelle für alle admin-editierbaren Auswahloptionen.
-    Ermöglicht dem Admin das Pflegen von Kontaktrollen, Projekttypen etc.
-    ohne Code-Änderungen.
-    """
-    class Category(models.TextChoices):
-        CONTACT_ROLE = "contact_role", _("Kontaktrolle")
-        PROJECT_TYPE = "project_type", _("Projekttyp")
-        COMPANY      = "company",      _("Unternehmen")
-        USER_ROLE    = "user_role",    _("Benutzerrolle")
-
-    category = models.CharField(
-        max_length=30,
-        choices=Category.choices,
-        verbose_name=_("Kategorie"),
-    )
-    label = models.CharField(
-        max_length=100,
-        verbose_name=_("Bezeichnung"),
-        help_text=_("Angezeigter Text im Dropdown, z.B. 'Architekt'"),
-    )
-    value = models.CharField(
-        max_length=50,
-        verbose_name=_("Wert"),
-        help_text=_("Interner Schlüssel, z.B. 'architect'. Kleinbuchstaben, keine Leerzeichen."),
-    )
-    order = models.PositiveSmallIntegerField(
-        default=0,
-        verbose_name=_("Reihenfolge"),
-    )
-    is_active = models.BooleanField(
-        default=True,
-        verbose_name=_("Aktiv"),
-    )
-    color = models.CharField(
-        max_length=7,
-        blank=True,
-        verbose_name=_("Farbe (Hex)"),
-        help_text=_("Optionale Markenfarbe, z.B. '#1B70BF'. Wird u.a. im Dashboard verwendet."),
-    )
-
-    class Meta:
-        verbose_name        = _("Auswahloption")
-        verbose_name_plural = _("Auswahloptionen")
-        ordering            = ["category", "order", "label"]
-        unique_together     = [("category", "value")]
-
-    def __str__(self) -> str:
-        return f"{self.get_category_display()} · {self.label}"
-
-    @classmethod
-    def choices_for(cls, category: str):
-        """Gibt eine Liste von (value, label) Tuples für ein Formular-Feld zurück."""
-        return list(
-            cls.objects.filter(category=category, is_active=True)
-            .order_by("order", "label")
-            .values_list("value", "label")
-        )
-
-    @classmethod
-    def entries_for(cls, category: str):
-        """Gibt eine Liste von Dicts {value, label, color} zurück — z.B. für Dashboard-Tabs."""
-        return list(
-            cls.objects.filter(category=category, is_active=True)
-            .order_by("order", "label")
-            .values("value", "label", "color")
-        )
-
-
 class NotificationLog(models.Model):
     """
     Protokolliert jede versendete Benachrichtigung für Audit-Zwecke.
@@ -412,42 +338,6 @@ class EmailOTPCode(models.Model):
 
     def is_valid(self) -> bool:
         return not self.used and timezone.now() < self.expires_at
-
-
-class CompanyCredential(models.Model):
-    """
-    Speichert integrationsrelevante Zugangsdaten je Unternehmen (company-Lookup-Value).
-    Derzeit: Lexoffice API-Key.  Wird über den Donna-Admin gepflegt.
-    """
-    company = models.CharField(
-        max_length=50,
-        unique=True,
-        verbose_name=_("Unternehmen"),
-        help_text=_("Interner Wert aus dem Lookup 'company', z.B. 'gt_immo'."),
-    )
-    lexoffice_api_key = models.CharField(
-        max_length=255,
-        blank=True,
-        verbose_name=_("Lexoffice API-Key"),
-        help_text=_("Persönlicher API-Schlüssel aus dem jeweiligen Lexoffice-Konto."),
-    )
-
-    class Meta:
-        verbose_name = _("Firmen-Zugangsdaten")
-        verbose_name_plural = _("Firmen-Zugangsdaten")
-        ordering = ["company"]
-
-    def __str__(self) -> str:
-        configured = "✓" if self.lexoffice_api_key else "—"
-        return f"{self.company} (Lexoffice {configured})"
-
-    @classmethod
-    def get_lexoffice_key(cls, company: str) -> str:
-        """Gibt den Lexoffice API-Key für ein Unternehmen zurück, oder '' wenn nicht konfiguriert."""
-        try:
-            return cls.objects.get(company=company).lexoffice_api_key
-        except cls.DoesNotExist:
-            return ""
 
 
 class RoleHourlyRate(models.Model):

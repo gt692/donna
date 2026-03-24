@@ -90,11 +90,6 @@
         </div>
         <div>
           <p class="font-semibold text-slate-800 text-sm">{{ account.primary_contact }}</p>
-          {% if account.primary_contact.role %}
-            <span class="text-xs px-1.5 py-0.5 rounded-full bg-[#2F6FB3] text-white font-medium">
-              {{ account.primary_contact.get_role_display }}
-            </span>
-          {% endif %}
         </div>
       </div>
       <dl class="space-y-1.5 text-sm border-t border-[#A5F3FC] pt-3">
@@ -147,9 +142,6 @@
             </div>
             <div class="flex-1 min-w-0">
               <p class="text-sm text-slate-700 font-medium truncate">{{ contact }}</p>
-              {% if contact.role %}
-                <p class="text-xs text-slate-400">{{ contact.get_role_display }}</p>
-              {% endif %}
             </div>
           </a>
           {% endif %}

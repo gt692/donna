@@ -15,7 +15,7 @@ from django.views.generic import CreateView, ListView, TemplateView, UpdateView,
 
 from decimal import Decimal
 
-from apps.core.models import CompanyCredential, CompanySettings, Lookup, Role, RoleHourlyRate, User
+from apps.core.models import CompanySettings, Role, RoleHourlyRate, User
 from apps.crm.models import Account, ProductCatalog, Project, RevenueTarget
 from apps.worktrack.models import TimeEntry
 
@@ -113,95 +113,7 @@ class DashboardHomeView(LoginRequiredMixin, TemplateView):
                 ).aggregate(total=Sum("duration_hours"))["total"] or 0
             )
 
-        # ── Finanz-KPIs (Admin + Projektleiter) ───────────────────────────────
-        if user.is_admin or user.is_project_manager:
-            ctx["show_finance_kpis"] = True
-
-            # Verfügbare Unternehmen aus Lookup (inkl. Farbe)
-            companies = Lookup.entries_for("company")  # [{value, label, color}, ...]
-            ctx["finance_companies"] = companies
-
-            # Ausgewähltes Unternehmen (GET-Param oder erstes verfügbares)
-            selected = self.request.GET.get("company", "")
-            valid_values = [c["value"] for c in companies]
-            if selected not in valid_values and valid_values:
-                selected = valid_values[0]
-            ctx["finance_company"] = selected
-
-            # Label + Farbe des ausgewählten Unternehmens
-            selected_entry = next((c for c in companies if c["value"] == selected), {})
-            ctx["finance_company_label"] = selected_entry.get("label", selected)
-            ctx["finance_company_color"] = selected_entry.get("color", "#1666b0")
-
-            current_year = now.year
-            current_month = now.month
-
-            # Fakturierter Umsatz YTD (Rechnungen für dieses Unternehmen)
-            from apps.crm.models import Document
-            invoice_qs = Document.objects.filter(
-                document_type="invoice",
-                document_date__year=current_year,
-                project__company=selected,
-            )
-            invoiced_ytd = invoice_qs.aggregate(
-                total=Sum("net_amount")
-            )["total"] or Decimal("0")
-            ctx["invoiced_ytd"] = invoiced_ytd
-
-            # Auftragsvolumen (aktive + laufende Projekte)
-            active_statuses = ["active", "on_hold", "invoiced"]
-            active_volume = (
-                Project.objects.filter(
-                    company=selected,
-                    status__in=active_statuses,
-                ).aggregate(total=Sum("budget_amount"))["total"] or Decimal("0")
-            )
-            ctx["active_volume"] = active_volume
-
-            # Pipeline (Angebot + Lead)
-            pipeline_volume = (
-                Project.objects.filter(
-                    company=selected,
-                    status__in=["offer_sent", "lead"],
-                ).aggregate(total=Sum("budget_amount"))["total"] or Decimal("0")
-            )
-            ctx["pipeline_volume"] = pipeline_volume
-
-            # Jahres-Ziel
-            try:
-                revenue_target = RevenueTarget.objects.get(
-                    company=selected, year=current_year
-                )
-                target_amount = revenue_target.target_amount
-                target_pct = min(int(invoiced_ytd / target_amount * 100), 100) if target_amount else 0
-                ctx["target_amount"]    = target_amount
-                ctx["target_pct"]       = target_pct
-                ctx["target_remaining"] = max(target_amount - invoiced_ytd, Decimal("0"))
-            except RevenueTarget.DoesNotExist:
-                ctx["target_amount"]    = None
-                ctx["target_pct"]       = 0
-                ctx["target_remaining"] = None
-
-            # Genehmigte Stunden diesen Monat (unternehmensübergreifend)
-            ctx["hours_this_month"] = (
-                TimeEntry.objects.filter(
-                    project__company=selected,
-                    status=TimeEntry.Status.APPROVED,
-                    date__year=current_year,
-                    date__month=current_month,
-                ).aggregate(total=Sum("duration_hours"))["total"] or 0
-            )
-
-            # Aktive Projekte für dieses Unternehmen
-            ctx["company_active_projects"] = (
-                Project.objects.filter(
-                    company=selected,
-                    status=Project.Status.ACTIVE,
-                ).count()
-            )
-
-        else:
-            ctx["show_finance_kpis"] = False
+        ctx["show_finance_kpis"] = False
 
         return ctx
 
@@ -474,85 +386,6 @@ class UserTOTPDisableView(AdminRequiredMixin, View):
 
 
 # ---------------------------------------------------------------------------
-# Lookup-Verwaltung
-# ---------------------------------------------------------------------------
-
-class LookupListView(AdminRequiredMixin, TemplateView):
-    template_name = "dashboard/admin/lookup_list.html"
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        lookups = Lookup.objects.order_by("category", "order", "label")
-        ctx["lookups"] = lookups
-        ctx["categories"] = (
-            Lookup.objects.values_list("category", flat=True)
-            .distinct()
-            .order_by("category")
-        )
-        ctx["category_filter"] = self.request.GET.get("category", "")
-        if ctx["category_filter"]:
-            ctx["lookups"] = lookups.filter(category=ctx["category_filter"])
-        return ctx
-
-
-class LookupCreateView(AdminRequiredMixin, CreateView):
-    model = Lookup
-    fields = ["category", "label", "value", "order", "is_active"]
-    template_name = "dashboard/admin/lookup_form.html"
-    success_url = reverse_lazy("dashboard:lookup_list")
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["page_title"] = "Neuer Lookup-Eintrag"
-        ctx["submit_label"] = "Eintrag anlegen"
-        ctx["existing_categories"] = (
-            Lookup.objects.values_list("category", flat=True)
-            .distinct()
-            .order_by("category")
-        )
-        return ctx
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, "Lookup-Eintrag wurde angelegt.")
-        return response
-
-
-class LookupUpdateView(AdminRequiredMixin, UpdateView):
-    model = Lookup
-    fields = ["category", "label", "value", "order", "is_active"]
-    template_name = "dashboard/admin/lookup_form.html"
-    success_url = reverse_lazy("dashboard:lookup_list")
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["page_title"] = f"Lookup bearbeiten: {self.object.label}"
-        ctx["submit_label"] = "Änderungen speichern"
-        ctx["existing_categories"] = (
-            Lookup.objects.values_list("category", flat=True)
-            .distinct()
-            .order_by("category")
-        )
-        return ctx
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, "Lookup-Eintrag wurde aktualisiert.")
-        return response
-
-
-class LookupDeleteView(AdminRequiredMixin, View):
-    """POST-only: löscht einen Lookup-Eintrag."""
-
-    def post(self, request, pk):
-        lookup = get_object_or_404(Lookup, pk=pk)
-        label = lookup.label
-        lookup.delete()
-        messages.success(request, f"Lookup-Eintrag '{label}' wurde gelöscht.")
-        return redirect("dashboard:lookup_list")
-
-
-# ---------------------------------------------------------------------------
 # RoleHourlyRate-Verwaltung
 # ---------------------------------------------------------------------------
 
@@ -596,7 +429,6 @@ class RevenueTargetListView(AdminRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["targets"] = RevenueTarget.objects.order_by("-year", "company")
-        ctx["companies"] = Lookup.entries_for("company")
         return ctx
 
 
@@ -608,9 +440,6 @@ class RevenueTargetCreateView(AdminRequiredMixin, CreateView):
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        from django import forms as dj_forms
-        company_choices = [("", "— Unternehmen wählen —")] + Lookup.choices_for("company")
-        form.fields["company"].widget = dj_forms.Select(choices=company_choices)
         form.fields["year"].initial = __import__("datetime").date.today().year
         return form
 
@@ -631,13 +460,6 @@ class RevenueTargetUpdateView(AdminRequiredMixin, UpdateView):
     fields = ["company", "year", "target_amount"]
     template_name = "dashboard/admin/revenue_target_form.html"
     success_url = reverse_lazy("dashboard:revenue_target_list")
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        from django import forms as dj_forms
-        company_choices = [("", "— Unternehmen wählen —")] + Lookup.choices_for("company")
-        form.fields["company"].widget = dj_forms.Select(choices=company_choices)
-        return form
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -662,94 +484,6 @@ class RevenueTargetDeleteView(AdminRequiredMixin, View):
 # ---------------------------------------------------------------------------
 # Firmen-Zugangsdaten (Lexoffice API-Keys)
 # ---------------------------------------------------------------------------
-
-_INPUT_CSS = (
-    "w-full px-3 py-2 rounded-lg border border-slate-200 bg-white "
-    "focus:outline-none focus:ring-2 focus:ring-[#1666b0] focus:border-transparent "
-    "text-sm transition"
-)
-
-
-class CompanyCredentialListView(AdminRequiredMixin, TemplateView):
-    template_name = "dashboard/admin/company_credential_list.html"
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["credentials"] = CompanyCredential.objects.order_by("company")
-        ctx["companies"] = Lookup.entries_for("company")
-        ctx["company_colors"] = {e["value"]: e["color"] for e in ctx["companies"]}
-        return ctx
-
-
-class CompanyCredentialCreateView(AdminRequiredMixin, CreateView):
-    model = CompanyCredential
-    fields = ["company", "lexoffice_api_key"]
-    template_name = "dashboard/admin/company_credential_form.html"
-    success_url = reverse_lazy("dashboard:company_credential_list")
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        from django import forms as dj_forms
-        company_choices = [("", "— Unternehmen wählen —")] + Lookup.choices_for("company")
-        form.fields["company"].widget = dj_forms.Select(
-            attrs={"class": _INPUT_CSS + " cursor-pointer"},
-            choices=company_choices,
-        )
-        form.fields["lexoffice_api_key"].widget = dj_forms.TextInput(
-            attrs={"class": _INPUT_CSS, "placeholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"},
-        )
-        return form
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["page_title"] = "Neuer Firmen-Zugang"
-        ctx["submit_label"] = "Speichern"
-        return ctx
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, "Zugangsdaten wurden gespeichert.")
-        return response
-
-
-class CompanyCredentialUpdateView(AdminRequiredMixin, UpdateView):
-    model = CompanyCredential
-    fields = ["company", "lexoffice_api_key"]
-    template_name = "dashboard/admin/company_credential_form.html"
-    success_url = reverse_lazy("dashboard:company_credential_list")
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        from django import forms as dj_forms
-        company_choices = [("", "— Unternehmen wählen —")] + Lookup.choices_for("company")
-        form.fields["company"].widget = dj_forms.Select(
-            attrs={"class": _INPUT_CSS + " cursor-pointer"},
-            choices=company_choices,
-        )
-        form.fields["lexoffice_api_key"].widget = dj_forms.TextInput(
-            attrs={"class": _INPUT_CSS, "placeholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"},
-        )
-        return form
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["page_title"] = "Zugangsdaten bearbeiten"
-        ctx["submit_label"] = "Speichern"
-        return ctx
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, "Zugangsdaten wurden aktualisiert.")
-        return response
-
-
-class CompanyCredentialDeleteView(AdminRequiredMixin, View):
-    def post(self, request, pk):
-        cred = get_object_or_404(CompanyCredential, pk=pk)
-        cred.delete()
-        messages.success(request, "Zugangsdaten wurden gelöscht.")
-        return redirect("dashboard:company_credential_list")
-
 
 # ---------------------------------------------------------------------------
 # Projekttypen-Verwaltung

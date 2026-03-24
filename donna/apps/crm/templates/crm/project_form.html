@@ -33,16 +33,9 @@
           {{ form.name }}
           {% if form.name.errors %}<p class="mt-1 text-xs text-red-600">{{ form.name.errors|join:", " }}</p>{% endif %}
         </div>
-        <div>
+        <div class="col-span-2">
           <label class="block text-sm font-medium text-slate-600 mb-1">
-            {{ form.company.label }} <span class="text-red-500">*</span>
-          </label>
-          {{ form.company }}
-          {% if form.company.errors %}<p class="mt-1 text-xs text-red-600">{{ form.company.errors|join:", " }}</p>{% endif %}
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-600 mb-1">
-            {{ form.project_type.label }} <span class="text-red-500">*</span>
+            {{ form.project_type.label }}
           </label>
           {{ form.project_type }}
           {% if form.project_type.errors %}<p class="mt-1 text-xs text-red-600">{{ form.project_type.errors|join:", " }}</p>{% endif %}
@@ -342,40 +335,11 @@
 
 {% block extra_js %}
 {{ member_rates_data|json_script:"member-rates-data" }}
-{{ project_types_by_company|json_script:"company-types-data" }}
 {{ all_projects_json|json_script:"all-projects-data" }}
 {{ selected_predecessors_json|json_script:"selected-predecessors-data" }}
 <script>
 (function () {
-  // ── Firmen → Projekttyp-Filter ──────────────────────────────────────────
-  const companyTypes = JSON.parse(document.getElementById('company-types-data').textContent);
-  const companySelect = document.getElementById('id_company');
-  const typeSelect    = document.getElementById('id_project_type');
-
-  // Alle Optionen einmalig sichern (außer dem leeren Placeholder)
-  const allOptions = Array.from(typeSelect.options).filter(o => o.value !== '');
-
-  function filterTypes() {
-    const allowed = companyTypes[companySelect.value] || null;
-    const current = typeSelect.value;
-    // Alle Optionen entfernen und gefiltert wieder einfügen
-    while (typeSelect.options.length > 0) typeSelect.remove(0);
-    if (!allowed) {
-      allOptions.forEach(o => typeSelect.add(o.cloneNode(true)));
-    } else {
-      allowed.forEach(val => {
-        const opt = allOptions.find(o => o.value === val);
-        if (opt) typeSelect.add(opt.cloneNode(true));
-      });
-    }
-    // Vorherige Auswahl beibehalten wenn noch gültig
-    if (Array.from(typeSelect.options).some(o => o.value === current)) {
-      typeSelect.value = current;
-    }
-  }
-
-  companySelect.addEventListener('change', filterTypes);
-  filterTypes(); // initial anwenden
+  const typeSelect = document.getElementById('id_project_type');
 
   // ── Verkauf: Provisions-Felder ein-/ausblenden ───────────────────────────
   const sectionCommission = document.getElementById('section-commission');
