@@ -235,9 +235,18 @@
           <div class="border-b border-slate-100 relative">
             <div class="field-wrap">
               <label>Kontakt suchen</label>
-              <input type="text" id="recipient-search" placeholder="Name, E-Mail oder Firma …"
-                     autocomplete="off"
-                     class="w-full px-3 py-2 pt-6 rounded-none border-0 text-sm focus:outline-none focus:ring-0 bg-white">
+              <div class="relative">
+                <input type="text" id="recipient-search" placeholder="Name, E-Mail oder Firma …"
+                       autocomplete="off"
+                       class="w-full px-3 py-2 pt-6 rounded-none border-0 text-sm focus:outline-none focus:ring-0 bg-white pr-8">
+                <button type="button" id="recipient-clear"
+                        class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                        title="Auswahl zurücksetzen">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
             </div>
             <div id="recipient-dropdown"
                  class="hidden absolute left-0 right-0 top-full bg-white border border-slate-200 rounded-b-xl shadow-lg z-50 max-h-64 overflow-y-auto">
@@ -1080,6 +1089,7 @@
 // ── Empfänger-Autocomplete ─────────────────────────────────────
 (function() {
   const searchInput  = document.getElementById('recipient-search');
+  const clearBtn     = document.getElementById('recipient-clear');
   const dropdown     = document.getElementById('recipient-dropdown');
   const fieldName    = document.getElementById('{{ form.recipient_name.id_for_label }}');
   const fieldEmail   = document.getElementById('{{ form.recipient_email.id_for_label }}');
@@ -1090,8 +1100,27 @@
   if (!searchInput) return;
   let debounceTimer;
 
+  function selectContact(r) {
+    if (fieldName)    fieldName.value    = r.name;
+    if (fieldEmail)   fieldEmail.value   = r.email;
+    if (fieldAddress) fieldAddress.value = r.address;
+    searchInput.value = r.label;
+    dropdown.classList.add('hidden');
+    clearBtn.classList.remove('hidden');
+  }
+
+  clearBtn.addEventListener('click', function() {
+    searchInput.value = '';
+    if (fieldName)    fieldName.value    = '';
+    if (fieldEmail)   fieldEmail.value   = '';
+    if (fieldAddress) fieldAddress.value = '';
+    clearBtn.classList.add('hidden');
+    searchInput.focus();
+  });
+
   searchInput.addEventListener('input', function() {
     clearTimeout(debounceTimer);
+    clearBtn.classList.add('hidden');
     const q = this.value.trim();
     if (q.length < 2) { dropdown.classList.add('hidden'); return; }
     debounceTimer = setTimeout(() => {
@@ -1110,13 +1139,7 @@
               el.innerHTML = `
                 <div class="text-sm font-medium text-slate-800">${r.label}</div>
                 <div class="text-xs text-slate-400">${r.email || ''}${r.address ? ' · ' + r.address.split('\n')[0] : ''}</div>`;
-              el.addEventListener('click', () => {
-                if (fieldName)    fieldName.value    = r.name;
-                if (fieldEmail)   fieldEmail.value   = r.email;
-                if (fieldAddress) fieldAddress.value = r.address;
-                searchInput.value = r.label;
-                dropdown.classList.add('hidden');
-              });
+              el.addEventListener('click', () => selectContact(r));
               dropdown.appendChild(el);
             });
             const newEl = document.createElement('div');
