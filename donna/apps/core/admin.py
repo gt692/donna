@@ -8,7 +8,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from .models import CompanySettings, NotificationLog, NotificationSubscription, NotificationTemplate, Role, RoleHourlyRate, User
+from .models import CompanySettings, NotificationLog, NotificationSubscription, NotificationTemplate, Role, User, UserRole
 
 
 # ---------------------------------------------------------------------------
@@ -98,6 +98,8 @@ class UserAdmin(BaseUserAdmin):
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
+        role_choices = list(UserRole.objects.values_list("slug", "name"))
+        form.base_fields["role"].widget.choices = [("", "— Rolle wählen —")] + role_choices
         return form
 
     def save_model(self, request, obj, form, change):
@@ -118,8 +120,10 @@ class UserAdmin(BaseUserAdmin):
             "project_assistant": ("#7c3aed", "#ede9fe"),
         }
         fg, bg = colors.get(obj.role, ("#6b7280", "#f3f4f6"))
-        role_labels = dict(Role.choices)
-        label = role_labels.get(obj.role, obj.role)
+        try:
+            label = UserRole.objects.get(slug=obj.role).name
+        except UserRole.DoesNotExist:
+            label = obj.role
         return format_html(
             '<span style="background:{bg};color:{fg};padding:2px 8px;'
             'border-radius:4px;font-size:11px;font-weight:600;">{label}</span>',
@@ -145,21 +149,6 @@ class UserAdmin(BaseUserAdmin):
         return format_html(
             '<span style="color:#dc2626;">✗ Inaktiv</span>'
         )
-
-
-# ---------------------------------------------------------------------------
-# RoleHourlyRate Admin
-# ---------------------------------------------------------------------------
-
-@admin.register(RoleHourlyRate)
-class RoleHourlyRateAdmin(admin.ModelAdmin):
-    list_display  = ("role_display", "hourly_rate")
-    list_editable = ("hourly_rate",)
-    ordering      = ("role",)
-
-    @admin.display(description=_("Rolle"), ordering="role")
-    def role_display(self, obj: RoleHourlyRate) -> str:
-        return obj.get_role_display()
 
 
 # ---------------------------------------------------------------------------

@@ -9,6 +9,7 @@ from __future__ import annotations
 import secrets
 import uuid
 from datetime import timedelta
+from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
@@ -21,11 +22,32 @@ from django.utils.translation import gettext_lazy as _
 # Konstanten
 # ---------------------------------------------------------------------------
 
-class Role(models.TextChoices):
-    ADMIN               = "admin",               _("Administrator")
-    PROJECT_MANAGER     = "project_manager",     _("Projektleiter")
-    EMPLOYEE            = "employee",            _("Mitarbeiter")
-    PROJECT_ASSISTANT   = "project_assistant",   _("Projektassistenz")
+class Role:
+    """Interne Rollenkürzel — werden für Berechtigungsprüfungen verwendet."""
+    ADMIN             = "admin"
+    PROJECT_MANAGER   = "project_manager"
+    EMPLOYEE          = "employee"
+    PROJECT_ASSISTANT = "project_assistant"
+
+
+class UserRole(models.Model):
+    """Frei konfigurierbare Benutzerrollen mit Stundensatz."""
+    name         = models.CharField(max_length=100, unique=True, verbose_name="Name")
+    slug         = models.SlugField(max_length=50, unique=True, verbose_name="Kürzel",
+                                    help_text="Interner Schlüssel, z.B. 'admin' oder 'projektleiter'")
+    hourly_rate  = models.DecimalField(max_digits=8, decimal_places=2, default=0,
+                                       verbose_name="Stundensatz (€)")
+    is_protected = models.BooleanField(default=False, verbose_name="Geschützt",
+                                       help_text="Geschützte Rollen können nicht gelöscht werden")
+    order        = models.PositiveSmallIntegerField(default=0, verbose_name="Reihenfolge")
+
+    class Meta:
+        ordering            = ["order", "name"]
+        verbose_name        = "Benutzerrolle"
+        verbose_name_plural = "Benutzerrollen"
+
+    def __str__(self) -> str:
+        return self.name
 
 
 class NotificationEvent(models.TextChoices):
@@ -57,7 +79,7 @@ class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     role = models.CharField(
-        max_length=30,
+        max_length=50,
         default=Role.EMPLOYEE,
         verbose_name=_("Rolle"),
     )
@@ -152,9 +174,9 @@ class User(AbstractUser):
     def default_hourly_rate(self):
         """Gibt den admin-pflegbaren Standard-Stundensatz (netto) für diese Rolle zurück."""
         try:
-            return RoleHourlyRate.objects.get(role=self.role).hourly_rate
-        except RoleHourlyRate.DoesNotExist:
-            return None
+            return UserRole.objects.get(slug=self.role).hourly_rate
+        except UserRole.DoesNotExist:
+            return Decimal("0.00")
 
     # ------------------------------------------------------------------
     # Einladungs-Hilfsmethoden
@@ -308,10 +330,6 @@ class NotificationLog(models.Model):
         return f"{self.event} → {self.recipient} [{self.status}] {self.created_at:%Y-%m-%d %H:%M}"
 
 
-# ---------------------------------------------------------------------------
-# RoleHourlyRate — Admin-editierbare Standard-Stundensätze je Rolle
-# ---------------------------------------------------------------------------
-
 class EmailOTPCode(models.Model):
     """
     Einmaliger 6-stelliger Code für die E-Mail-basierte MFA.
@@ -338,32 +356,6 @@ class EmailOTPCode(models.Model):
 
     def is_valid(self) -> bool:
         return not self.used and timezone.now() < self.expires_at
-
-
-class RoleHourlyRate(models.Model):
-    """
-    Speichert den Standard-Netto-Stundensatz für eine User-Rolle.
-    Wird beim Anlegen von ProjectMemberRates als Vorschlagswert genutzt.
-    """
-    role = models.CharField(
-        max_length=30,
-        choices=Role.choices,
-        unique=True,
-        verbose_name=_("Rolle"),
-    )
-    hourly_rate = models.DecimalField(
-        max_digits=8,
-        decimal_places=2,
-        verbose_name=_("Stundensatz (€ netto)"),
-    )
-
-    class Meta:
-        verbose_name = _("Rollen-Stundensatz")
-        verbose_name_plural = _("Rollen-Stundensätze")
-        ordering = ["role"]
-
-    def __str__(self) -> str:
-        return f"{self.get_role_display()} — {self.hourly_rate} €/h"
 
 
 # ---------------------------------------------------------------------------

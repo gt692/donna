@@ -4,8 +4,6 @@ from .views import (
     AdminIndexView,
     CompanySettingsView,
     DashboardHomeView,
-    HourlyRateListView,
-    HourlyRateUpdateView,
     ProductCatalogCreateView,
     ProductCatalogDeleteView,
     ProductCatalogListView,
@@ -22,6 +20,10 @@ from .views import (
     UserDeleteView,
     UserListView,
     UserResendInvitationView,
+    UserRoleCreateView,
+    UserRoleDeleteView,
+    UserRoleListView,
+    UserRoleUpdateView,
     UserTOTPDisableView,
     UserTOTPSetupView,
     UserToggleActiveView,
@@ -44,9 +46,11 @@ urlpatterns = [
     path("admin/users/<uuid:pk>/2fa/off/",  UserTOTPDisableView.as_view(),       name="user_totp_disable"),
     path("admin/users/<uuid:pk>/reinvite/", UserResendInvitationView.as_view(),  name="user_reinvite"),
 
-    # Stundensätze
-    path("admin/hourly-rates/",             HourlyRateListView.as_view(),  name="hourly_rate_list"),
-    path("admin/hourly-rates/<int:pk>/edit/", HourlyRateUpdateView.as_view(), name="hourly_rate_edit"),
+    # Rollen & Stundensätze
+    path("admin/user-roles/",                 UserRoleListView.as_view(),   name="user_role_list"),
+    path("admin/user-roles/new/",             UserRoleCreateView.as_view(), name="user_role_create"),
+    path("admin/user-roles/<int:pk>/edit/",   UserRoleUpdateView.as_view(), name="user_role_update"),
+    path("admin/user-roles/<int:pk>/delete/", UserRoleDeleteView.as_view(), name="user_role_delete"),
 
     # Umsatzziele
     path("admin/revenue-targets/",              RevenueTargetListView.as_view(),   name="revenue_target_list"),

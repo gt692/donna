@@ -15,7 +15,7 @@ from django.views.generic import CreateView, ListView, TemplateView, UpdateView,
 
 from decimal import Decimal
 
-from apps.core.models import CompanySettings, Role, RoleHourlyRate, User
+from apps.core.models import CompanySettings, Role, User, UserRole
 from apps.crm.models import Account, ProductCatalog, Project, RevenueTarget
 from apps.worktrack.models import TimeEntry
 
@@ -160,7 +160,7 @@ class UserListView(AdminRequiredMixin, ListView):
         ctx = super().get_context_data(**kwargs)
         ctx["q"]           = self.request.GET.get("q", "")
         ctx["role_filter"] = self.request.GET.get("role", "")
-        ctx["roles"]       = Role.choices
+        ctx["roles"]       = list(UserRole.objects.values_list("slug", "name"))
         return ctx
 
 
@@ -386,37 +386,84 @@ class UserTOTPDisableView(AdminRequiredMixin, View):
 
 
 # ---------------------------------------------------------------------------
-# RoleHourlyRate-Verwaltung
+# Rollen & Stundensätze
 # ---------------------------------------------------------------------------
 
-class HourlyRateListView(AdminRequiredMixin, TemplateView):
-    template_name = "dashboard/admin/hourly_rate_list.html"
+class UserRoleListView(AdminRequiredMixin, TemplateView):
+    template_name = "dashboard/admin/user_role_list.html"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["rates"] = RoleHourlyRate.objects.order_by("role")
+        ctx["roles"] = UserRole.objects.all()
         return ctx
 
 
-class HourlyRateUpdateView(AdminRequiredMixin, UpdateView):
-    model = RoleHourlyRate
-    fields = ["hourly_rate"]
-    template_name = "dashboard/admin/hourly_rate_form.html"
-    success_url = reverse_lazy("dashboard:hourly_rate_list")
+_ROLE_TW = (
+    "w-full px-3 py-2 border border-slate-200 rounded-lg text-sm "
+    "focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+)
+
+
+class UserRoleCreateView(AdminRequiredMixin, CreateView):
+    model         = UserRole
+    fields        = ["name", "slug", "hourly_rate", "order"]
+    template_name = "dashboard/admin/user_role_form.html"
+    success_url   = reverse_lazy("dashboard:user_role_list")
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        for fname in form.fields:
+            form.fields[fname].widget.attrs.setdefault("class", _ROLE_TW)
+        return form
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["page_title"] = f"Stundensatz: {self.object.get_role_display()}"
-        ctx["submit_label"] = "Speichern"
+        ctx["page_title"]   = "Neue Rolle anlegen"
+        ctx["submit_label"] = "Rolle anlegen"
         return ctx
 
     def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(
-            self.request,
-            f"Stundensatz für {self.object.get_role_display()} wurde aktualisiert.",
-        )
-        return response
+        messages.success(self.request, f"Rolle \"{form.instance.name}\" wurde angelegt.")
+        return super().form_valid(form)
+
+
+class UserRoleUpdateView(AdminRequiredMixin, UpdateView):
+    model         = UserRole
+    fields        = ["name", "hourly_rate", "order"]
+    template_name = "dashboard/admin/user_role_form.html"
+    success_url   = reverse_lazy("dashboard:user_role_list")
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        for fname in form.fields:
+            form.fields[fname].widget.attrs.setdefault("class", _ROLE_TW)
+        return form
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"]   = f"Rolle bearbeiten: {self.object.name}"
+        ctx["submit_label"] = "Änderungen speichern"
+        ctx["edit_obj"]     = self.object
+        return ctx
+
+    def form_valid(self, form):
+        messages.success(self.request, f"Rolle \"{form.instance.name}\" wurde gespeichert.")
+        return super().form_valid(form)
+
+
+class UserRoleDeleteView(AdminRequiredMixin, View):
+    def post(self, request, pk):
+        role = get_object_or_404(UserRole, pk=pk)
+        if role.is_protected:
+            messages.error(request, f"Die Rolle \"{role.name}\" ist geschützt und kann nicht gelöscht werden.")
+            return redirect("dashboard:user_role_list")
+        if User.objects.filter(role=role.slug).exists():
+            messages.error(request, f"Die Rolle \"{role.name}\" ist noch Benutzern zugewiesen und kann nicht gelöscht werden.")
+            return redirect("dashboard:user_role_list")
+        name = role.name
+        role.delete()
+        messages.success(request, f"Rolle \"{name}\" wurde gelöscht.")
+        return redirect("dashboard:user_role_list")
 
 
 # ---------------------------------------------------------------------------
