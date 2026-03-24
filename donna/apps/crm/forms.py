@@ -206,7 +206,7 @@ class OfferForm(forms.ModelForm):
         model  = Offer
         fields = [
             "title", "offer_date", "valid_until", "tax_rate",
-            "discount_percent", "discount_amount_eur", "is_kleinunternehmer",
+            "discount_percent", "discount_amount_eur",
             "intro_text", "closing_text", "payment_terms",
             "recipient_name", "recipient_email", "recipient_address",
         ]
@@ -217,7 +217,6 @@ class OfferForm(forms.ModelForm):
             "tax_rate":           forms.NumberInput(attrs={"class": _INPUT, "step": "0.01", "id": "id_tax_rate"}),
             "discount_percent":   forms.NumberInput(attrs={"class": _INPUT, "step": "0.01", "min": "0", "max": "100", "placeholder": "0"}),
             "discount_amount_eur": forms.NumberInput(attrs={"class": _INPUT, "step": "0.01", "min": "0", "placeholder": "0.00"}),
-            "is_kleinunternehmer": forms.CheckboxInput(attrs={"class": "w-4 h-4 rounded border-slate-300 text-[#1666b0]"}),
             "intro_text":         forms.Textarea(attrs={"class": _INPUT, "rows": 4, "placeholder": "Einleitungstext …"}),
             "closing_text":       forms.Textarea(attrs={"class": _INPUT, "rows": 4, "placeholder": "Nachbemerkung …"}),
             "payment_terms":      forms.Textarea(attrs={"class": _INPUT, "rows": 3, "placeholder": "z.B. Zahlbar innerhalb von 14 Tagen ohne Abzug."}),
@@ -281,7 +280,7 @@ class InvoiceForm(forms.ModelForm):
         model = Invoice
         fields = [
             "title", "invoice_type", "invoice_date", "due_date", "tax_rate",
-            "discount_percent", "discount_amount_eur", "is_kleinunternehmer",
+            "discount_percent", "discount_amount_eur",
             "intro_text", "closing_text", "payment_info",
             "recipient_name", "recipient_email", "recipient_address",
         ]
@@ -293,7 +292,6 @@ class InvoiceForm(forms.ModelForm):
             "tax_rate":           forms.NumberInput(attrs={"class": _INPUT, "step": "0.01", "id": "id_tax_rate"}),
             "discount_percent":   forms.NumberInput(attrs={"class": _INPUT, "step": "0.01", "min": "0", "max": "100", "placeholder": "0"}),
             "discount_amount_eur": forms.NumberInput(attrs={"class": _INPUT, "step": "0.01", "min": "0", "placeholder": "0.00"}),
-            "is_kleinunternehmer": forms.CheckboxInput(attrs={"class": "w-4 h-4 rounded border-slate-300 text-[#1666b0]"}),
             "intro_text":         forms.Textarea(attrs={"class": _INPUT, "rows": 4}),
             "closing_text":       forms.Textarea(attrs={"class": _INPUT, "rows": 4}),
             "payment_info":       forms.Textarea(attrs={"class": _INPUT, "rows": 3}),

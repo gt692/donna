@@ -180,13 +180,11 @@
               <label for="{{ form.tax_rate.id_for_label }}">Umsatzsteuer (%)</label>
               {{ form.tax_rate }}
             </div>
-            <!-- Kleinunternehmer -->
-            <div class="flex items-center gap-3 px-4 py-3">
-              {{ form.is_kleinunternehmer }}
-              <label for="{{ form.is_kleinunternehmer.id_for_label }}"
-                     class="text-sm text-slate-700 cursor-pointer select-none">
-                Kleinunternehmer (§&nbsp;19 UStG) — keine Umsatzsteuer
-              </label>
+            <!-- Gültigkeitsdauer -->
+            <div class="field-wrap">
+              <label for="validity-days">Gültig für (Tage)</label>
+              <input type="number" id="validity-days" min="1" max="730" placeholder="30"
+                     class="w-full px-3 pt-5 pb-2 text-sm rounded border-0 focus:outline-none focus:ring-0 bg-transparent">
             </div>
           </div>
         </div>
@@ -406,10 +404,6 @@
                 <div id="tax-row" class="flex justify-between text-xs text-slate-400">
                   <span>Umsatzsteuer <span id="live-tax-rate">19,00</span> %</span>
                   <span id="live-tax" class="font-mono">0,00 €</span>
-                </div>
-                <div id="kleinunternehmer-row" class="hidden flex justify-between text-xs text-slate-400">
-                  <span>Umsatzsteuer (§ 19 UStG)</span>
-                  <span class="font-mono">entfällt</span>
                 </div>
                 <div class="flex justify-between pt-1.5 border-t border-slate-600">
                   <span class="text-sm font-semibold text-white">Gesamtbetrag</span>
@@ -659,12 +653,8 @@
     }
     const net = subtotal - discAmt;
 
-    // Kleinunternehmer
-    const kleinEl  = document.getElementById('{{ form.is_kleinunternehmer.id_for_label }}');
-    const isKlein  = kleinEl && kleinEl.checked;
-
     const taxRateEl = document.getElementById('{{ form.tax_rate.id_for_label }}');
-    const taxRate   = (!isKlein && taxRateEl) ? (parseFloat(taxRateEl.value) || 19) : 0;
+    const taxRate   = taxRateEl ? (parseFloat(taxRateEl.value) || 19) : 19;
     const tax       = net * taxRate / 100;
     const gross     = net + tax;
 
@@ -683,17 +673,10 @@
     }
 
     const taxRow = document.getElementById('tax-row');
-    const kleinRow = document.getElementById('kleinunternehmer-row');
-    if (isKlein) {
-      taxRow.classList.add('hidden');
-      kleinRow.classList.remove('hidden');
-    } else {
-      taxRow.classList.remove('hidden');
-      kleinRow.classList.add('hidden');
-      document.getElementById('live-tax').textContent = fmt(tax);
-      const liveTaxRate = document.getElementById('live-tax-rate');
-      if (liveTaxRate) liveTaxRate.textContent = taxRate.toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2});
-    }
+    taxRow.classList.remove('hidden');
+    document.getElementById('live-tax').textContent = fmt(tax);
+    const liveTaxRate = document.getElementById('live-tax-rate');
+    if (liveTaxRate) liveTaxRate.textContent = taxRate.toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2});
   }
 
   function bindCardEvents(card) {
@@ -786,15 +769,56 @@
     if (ta) ta.focus();
   });
 
-  // Gesamtrabatt + Kleinunternehmer + Steuersatz
+  // Gesamtrabatt + Steuersatz
   const discPctEl  = document.getElementById('{{ form.discount_percent.id_for_label }}');
   const discEurEl  = document.getElementById('{{ form.discount_amount_eur.id_for_label }}');
   if (discPctEl) discPctEl.addEventListener('input', recalculate);
   if (discEurEl) discEurEl.addEventListener('input', recalculate);
-  const kleinEl = document.getElementById('{{ form.is_kleinunternehmer.id_for_label }}');
-  if (kleinEl) kleinEl.addEventListener('change', recalculate);
   const taxRateEl = document.getElementById('{{ form.tax_rate.id_for_label }}');
   if (taxRateEl) taxRateEl.addEventListener('input', recalculate);
+
+  // ── Gültigkeitsdauer: Tage ↔ Datum synchronisieren ────────────────
+  (function() {
+    const offerDateEl   = document.getElementById('{{ form.offer_date.id_for_label }}');
+    const validUntilEl  = document.getElementById('{{ form.valid_until.id_for_label }}');
+    const validityDaysEl = document.getElementById('validity-days');
+    if (!offerDateEl || !validUntilEl || !validityDaysEl) return;
+
+    function daysFromDate() {
+      const base  = offerDateEl.value ? new Date(offerDateEl.value) : null;
+      const until = validUntilEl.value ? new Date(validUntilEl.value) : null;
+      if (!base || !until) return '';
+      const diff = Math.round((until - base) / 86400000);
+      return diff > 0 ? diff : '';
+    }
+
+    function dateFromDays(days) {
+      const base = offerDateEl.value ? new Date(offerDateEl.value) : null;
+      if (!base || !days) return '';
+      const d = new Date(base);
+      d.setDate(d.getDate() + parseInt(days));
+      return d.toISOString().slice(0, 10);
+    }
+
+    // Init: prefill days from existing valid_until
+    if (validUntilEl.value) validityDaysEl.value = daysFromDate();
+
+    validityDaysEl.addEventListener('input', function() {
+      validUntilEl.value = dateFromDays(this.value);
+    });
+
+    validUntilEl.addEventListener('change', function() {
+      validityDaysEl.value = daysFromDate();
+    });
+
+    offerDateEl.addEventListener('change', function() {
+      if (validityDaysEl.value) {
+        validUntilEl.value = dateFromDays(validityDaysEl.value);
+      } else if (validUntilEl.value) {
+        validityDaysEl.value = daysFromDate();
+      }
+    });
+  })();
 
   // Gesamtrabatt: show/hide & Modus-Toggle
   const discSection   = document.getElementById('discount-section');
