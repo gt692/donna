@@ -135,8 +135,20 @@
 
         <!-- Empfänger -->
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100">
+          <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Empfänger</span>
+          </div>
+          <!-- Kontakt-Suche -->
+          <div class="border-b border-slate-100 relative">
+            <div class="field-wrap">
+              <label>Kontakt suchen</label>
+              <input type="text" id="recipient-search" placeholder="Name, E-Mail oder Firma …"
+                     autocomplete="off"
+                     class="w-full px-3 py-2 pt-6 rounded-none border-0 text-sm focus:outline-none focus:ring-0 bg-white">
+            </div>
+            <div id="recipient-dropdown"
+                 class="hidden absolute left-0 right-0 top-full bg-white border border-slate-200 rounded-b-xl shadow-lg z-50 max-h-64 overflow-y-auto">
+            </div>
           </div>
           <div class="grid grid-cols-2 divide-x divide-slate-100">
             <div class="field-wrap">
@@ -589,5 +601,69 @@ function initGoogleAutocomplete() {
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initGoogleAutocomplete" async defer></script>
 {% endif %}
+
+<script>
+(function() {
+  const searchInput  = document.getElementById('recipient-search');
+  const dropdown     = document.getElementById('recipient-dropdown');
+  const fieldName    = document.getElementById('{{ form.recipient_name.id_for_label }}');
+  const fieldEmail   = document.getElementById('{{ form.recipient_email.id_for_label }}');
+  const fieldAddress = document.getElementById('{{ form.recipient_address.id_for_label }}');
+  const searchUrl    = "{% url 'crm:recipient_search' %}";
+  const contactCreateUrl = "{% url 'crm:contact_create' %}";
+
+  if (!searchInput) return;
+
+  let debounceTimer;
+
+  searchInput.addEventListener('input', function() {
+    clearTimeout(debounceTimer);
+    const q = this.value.trim();
+    if (q.length < 2) { dropdown.classList.add('hidden'); return; }
+    debounceTimer = setTimeout(() => {
+      fetch(`${searchUrl}?q=${encodeURIComponent(q)}`)
+        .then(r => r.json())
+        .then(data => {
+          dropdown.innerHTML = '';
+          if (data.results.length === 0) {
+            dropdown.innerHTML = `
+              <div class="px-4 py-2 text-xs text-slate-400">Kein Treffer —
+                <a href="${contactCreateUrl}" target="_blank"
+                   class="text-[#1666b0] hover:underline font-medium">Neuen Kontakt anlegen</a>
+              </div>`;
+          } else {
+            data.results.forEach(r => {
+              const el = document.createElement('div');
+              el.className = 'px-4 py-2.5 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0';
+              el.innerHTML = `
+                <div class="text-sm font-medium text-slate-800">${r.label}</div>
+                <div class="text-xs text-slate-400">${r.email || ''}${r.address ? ' · ' + r.address.split('\n')[0] : ''}</div>`;
+              el.addEventListener('click', () => {
+                if (fieldName)    fieldName.value    = r.name;
+                if (fieldEmail)   fieldEmail.value   = r.email;
+                if (fieldAddress) fieldAddress.value = r.address;
+                searchInput.value = r.label;
+                dropdown.classList.add('hidden');
+              });
+              dropdown.appendChild(el);
+            });
+            // "Neu anlegen"-Option am Ende
+            const newEl = document.createElement('div');
+            newEl.className = 'px-4 py-2 text-xs text-slate-400 border-t border-slate-100';
+            newEl.innerHTML = `Nicht dabei? <a href="${contactCreateUrl}" target="_blank" class="text-[#1666b0] hover:underline font-medium">Neuen Kontakt anlegen</a>`;
+            dropdown.appendChild(newEl);
+          }
+          dropdown.classList.remove('hidden');
+        });
+    }, 250);
+  });
+
+  document.addEventListener('click', function(e) {
+    if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.classList.add('hidden');
+    }
+  });
+})();
+</script>
 </body>
 </html>

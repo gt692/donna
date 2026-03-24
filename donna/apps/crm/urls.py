@@ -10,6 +10,7 @@ from .views import (
     KanbanView, ProjectKanbanMoveView,
     LeadCommissionView, LeadInquiryImportView, LeadInquiryPublicView, LeadListView,
     OfferCreateStandaloneView, OfferCreateView, OfferDeleteView, OfferDetailView, OfferListView,
+    RecipientSearchView,
     OfferOrderConfirmationView, OfferPDFView, OfferSendView, OfferStatusUpdateView, OfferUpdateView,
     ProductCatalogAPIView,
     ProjectActivityCreateView, ProjectActivityDeleteView,
@@ -103,6 +104,9 @@ urlpatterns = [
     path("invoices/<uuid:pk>/delete/", InvoiceDeleteView.as_view(), name="invoice_delete"),
     path("invoices/<uuid:pk>/xrechnung/", InvoiceXRechnungView.as_view(), name="invoice_xrechnung"),
     path("offers/<uuid:pk>/ab/", OfferOrderConfirmationView.as_view(), name="offer_ab"),
+
+    # Empfänger-Suche (Angebot/Rechnung)
+    path("recipients/search/", RecipientSearchView.as_view(), name="recipient_search"),
 
     # Produktkatalog API
     path("catalog/api/", ProductCatalogAPIView.as_view(), name="catalog_api"),
