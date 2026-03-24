@@ -4,12 +4,12 @@ from .views import (
     ContactCreateView, ContactDetailView, ContactListView, ContactUpdateView,
     ContactVCardExportView, ContactVCardImportView,
     DocumentDeleteView, DocumentServeView, DocumentUploadView,
-    InvoiceCreateView, InvoiceDeleteView, InvoiceDetailView, InvoiceFromOfferView,
+    InvoiceCreateStandaloneView, InvoiceCreateView, InvoiceDeleteView, InvoiceDetailView, InvoiceFromOfferView,
     InvoiceListView, InvoicePDFView, InvoiceSendView, InvoiceStatusUpdateView, InvoiceUpdateView,
     InvoiceXRechnungView,
     KanbanView, ProjectKanbanMoveView,
     LeadCommissionView, LeadInquiryImportView, LeadInquiryPublicView, LeadListView,
-    OfferCreateView, OfferDeleteView, OfferDetailView, OfferListView,
+    OfferCreateStandaloneView, OfferCreateView, OfferDeleteView, OfferDetailView, OfferListView,
     OfferOrderConfirmationView, OfferPDFView, OfferSendView, OfferStatusUpdateView, OfferUpdateView,
     ProductCatalogAPIView,
     ProjectActivityCreateView, ProjectActivityDeleteView,
@@ -71,6 +71,8 @@ urlpatterns = [
          ProjectActivityDeleteView.as_view(), name="project_activity_delete"),
 
     # Angebote
+    path("offers/new/",
+         OfferCreateStandaloneView.as_view(), name="offer_create_standalone"),
     path("projects/<uuid:pk>/offers/new/",
          OfferCreateView.as_view(), name="offer_create"),
     path("offers/",
@@ -89,6 +91,7 @@ urlpatterns = [
          OfferDeleteView.as_view(), name="offer_delete"),
 
     # Invoice URLs
+    path("invoices/new/", InvoiceCreateStandaloneView.as_view(), name="invoice_create_standalone"),
     path("invoices/", InvoiceListView.as_view(), name="invoice_list"),
     path("projects/<uuid:pk>/invoices/new/", InvoiceCreateView.as_view(), name="invoice_create"),
     path("offers/<uuid:pk>/invoice/", InvoiceFromOfferView.as_view(), name="invoice_from_offer"),

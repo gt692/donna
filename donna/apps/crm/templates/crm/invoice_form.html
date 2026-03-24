@@ -3,7 +3,7 @@
 {% block title %}{{ page_title }}{% endblock %}
 {% block page_heading %}{{ page_title }}{% endblock %}
 {% block page_subheading %}
-  <a href="{% url 'crm:project_detail' project.pk %}" class="hover:text-slate-600 transition">{{ project.name }}</a>
+  {% if project %}<a href="{% url 'crm:project_detail' project.pk %}" class="hover:text-slate-600 transition">{{ project.name }}</a>{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -26,6 +26,13 @@
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
         <h2 class="text-sm font-semibold text-slate-700 mb-4">Rechnung</h2>
         <div class="grid grid-cols-2 gap-4">
+
+          {% if not project %}
+          <div class="col-span-2">
+            <label class="block text-xs font-medium text-slate-600 mb-1">Projekt (optional)</label>
+            {{ form.project }}
+          </div>
+          {% endif %}
 
           <div class="col-span-2">
             <label class="block text-xs font-medium text-slate-600 mb-1">Titel *</label>

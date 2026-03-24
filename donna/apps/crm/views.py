@@ -1379,6 +1379,38 @@ class OfferCreateView(AdminOrLeadMixin, View):
     # get_test_func via UserPassesTestMixin which calls test_func on dispatch.
 
 
+class OfferCreateStandaloneView(AdminOrLeadMixin, View):
+    """Angebot direkt aus der Angebotsliste erstellen — ohne Projekt-PK in der URL."""
+    template_name = "crm/offer_form.html"
+
+    def get(self, request):
+        form    = OfferForm()
+        formset = _build_offer_formset(request, extra=3)
+        return render(request, self.template_name, {
+            "form": form, "formset": formset, "project": None,
+            "page_title": "Neues Angebot",
+            "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
+        })
+
+    def post(self, request):
+        form    = OfferForm(request.POST)
+        formset = _build_offer_formset(request, extra=3)
+        if form.is_valid() and formset.is_valid():
+            offer            = form.save(commit=False)
+            offer.project    = form.cleaned_data.get("project")
+            offer.created_by = request.user
+            offer.save()
+            formset.instance = offer
+            formset.save()
+            messages.success(request, f"Angebot {offer.offer_number} erstellt.")
+            return redirect("crm:offer_detail", pk=offer.pk)
+        return render(request, self.template_name, {
+            "form": form, "formset": formset, "project": None,
+            "page_title": "Neues Angebot",
+            "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
+        })
+
+
 class OfferDetailView(LoginRequiredMixin, DetailView):
     login_url     = "/auth/login/"
     model         = Offer
@@ -1803,6 +1835,39 @@ class InvoiceCreateView(AdminOrLeadMixin, View):
             return redirect("crm:invoice_detail", pk=invoice.pk)
         return render(request, "crm/invoice_form.html", {
             "form": form, "formset": formset, "project": project, "offer": None,
+            "page_title": "Neue Rechnung",
+            "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
+        })
+
+
+class InvoiceCreateStandaloneView(AdminOrLeadMixin, View):
+    """Rechnung direkt aus der Rechnungsliste erstellen — ohne Projekt-PK in der URL."""
+
+    def get(self, request):
+        form    = InvoiceForm()
+        formset = _build_invoice_formset(request, extra=3)
+        return render(request, "crm/invoice_form.html", {
+            "form": form, "formset": formset, "project": None, "offer": None,
+            "page_title": "Neue Rechnung",
+            "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
+        })
+
+    def post(self, request):
+        form    = InvoiceForm(request.POST)
+        formset = _build_invoice_formset(request)
+        if form.is_valid() and formset.is_valid():
+            invoice            = form.save(commit=False)
+            invoice.project    = form.cleaned_data.get("project")
+            invoice.created_by = request.user
+            invoice.save()
+            formset.instance = invoice
+            formset.save()
+            invoice.net_total_cached = invoice.net_total
+            invoice.save(update_fields=["net_total_cached"])
+            messages.success(request, f"Rechnung {invoice.invoice_number} erstellt.")
+            return redirect("crm:invoice_detail", pk=invoice.pk)
+        return render(request, "crm/invoice_form.html", {
+            "form": form, "formset": formset, "project": None, "offer": None,
             "page_title": "Neue Rechnung",
             "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
         })

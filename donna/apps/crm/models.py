@@ -747,6 +747,8 @@ class Offer(models.Model):
         "Project",
         on_delete=models.PROTECT,
         related_name="offers",
+        null=True,
+        blank=True,
         verbose_name=_("Projekt"),
     )
     status = models.CharField(
@@ -872,7 +874,7 @@ class Invoice(models.Model):
 
     id             = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     invoice_number = models.CharField(max_length=20, unique=True, blank=True)
-    project        = models.ForeignKey("Project", on_delete=models.PROTECT, related_name="invoices")
+    project        = models.ForeignKey("Project", on_delete=models.PROTECT, related_name="invoices", null=True, blank=True)
     offer          = models.ForeignKey("Offer", null=True, blank=True, on_delete=models.SET_NULL, related_name="invoices")
     invoice_type   = models.CharField(max_length=20, choices=InvoiceType.choices, default=InvoiceType.STANDARD)
     status         = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)

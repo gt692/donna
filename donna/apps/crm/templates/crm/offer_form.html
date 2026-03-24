@@ -51,7 +51,7 @@
     <div class="flex items-center h-14 px-5 gap-4">
 
       <!-- Schließen -->
-      <a href="{% if offer %}{% url 'crm:offer_detail' offer.pk %}{% else %}{% url 'crm:project_detail' project.pk %}{% endif %}"
+      <a href="{% if offer %}{% url 'crm:offer_detail' offer.pk %}{% elif project %}{% url 'crm:project_detail' project.pk %}{% else %}{% url 'crm:offer_list' %}{% endif %}"
          class="flex-none p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
          title="Abbrechen">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,7 +62,7 @@
       <!-- Titel -->
       <div class="flex-1 min-w-0">
         <div class="text-sm font-semibold text-slate-800 truncate">{{ page_title }}</div>
-        <div class="text-xs text-slate-400 truncate">{{ project.name }} · {{ project.project_number }}</div>
+        {% if project %}<div class="text-xs text-slate-400 truncate">{{ project.name }} · {{ project.project_number }}</div>{% endif %}
       </div>
 
       <!-- Aktionen rechts -->
@@ -94,6 +94,16 @@
 
         <!-- Belegnummer (schreibgeschützt, nur bei Edit) + Datum-Felder -->
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+
+          {% if not project %}
+          <!-- Projekt-Auswahl (nur bei Standalone-Erstellung) -->
+          <div class="border-b border-slate-100">
+            <div class="field-wrap">
+              <label for="{{ form.project.id_for_label }}">Projekt (optional)</label>
+              {{ form.project }}
+            </div>
+          </div>
+          {% endif %}
 
           <!-- Belegtitel -->
           <div class="border-b border-slate-100">

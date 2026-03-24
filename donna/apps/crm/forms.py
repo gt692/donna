@@ -194,6 +194,14 @@ class ProjectForm(forms.ModelForm):
 # ---------------------------------------------------------------------------
 
 class OfferForm(forms.ModelForm):
+    project = forms.ModelChoiceField(
+        queryset=Project.objects.filter(deleted_at__isnull=True).order_by("name"),
+        required=False,
+        empty_label="— Kein Projekt —",
+        widget=forms.Select(attrs={"class": _SELECT}),
+        label="Projekt",
+    )
+
     class Meta:
         model  = Offer
         fields = [
@@ -268,6 +276,14 @@ OfferItemFormSet = inlineformset_factory(
 # ---------------------------------------------------------------------------
 
 class InvoiceForm(forms.ModelForm):
+    project = forms.ModelChoiceField(
+        queryset=Project.objects.filter(deleted_at__isnull=True).order_by("name"),
+        required=False,
+        empty_label="— Kein Projekt —",
+        widget=forms.Select(attrs={"class": _SELECT}),
+        label="Projekt",
+    )
+
     class Meta:
         model = Invoice
         fields = [
