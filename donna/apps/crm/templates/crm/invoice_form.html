@@ -294,12 +294,8 @@
 
         <!-- Positionen -->
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+          <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-200">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Positionen</span>
-            <button type="button" id="unit-new-btn" class="text-xs text-slate-400 hover:text-emerald-600 transition flex items-center gap-1" title="Neue Einheit anlegen">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-              Einheit
-            </button>
           </div>
 
           <div id="items-container" class="p-3 space-y-2 bg-slate-50">
@@ -369,7 +365,12 @@
                     </div>
                     <div>
                       <label class="block text-xs text-slate-400 mb-1">Einheit</label>
-                      {{ item_form.unit }}
+                      <div class="flex items-center gap-1">
+                        {{ item_form.unit }}
+                        <button type="button" class="unit-new-btn flex-none text-slate-300 hover:text-emerald-600 transition" title="Neue Einheit anlegen">
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label class="block text-xs text-slate-400 mb-1">EP (Netto)</label>
@@ -586,9 +587,14 @@
             </div>
             <div>
               <label class="block text-xs text-slate-400 mb-1">Einheit</label>
-              <input type="text" name="items-__prefix__-unit" value=""
-                     list="unit-datalist"
-                     class="pos-input">
+              <div class="flex items-center gap-1">
+                <input type="text" name="items-__prefix__-unit" value=""
+                       list="unit-datalist"
+                       class="pos-input">
+                <button type="button" class="unit-new-btn flex-none text-slate-300 hover:text-emerald-600 transition" title="Neue Einheit anlegen">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                </button>
+              </div>
             </div>
             <div>
               <label class="block text-xs text-slate-400 mb-1">EP (Netto)</label>
@@ -1080,7 +1086,7 @@
   document.querySelectorAll('.tb-btn').forEach(btn => {
     btn.addEventListener('click', function(e) {
       e.stopPropagation();
-      const dropdown = this.nextElementSibling;
+      const dropdown = this.closest('.relative').querySelector('.tb-dropdown');
       document.querySelectorAll('.tb-dropdown').forEach(d => { if (d !== dropdown) d.classList.add('hidden'); });
       if (dropdown.classList.contains('hidden')) {
         dropdown.classList.remove('hidden');
@@ -1243,10 +1249,12 @@ fetch('{% url "crm:unit_api" %}')
   const unitCancel   = document.getElementById('unit-modal-cancel');
   const unitBackdrop = document.getElementById('unit-modal-backdrop');
 
-  document.getElementById('unit-new-btn').addEventListener('click', () => {
-    unitName.value = ''; unitError.classList.add('hidden');
-    unitModal.classList.remove('hidden');
-    unitName.focus();
+  document.addEventListener('click', e => {
+    if (e.target.closest('.unit-new-btn')) {
+      unitName.value = ''; unitError.classList.add('hidden');
+      unitModal.classList.remove('hidden');
+      setTimeout(() => unitName.focus(), 50);
+    }
   });
   function closeUnitModal() { unitModal.classList.add('hidden'); }
   unitCancel.addEventListener('click', closeUnitModal);
