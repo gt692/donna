@@ -241,7 +241,7 @@ class OfferItemForm(forms.ModelForm):
                 "placeholder": "Leistungsbeschreibung (optional) …",
             }),
             "quantity":         forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-right item-qty", "step": "0.01", "min": "0"}),
-            "unit":             forms.TextInput(attrs={"class": _ITEM_INPUT, "placeholder": "pauschal", "list": "unit-datalist"}),
+            "unit":             forms.TextInput(attrs={"class": _ITEM_INPUT, "placeholder": "Einheit …", "list": "unit-datalist"}),
             "unit_price":       forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-right item-price", "step": "0.01", "min": "0"}),
             "discount_percent": forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-right item-discount", "step": "0.01", "min": "0", "max": "100", "placeholder": "0"}),
         }
@@ -311,7 +311,7 @@ class InvoiceItemForm(forms.ModelForm):
             "title":            forms.TextInput(attrs={"class": _ITEM_INPUT + " item-title font-medium", "placeholder": "Positionstitel …"}),
             "description":      forms.Textarea(attrs={"class": _ITEM_INPUT + " resize-y item-description", "rows": 3, "placeholder": "Leistungsbeschreibung (optional) …"}),
             "quantity":         forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-right item-qty", "step": "0.01", "min": "0"}),
-            "unit":             forms.TextInput(attrs={"class": _ITEM_INPUT, "placeholder": "pauschal", "list": "unit-datalist"}),
+            "unit":             forms.TextInput(attrs={"class": _ITEM_INPUT, "placeholder": "Einheit …", "list": "unit-datalist"}),
             "unit_price":       forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-right item-price", "step": "0.01", "min": "0"}),
             "discount_percent": forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-right item-discount", "step": "0.01", "min": "0", "max": "100", "placeholder": "0"}),
         }
