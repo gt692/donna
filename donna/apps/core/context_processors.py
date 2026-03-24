@@ -20,6 +20,12 @@ def pending_approvals(request):
     return {"pending_approvals_count": count}
 
 
+def company_settings(request):
+    """Stellt CompanySettings (inkl. Logo) global bereit."""
+    from apps.core.models import CompanySettings
+    return {"company_settings": CompanySettings.get()}
+
+
 def lead_pending_count(request):
     """Zählt Leads mit eingegangenen Kontaktdaten-Anfragen für den Sidebar-Badge."""
     if not request.user.is_authenticated:

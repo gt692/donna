@@ -340,6 +340,10 @@
         {% block page_subheading %}<p class="text-slate-400 text-sm">{% endblock %}</p>
       </div>
       <div class="flex items-center gap-4">
+        <div class="text-right text-slate-400 text-xs leading-tight">
+          <p class="font-medium text-slate-500">{% now "l" %}</p>
+          <p>{% now "j. F Y" %}</p>
+        </div>
         {% block topbar_actions %}{% endblock %}
         <!-- Quick Lead Button (global) -->
         {% if user.is_authenticated %}
@@ -351,10 +355,10 @@
           <span class="hidden sm:inline">Schnell-Lead</span>
         </button>
         {% endif %}
-        <div class="text-right text-slate-400 text-xs leading-tight ml-2">
-          <p class="font-medium text-slate-500">{% now "l" %}</p>
-          <p>{% now "j. F Y" %}</p>
-        </div>
+        {% if company_settings.logo %}
+        <img src="{{ company_settings.logo.url }}" alt="Logo"
+             class="h-8 w-auto object-contain flex-shrink-0">
+        {% endif %}
       </div>
     </header>
 
