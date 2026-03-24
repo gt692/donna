@@ -806,7 +806,7 @@ class OfferItem(models.Model):
         verbose_name=_("Menge"),
     )
     unit       = models.CharField(
-        max_length=50, blank=True, default="pauschal",
+        max_length=50, blank=True, default="",
         verbose_name=_("Einheit"),
     )
     unit_price = models.DecimalField(
@@ -948,7 +948,7 @@ class InvoiceItem(models.Model):
     title            = models.CharField(max_length=255, blank=True, default="")
     description      = models.TextField(blank=True, default="")
     quantity         = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("1"))
-    unit             = models.CharField(max_length=50, blank=True, default="pauschal")
+    unit             = models.CharField(max_length=50, blank=True, default="")
     unit_price       = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
     discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0"))
 
