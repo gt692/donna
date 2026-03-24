@@ -2,7 +2,7 @@
 
 {% block title %}{{ offer.offer_number }}{% endblock %}
 {% block page_heading %}{{ offer.offer_number }}{% endblock %}
-{% block page_subheading %}<a href="{% url 'crm:project_detail' offer.project.pk %}" class="hover:text-slate-600 transition">{{ offer.project.name }}</a>{% endblock %}
+{% block page_subheading %}{% if offer.project %}<a href="{% url 'crm:project_detail' offer.project.pk %}" class="hover:text-slate-600 transition">{{ offer.project.name }}</a>{% else %}Kein Projekt{% endif %}{% endblock %}
 
 {% block topbar_actions %}
   <a href="{% url 'crm:offer_pdf' offer.pk %}" target="_blank"
