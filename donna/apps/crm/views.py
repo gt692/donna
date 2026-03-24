@@ -1652,11 +1652,13 @@ class OfferDeleteView(AdminOrLeadMixin, View):
         if offer.status != Offer.Status.DRAFT:
             messages.error(request, "Nur Angebote im Entwurfsstatus können gelöscht werden.")
             return redirect("crm:offer_detail", pk=offer.pk)
-        project_pk = offer.project.pk
+        project_pk = offer.project.pk if offer.project else None
         number = offer.offer_number
         offer.delete()
         messages.success(request, f"Angebot {number} wurde gelöscht.")
-        return redirect("crm:project_detail", pk=project_pk)
+        if project_pk:
+            return redirect("crm:project_detail", pk=project_pk)
+        return redirect("crm:offer_list")
 
 
 # ---------------------------------------------------------------------------
