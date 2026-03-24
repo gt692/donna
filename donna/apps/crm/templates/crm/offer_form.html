@@ -1228,19 +1228,9 @@ function initGoogleAutocomplete() {
 {% endif %}
 
 <!-- Einheiten-Datalist -->
-<datalist id="unit-datalist"></datalist>
-<script>
-fetch('{% url "crm:unit_api" %}')
-  .then(r => r.json())
-  .then(data => {
-    const dl = document.getElementById('unit-datalist');
-    data.units.forEach(u => {
-      const opt = document.createElement('option');
-      opt.value = u;
-      dl.appendChild(opt);
-    });
-  });
-</script>
+<datalist id="unit-datalist">
+  {% for unit_name in unit_names %}<option value="{{ unit_name }}">{% endfor %}
+</datalist>
 
 </body>
 </html>

@@ -124,6 +124,7 @@ class CRMMixin(LoginRequiredMixin):
         ctx["overdue_invoices_count"] = Invoice.objects.filter(
             status=Invoice.Status.SENT, due_date__lt=date.today()
         ).count()
+        ctx["unit_names"] = list(Unit.objects.values_list("name", flat=True))
         return ctx
 
 
