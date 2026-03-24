@@ -406,7 +406,7 @@ _ROLE_TW = (
 
 class UserRoleCreateView(AdminRequiredMixin, CreateView):
     model         = UserRole
-    fields        = ["name", "slug", "hourly_rate", "order"]
+    fields        = ["name", "slug", "hourly_rate"]
     template_name = "dashboard/admin/user_role_form.html"
     success_url   = reverse_lazy("dashboard:user_role_list")
 
@@ -429,7 +429,7 @@ class UserRoleCreateView(AdminRequiredMixin, CreateView):
 
 class UserRoleUpdateView(AdminRequiredMixin, UpdateView):
     model         = UserRole
-    fields        = ["name", "hourly_rate", "order"]
+    fields        = ["name", "hourly_rate"]
     template_name = "dashboard/admin/user_role_form.html"
     success_url   = reverse_lazy("dashboard:user_role_list")
 
@@ -464,6 +464,19 @@ class UserRoleDeleteView(AdminRequiredMixin, View):
         role.delete()
         messages.success(request, f"Rolle \"{name}\" wurde gelöscht.")
         return redirect("dashboard:user_role_list")
+
+
+class UserRoleReorderView(AdminRequiredMixin, View):
+    def post(self, request):
+        import json
+        from django.http import JsonResponse
+        try:
+            ids = json.loads(request.body).get("ids", [])
+            for i, pk in enumerate(ids):
+                UserRole.objects.filter(pk=pk).update(order=i)
+            return JsonResponse({"ok": True})
+        except Exception:
+            return JsonResponse({"ok": False}, status=400)
 
 
 # ---------------------------------------------------------------------------

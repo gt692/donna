@@ -23,6 +23,7 @@ from .views import (
     UserRoleCreateView,
     UserRoleDeleteView,
     UserRoleListView,
+    UserRoleReorderView,
     UserRoleUpdateView,
     UserTOTPDisableView,
     UserTOTPSetupView,
@@ -48,6 +49,7 @@ urlpatterns = [
 
     # Rollen & Stundensätze
     path("admin/user-roles/",                 UserRoleListView.as_view(),   name="user_role_list"),
+    path("admin/user-roles/reorder/",         UserRoleReorderView.as_view(), name="user_role_reorder"),
     path("admin/user-roles/new/",             UserRoleCreateView.as_view(), name="user_role_create"),
     path("admin/user-roles/<int:pk>/edit/",   UserRoleUpdateView.as_view(), name="user_role_update"),
     path("admin/user-roles/<int:pk>/delete/", UserRoleDeleteView.as_view(), name="user_role_delete"),
