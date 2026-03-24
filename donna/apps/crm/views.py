@@ -37,8 +37,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView, View
 
-from .forms import AccountForm, ContactForm, InvoiceForm, InvoiceItemForm, InvoiceItemFormSet, OfferForm, OfferItemFormSet, ProjectForm
-from .models import Account, CompanyProjectTypeMapping, Contact, Document, Invoice, InvoiceItem, LeadInquiry, Offer, OfferItem, Project, ProjectActivity, ProjectBudgetExtension, ProjectMemberRate
+from .forms import AccountForm, ContactForm, InvoiceForm, InvoiceItemForm, InvoiceItemFormSet, OfferForm, OfferItemFormSet, ProjectForm, TextBlockForm
+from .models import Account, CompanyProjectTypeMapping, Contact, Document, Invoice, InvoiceItem, LeadInquiry, Offer, OfferItem, Project, ProjectActivity, ProjectBudgetExtension, ProjectMemberRate, TextBlock
 
 
 # ---------------------------------------------------------------------------
@@ -2471,3 +2471,63 @@ class LeadCommissionView(AdminOrLeadMixin, View):
                 status=Invoice.Status.SENT, due_date__lt=date.today()
             ).count(),
         }
+
+
+# ---------------------------------------------------------------------------
+# TextBlock Views
+# ---------------------------------------------------------------------------
+
+class TextBlockListView(AdminOrLeadMixin, ListView):
+    model = TextBlock
+    template_name = "crm/textblock_list.html"
+    context_object_name = "textblocks"
+
+    def get_queryset(self):
+        return TextBlock.objects.all()
+
+
+class TextBlockCreateView(AdminOrLeadMixin, View):
+    def get(self, request):
+        form = TextBlockForm()
+        return render(request, "crm/textblock_form.html", {"form": form, "page_title": "Neuer Textbaustein"})
+
+    def post(self, request):
+        form = TextBlockForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Textbaustein gespeichert.")
+            return redirect("crm:textblock_list")
+        return render(request, "crm/textblock_form.html", {"form": form, "page_title": "Neuer Textbaustein"})
+
+
+class TextBlockUpdateView(AdminOrLeadMixin, View):
+    def get(self, request, pk):
+        tb = get_object_or_404(TextBlock, pk=pk)
+        form = TextBlockForm(instance=tb)
+        return render(request, "crm/textblock_form.html", {"form": form, "page_title": "Textbaustein bearbeiten", "tb": tb})
+
+    def post(self, request, pk):
+        tb = get_object_or_404(TextBlock, pk=pk)
+        form = TextBlockForm(request.POST, instance=tb)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Textbaustein gespeichert.")
+            return redirect("crm:textblock_list")
+        return render(request, "crm/textblock_form.html", {"form": form, "page_title": "Textbaustein bearbeiten", "tb": tb})
+
+
+class TextBlockDeleteView(AdminOrLeadMixin, View):
+    def post(self, request, pk):
+        get_object_or_404(TextBlock, pk=pk).delete()
+        messages.success(request, "Textbaustein gelöscht.")
+        return redirect("crm:textblock_list")
+
+
+class TextBlockAPIView(CRMMixin, View):
+    """AJAX: Textbausteine per Kategorie laden."""
+    def get(self, request):
+        category = request.GET.get("category", "")
+        qs = TextBlock.objects.all()
+        if category:
+            qs = qs.filter(category=category)
+        return JsonResponse({"blocks": [{"id": tb.pk, "name": tb.name, "content": tb.content} for tb in qs]})

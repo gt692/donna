@@ -11,6 +11,7 @@ from .views import (
     LeadCommissionView, LeadInquiryImportView, LeadInquiryPublicView, LeadListView,
     OfferCreateStandaloneView, OfferCreateView, OfferDeleteView, OfferDetailView, OfferListView,
     RecipientSearchView,
+    TextBlockAPIView, TextBlockCreateView, TextBlockDeleteView, TextBlockListView, TextBlockUpdateView,
     OfferOrderConfirmationView, OfferPDFView, OfferSendView, OfferStatusUpdateView, OfferUpdateView,
     ProductCatalogAPIView,
     ProjectActivityCreateView, ProjectActivityDeleteView,
@@ -107,6 +108,13 @@ urlpatterns = [
 
     # Empfänger-Suche (Angebot/Rechnung)
     path("recipients/search/", RecipientSearchView.as_view(), name="recipient_search"),
+
+    # Textbausteine
+    path("textblocks/",              TextBlockListView.as_view(),   name="textblock_list"),
+    path("textblocks/new/",          TextBlockCreateView.as_view(), name="textblock_create"),
+    path("textblocks/<int:pk>/edit/", TextBlockUpdateView.as_view(), name="textblock_edit"),
+    path("textblocks/<int:pk>/delete/", TextBlockDeleteView.as_view(), name="textblock_delete"),
+    path("textblocks/api/",          TextBlockAPIView.as_view(),    name="textblock_api"),
 
     # Produktkatalog API
     path("catalog/api/", ProductCatalogAPIView.as_view(), name="catalog_api"),

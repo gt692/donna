@@ -1,467 +1,709 @@
-{% extends "dashboard/base.html" %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="de" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ page_title }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .field-wrap { position: relative; }
+    .field-wrap label {
+      position: absolute;
+      top: 0.45rem;
+      left: 0.75rem;
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #94a3b8;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .field-wrap input,
+    .field-wrap textarea,
+    .field-wrap select {
+      padding-top: 1.5rem;
+      padding-bottom: 0.5rem;
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+      width: 100%;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      color: #1e293b;
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .field-wrap input:focus,
+    .field-wrap textarea:focus,
+    .field-wrap select:focus { border-color: #059669; }
+    .field-wrap textarea { resize: vertical; }
+    * { box-sizing: border-box; }
 
-{% block title %}{{ page_title }}{% endblock %}
-{% block page_heading %}{{ page_title }}{% endblock %}
-{% block page_subheading %}
-  {% if project %}<a href="{% url 'crm:project_detail' project.pk %}" class="hover:text-slate-600 transition">{{ project.name }}</a>{% endif %}
-{% endblock %}
+    .pos-card { transition: background 0.15s; }
+    .pos-card.type-optional { background: #fffbeb; }
+    .pos-card.type-text     { background: #f8fafc; }
+    .pos-card.deleted       { opacity: 0.35; }
 
-{% block content %}
-<form method="post" id="invoice-form">
-  {% csrf_token %}
-  {{ formset.management_form }}
+    .pos-input {
+      padding: 0.375rem 0.5rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.375rem;
+      font-size: 0.8125rem;
+      color: #1e293b;
+      background: #fff;
+      outline: none;
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+    .pos-input:focus { border-color: #059669; }
+    .pos-input[type="number"] { text-align: right; }
+    textarea.pos-input { resize: vertical; min-height: 5rem; text-align: left; font-family: inherit; }
 
-  {% if offer %}
-  <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
-    Aus Angebot <strong>{{ offer.offer_number }}</strong> übernommen — Positionen und Empfänger wurden vorausgefüllt.
-  </div>
-  {% endif %}
+    .tb-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      min-width: 280px;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.75rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      z-index: 100;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body class="h-full bg-slate-100 flex flex-col" style="overflow:hidden;">
 
-  <div class="grid grid-cols-3 gap-6">
+  <!-- Fixe Topbar -->
+  <header class="flex-none bg-white border-b border-slate-200 shadow-sm z-30">
+    <div class="flex items-center h-14 px-5 gap-4">
+      <a href="{% if invoice %}{% url 'crm:invoice_detail' invoice.pk %}{% elif project %}{% url 'crm:project_detail' project.pk %}{% else %}{% url 'crm:invoice_list' %}{% endif %}"
+         class="flex-none p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
+         title="Abbrechen">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </a>
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-semibold text-slate-800 truncate">{{ page_title }}</div>
+        {% if project %}<div class="text-xs text-slate-400 truncate">{{ project.name }} · {{ project.project_number }}</div>{% endif %}
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" id="btn-catalog-open"
+                class="flex items-center gap-1.5 border border-slate-300 text-slate-600 hover:bg-slate-50
+                       text-xs font-medium px-3 py-2 rounded-lg transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+          </svg>
+          Aus Katalog
+        </button>
+        <button type="submit" form="invoice-form"
+                class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-5 py-2 rounded-lg transition">
+          {% if invoice %}Speichern{% else %}Rechnung erstellen{% endif %}
+        </button>
+      </div>
+    </div>
+  </header>
 
-    <!-- ── Linke Spalte: Formular ──────────────────────────── -->
-    <div class="col-span-2 space-y-5">
+  <!-- Scrollbarer Hauptbereich -->
+  <main class="flex-1 overflow-y-auto">
+    <form method="post" id="invoice-form">
+      {% csrf_token %}
+      {{ formset.management_form }}
 
-      <!-- Grunddaten -->
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-        <h2 class="text-sm font-semibold text-slate-700 mb-4">Rechnung</h2>
-        <div class="grid grid-cols-2 gap-4">
+      <div class="max-w-4xl mx-auto px-4 py-6 space-y-4 pb-20">
+
+        {% if offer %}
+        <div class="p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
+          Aus Angebot <strong>{{ offer.offer_number }}</strong> übernommen — Positionen und Empfänger wurden vorausgefüllt.
+        </div>
+        {% endif %}
+
+        <!-- Metadaten -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
 
           {% if not project %}
-          <div class="col-span-2">
-            <label class="block text-xs font-medium text-slate-600 mb-1">Projekt (optional)</label>
-            {{ form.project }}
+          <div class="border-b border-slate-100">
+            <div class="field-wrap">
+              <label for="{{ form.project.id_for_label }}">Projekt (optional)</label>
+              {{ form.project }}
+            </div>
           </div>
           {% endif %}
 
-          <div class="col-span-2">
-            <label class="block text-xs font-medium text-slate-600 mb-1">Titel *</label>
-            {{ form.title }}
-            {% if form.title.errors %}
-              <p class="text-xs text-red-600 mt-1">{{ form.title.errors|join:", " }}</p>
+          <div class="border-b border-slate-100">
+            <div class="field-wrap">
+              <label for="{{ form.title.id_for_label }}">Belegtitel *</label>
+              {{ form.title }}
+              {% if form.title.errors %}
+                <p class="px-3 pb-2 text-xs text-red-600">{{ form.title.errors|join:", " }}</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 divide-x divide-slate-100 border-b border-slate-100">
+            <div class="field-wrap">
+              <label for="{{ form.invoice_type.id_for_label }}">Rechnungstyp</label>
+              {{ form.invoice_type }}
+            </div>
+            <div class="field-wrap">
+              <label for="{{ form.tax_rate.id_for_label }}">Umsatzsteuer (%)</label>
+              {{ form.tax_rate }}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 divide-x divide-slate-100 border-b border-slate-100">
+            <div class="field-wrap">
+              <label for="{{ form.invoice_date.id_for_label }}">Rechnungsdatum *</label>
+              {{ form.invoice_date }}
+            </div>
+            <div class="field-wrap">
+              <label for="{{ form.due_date.id_for_label }}">Zahlbar bis</label>
+              {{ form.due_date }}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 divide-x divide-slate-100">
+            <div class="flex items-center gap-3 px-4 py-3 col-span-2">
+              {{ form.is_kleinunternehmer }}
+              <label for="{{ form.is_kleinunternehmer.id_for_label }}"
+                     class="text-sm text-slate-700 cursor-pointer select-none">
+                Kleinunternehmer (§&nbsp;19 UStG) — keine Umsatzsteuer
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empfänger -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Empfänger</span>
+          </div>
+          <div class="border-b border-slate-100 relative">
+            <div class="field-wrap">
+              <label>Kontakt suchen</label>
+              <input type="text" id="recipient-search" placeholder="Name, E-Mail oder Firma …"
+                     autocomplete="off"
+                     class="w-full px-3 py-2 pt-6 rounded-none border-0 text-sm focus:outline-none focus:ring-0 bg-white">
+            </div>
+            <div id="recipient-dropdown"
+                 class="hidden absolute left-0 right-0 top-full bg-white border border-slate-200 rounded-b-xl shadow-lg z-50 max-h-64 overflow-y-auto">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 divide-x divide-slate-100">
+            <div class="field-wrap">
+              <label for="{{ form.recipient_name.id_for_label }}">Name</label>
+              {{ form.recipient_name }}
+            </div>
+            <div class="field-wrap">
+              <label for="{{ form.recipient_email.id_for_label }}">E-Mail</label>
+              {{ form.recipient_email }}
+            </div>
+          </div>
+          <div class="border-t border-slate-100">
+            {% if google_maps_api_key %}
+            <div class="field-wrap border-b border-slate-100">
+              <label for="id_recipient_address_search">Adresse suchen</label>
+              <input type="text" id="id_recipient_address_search" placeholder="Straße, Stadt …" autocomplete="off">
+            </div>
             {% endif %}
-          </div>
-
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Rechnungstyp</label>
-            {{ form.invoice_type }}
-          </div>
-
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Umsatzsteuer (%)</label>
-            {{ form.tax_rate }}
-          </div>
-
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Rechnungsdatum *</label>
-            {{ form.invoice_date }}
-          </div>
-
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Zahlbar bis</label>
-            {{ form.due_date }}
-          </div>
-
-        </div>
-      </div>
-
-      <!-- Empfänger -->
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-        <h2 class="text-sm font-semibold text-slate-700 mb-4">Empfänger</h2>
-
-        <!-- Kontakt-Suche -->
-        <div class="relative mb-4">
-          <input type="text" id="recipient-search" placeholder="Kontakt suchen (Name, E-Mail, Firma) …"
-                 autocomplete="off"
-                 class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1666b0]">
-          <div id="recipient-dropdown"
-               class="hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-64 overflow-y-auto">
+            <div class="field-wrap">
+              <label for="{{ form.recipient_address.id_for_label }}">Adresse</label>
+              {{ form.recipient_address }}
+            </div>
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
-
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Name</label>
-            {{ form.recipient_name }}
+        <!-- Einleitungstext -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Einleitungstext</span>
+            <div class="relative">
+              <button type="button" class="tb-btn text-xs text-emerald-600 hover:text-emerald-800 font-medium flex items-center gap-1"
+                      data-target="{{ form.intro_text.id_for_label }}" data-category="intro">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2"/>
+                </svg>
+                Textbaustein
+              </button>
+              <div class="tb-dropdown hidden"></div>
+            </div>
           </div>
-
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">E-Mail</label>
-            {{ form.recipient_email }}
-          </div>
-
-          {% if google_maps_api_key %}
-          <div class="col-span-2">
-            <label class="block text-xs font-medium text-slate-600 mb-1">Adresse suchen</label>
-            <input type="text" id="id_recipient_address_search"
-                   placeholder="Straße, Stadt …" autocomplete="off"
-                   class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1666b0]">
-          </div>
-          {% endif %}
-          <div class="col-span-2">
-            <label class="block text-xs font-medium text-slate-600 mb-1">Adresse</label>
-            {{ form.recipient_address }}
-          </div>
-
-        </div>
-      </div>
-
-      <!-- Texte -->
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-        <h2 class="text-sm font-semibold text-slate-700 mb-4">Texte</h2>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Einleitungstext</label>
+          <div class="field-wrap">
+            <label for="{{ form.intro_text.id_for_label }}">Einleitungstext</label>
             {{ form.intro_text }}
           </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Schlusstext</label>
-            {{ form.closing_text }}
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Zahlungshinweise (IBAN, BIC, Verwendungszweck)</label>
-            {{ form.payment_info }}
-          </div>
         </div>
-      </div>
 
-      <!-- Positionen -->
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h2 class="text-sm font-semibold text-slate-700">Positionen</h2>
-          <div class="flex items-center gap-3">
-            <button type="button" id="btn-catalog-open"
-                    class="flex items-center gap-2 border border-[#1666b0] text-[#1666b0] hover:bg-blue-50 text-xs font-medium px-3 py-1.5 rounded-lg transition">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-              </svg>
-              Aus Katalog
-            </button>
+        <!-- Positionen -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Positionen</span>
             <button type="button" id="add-row"
-                    class="text-xs text-[#1666b0] hover:text-[#0d4f8c] font-medium transition">
-              + Position hinzufügen
+                    class="flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-800
+                           border border-emerald-600 hover:bg-emerald-50 px-3 py-1.5 rounded-lg transition">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              Position hinzufügen
             </button>
           </div>
-        </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm" id="items-table">
-            <thead>
-              <tr class="bg-slate-50 border-b border-slate-200">
-                <th class="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide w-16">Nr.</th>
-                <th class="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Beschreibung</th>
-                <th class="px-3 py-2 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide w-24">Menge</th>
-                <th class="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide w-28">Einheit</th>
-                <th class="px-3 py-2 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide w-32">EP (€ netto)</th>
-                <th class="px-3 py-2 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide w-32">GP (€ netto)</th>
-                <th class="px-3 py-2 w-10"></th>
-              </tr>
-            </thead>
-            <tbody id="items-tbody">
-              {% for item_form in formset %}
-                <tr class="item-row border-b border-slate-100 {% if item_form.instance.pk %}existing-row{% endif %}"
-                    {% if item_form.instance.pk %}data-pk="{{ item_form.instance.pk }}"{% endif %}>
-                  <!-- Hidden fields -->
-                  {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
-                  <td class="px-3 py-2">{{ item_form.position }}</td>
-                  <td class="px-3 py-2">{{ item_form.description }}</td>
-                  <td class="px-3 py-2 text-right">{{ item_form.quantity }}</td>
-                  <td class="px-3 py-2">{{ item_form.unit }}</td>
-                  <td class="px-3 py-2 text-right">{{ item_form.unit_price }}</td>
-                  <td class="px-3 py-2 text-right">
-                    <span class="row-total font-mono font-semibold text-slate-700 text-sm">—</span>
-                  </td>
-                  <td class="px-3 py-2 text-center">
-                    {% if item_form.instance.pk %}
-                      <label class="cursor-pointer text-slate-400 hover:text-red-500 transition" title="Löschen">
-                        {{ item_form.DELETE }}
-                        <span class="delete-icon text-sm">✕</span>
-                      </label>
-                    {% else %}
-                      <button type="button"
-                              class="remove-row text-slate-400 hover:text-red-500 transition text-sm">✕</button>
-                    {% endif %}
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
+          <div id="items-container" class="divide-y divide-slate-100">
+            {% for item_form in formset %}
+            <div class="pos-card px-4 py-3
+                        {% if item_form.instance.pk %}existing-row{% endif %}"
+                 data-type="{{ item_form.instance.item_type|default:'normal' }}"
+                 {% if item_form.instance.pk %}data-pk="{{ item_form.instance.pk }}"{% endif %}>
 
-        <!-- Live-Summen -->
-        <div class="border-t border-slate-200 px-5 py-4">
-          <div class="flex justify-end">
-            <div class="w-64 space-y-1.5 text-sm">
-              <div class="flex justify-between">
-                <span class="text-slate-500">Nettobetrag</span>
-                <span id="live-net" class="font-mono font-medium text-slate-700">0,00 €</span>
+              {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
+
+              <div class="flex items-center gap-2 mb-2">
+                <span class="pos-number flex-none w-7 h-7 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center">
+                  {{ forloop.counter }}
+                </span>
+                <div class="flex-none">
+                  {{ item_form.item_type }}
+                </div>
+                <div class="flex-1"></div>
+                {% if item_form.instance.pk %}
+                  <label class="cursor-pointer text-slate-300 hover:text-red-500 transition flex-none" title="Löschen">
+                    {{ item_form.DELETE }}
+                    <span class="delete-icon">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
+                    </span>
+                  </label>
+                {% else %}
+                  <button type="button" class="remove-row text-slate-300 hover:text-red-500 transition flex-none">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
+                {% endif %}
+                <div class="hidden">{{ item_form.position }}</div>
               </div>
-              <div class="flex justify-between">
-                <span class="text-slate-500">Umsatzsteuer <span id="live-tax-rate">19,00</span> %</span>
-                <span id="live-tax" class="font-mono font-medium text-slate-700">0,00 €</span>
+
+              <div class="mb-2">
+                {{ item_form.description }}
               </div>
-              <div class="flex justify-between pt-2 border-t border-slate-200 text-base font-bold">
-                <span class="text-slate-800">Brutto</span>
-                <span id="live-gross" class="font-mono text-emerald-600">0,00 €</span>
+
+              <div class="price-fields grid grid-cols-5 gap-2">
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1">Menge</label>
+                  {{ item_form.quantity }}
+                </div>
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1">Einheit</label>
+                  {{ item_form.unit }}
+                </div>
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1">EP (Netto)</label>
+                  {{ item_form.unit_price }}
+                </div>
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1">Rabatt %</label>
+                  {{ item_form.discount_percent }}
+                </div>
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1">GP (Netto)</label>
+                  <div class="row-total text-sm font-mono font-semibold text-slate-700 py-1.5 text-right">—</div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+
+          <!-- Summen -->
+          <div class="border-t border-slate-200">
+            <div class="flex items-center justify-between px-5 py-2.5 border-b border-slate-100 bg-slate-50">
+              <label class="text-xs font-medium text-slate-500" for="{{ form.discount_percent.id_for_label }}">
+                Gesamtrabatt (%)
+              </label>
+              <div class="w-32">
+                {{ form.discount_percent }}
+              </div>
+            </div>
+            <div class="bg-slate-800 px-5 py-3">
+              <div class="space-y-1.5">
+                <div class="flex justify-between text-xs text-slate-400">
+                  <span>Zwischensumme</span>
+                  <span id="live-subtotal" class="font-mono">0,00 €</span>
+                </div>
+                <div id="discount-row" class="flex justify-between text-xs text-amber-400 hidden">
+                  <span>Gesamtrabatt (<span id="live-discount-pct">0</span>%)</span>
+                  <span id="live-discount-amt" class="font-mono">−0,00 €</span>
+                </div>
+                <div class="flex justify-between text-xs text-slate-400">
+                  <span>Nettobetrag</span>
+                  <span id="live-net" class="font-mono">0,00 €</span>
+                </div>
+                <div id="tax-row" class="flex justify-between text-xs text-slate-400">
+                  <span>Umsatzsteuer <span id="live-tax-rate">19,00</span> %</span>
+                  <span id="live-tax" class="font-mono">0,00 €</span>
+                </div>
+                <div id="kleinunternehmer-row" class="hidden flex justify-between text-xs text-slate-400">
+                  <span>Umsatzsteuer (§ 19 UStG)</span>
+                  <span class="font-mono">entfällt</span>
+                </div>
+                <div class="flex justify-between pt-1.5 border-t border-slate-600">
+                  <span class="text-sm font-semibold text-white">Gesamtbetrag</span>
+                  <span id="live-gross" class="font-mono font-bold text-white text-xl">0,00 €</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-      </div>
+        <!-- Zahlungshinweise -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Zahlungshinweise</span>
+            <div class="relative">
+              <button type="button" class="tb-btn text-xs text-emerald-600 hover:text-emerald-800 font-medium flex items-center gap-1"
+                      data-target="{{ form.payment_info.id_for_label }}" data-category="payment">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2"/>
+                </svg>
+                Textbaustein
+              </button>
+              <div class="tb-dropdown hidden"></div>
+            </div>
+          </div>
+          <div class="field-wrap">
+            <label for="{{ form.payment_info.id_for_label }}">IBAN, BIC, Verwendungszweck …</label>
+            {{ form.payment_info }}
+          </div>
+        </div>
 
-    </div>
+        <!-- Schlusstext -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Schlusstext</span>
+            <div class="relative">
+              <button type="button" class="tb-btn text-xs text-emerald-600 hover:text-emerald-800 font-medium flex items-center gap-1"
+                      data-target="{{ form.closing_text.id_for_label }}" data-category="closing">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2"/>
+                </svg>
+                Textbaustein
+              </button>
+              <div class="tb-dropdown hidden"></div>
+            </div>
+          </div>
+          <div class="field-wrap">
+            <label for="{{ form.closing_text.id_for_label }}">Schlusstext</label>
+            {{ form.closing_text }}
+          </div>
+        </div>
 
-    <!-- ── Rechte Spalte: Speichern ───────────────────────── -->
-    <div class="space-y-5">
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-        <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Speichern</h3>
-        <button type="submit"
-                class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm
-                       py-2.5 rounded-lg transition mb-2">
-          {% if invoice %}Änderungen speichern{% else %}Rechnung erstellen{% endif %}
-        </button>
-        {% if invoice %}
-          <a href="{% url 'crm:invoice_detail' invoice.pk %}"
-             class="block text-center text-sm text-slate-500 hover:text-slate-700 transition mt-2">
-            Abbrechen
-          </a>
-        {% else %}
-          <a href="{% url 'crm:project_detail' project.pk %}"
-             class="block text-center text-sm text-slate-500 hover:text-slate-700 transition mt-2">
-            Abbrechen
-          </a>
+        {% if form.non_field_errors %}
+        <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+          {{ form.non_field_errors|join:" " }}
+        </div>
         {% endif %}
+
       </div>
+    </form>
+  </main>
 
-      <!-- Projekt-Info -->
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-        <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Projekt</h3>
-        <p class="text-sm font-medium text-slate-700">{{ project.name }}</p>
-        <p class="text-xs text-slate-400 font-mono mt-0.5">{{ project.project_number }}</p>
-      </div>
-
-      {% if offer %}
-      <!-- Verknüpftes Angebot -->
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-        <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Aus Angebot</h3>
-        <a href="{% url 'crm:offer_detail' offer.pk %}"
-           class="text-sm font-medium text-[#1666b0] hover:text-[#0d4f8c] transition">
-          {{ offer.offer_number }}
-        </a>
-        <p class="text-xs text-slate-400 mt-0.5">{{ offer.title }}</p>
-      </div>
-      {% endif %}
-    </div>
-
-  </div>
-</form>
-
-<!-- Template-Zeile für dynamisches Hinzufügen (hidden, wird per JS geklont) -->
-<template id="item-row-template">
-  <tr class="item-row border-b border-slate-100 new-row">
-    <td class="px-3 py-2">
-      <input type="number" name="items-__prefix__-position" value="1" min="1"
-             class="w-16 px-2 py-1.5 text-sm rounded border border-slate-200 text-center">
+  <!-- Template-Karte für neue Positionen -->
+  <template id="item-row-template">
+    <div class="pos-card px-4 py-3 new-row border-b border-slate-100" data-type="normal">
       <input type="hidden" name="items-__prefix__-id" value="">
-    </td>
-    <td class="px-3 py-2">
-      <textarea name="items-__prefix__-description" rows="2" placeholder="Leistungsbeschreibung …"
-                class="w-full px-2 py-1.5 text-sm rounded border border-slate-200 resize-none"></textarea>
-    </td>
-    <td class="px-3 py-2 text-right">
-      <input type="number" name="items-__prefix__-quantity" value="1" step="0.01" min="0"
-             class="w-24 px-2 py-1.5 text-sm rounded border border-slate-200 text-right item-qty">
-    </td>
-    <td class="px-3 py-2">
-      <input type="text" name="items-__prefix__-unit" value="pauschal" placeholder="pauschal"
-             class="w-28 px-2 py-1.5 text-sm rounded border border-slate-200">
-    </td>
-    <td class="px-3 py-2 text-right">
-      <input type="number" name="items-__prefix__-unit_price" value="" step="0.01" min="0"
-             class="w-32 px-2 py-1.5 text-sm rounded border border-slate-200 text-right item-price">
-    </td>
-    <td class="px-3 py-2 text-right">
-      <span class="row-total font-mono font-semibold text-slate-700 text-sm">—</span>
-    </td>
-    <td class="px-3 py-2 text-center">
-      <button type="button" class="remove-row text-slate-400 hover:text-red-500 transition text-sm">✕</button>
-    </td>
-  </tr>
-</template>
+      <div class="flex items-center gap-2 mb-2">
+        <span class="pos-number flex-none w-7 h-7 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center">1</span>
+        <select name="items-__prefix__-item_type"
+                class="flex-none text-xs font-medium px-2.5 py-1 rounded-full border border-slate-200 bg-white cursor-pointer item-type-select focus:outline-none focus:border-emerald-500">
+          <option value="normal">Normal</option>
+          <option value="optional">Optional</option>
+          <option value="text">Freitext</option>
+        </select>
+        <div class="flex-1"></div>
+        <button type="button" class="remove-row text-slate-300 hover:text-red-500 transition flex-none">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </button>
+        <input type="hidden" name="items-__prefix__-position" value="1">
+      </div>
+      <div class="mb-2">
+        <textarea name="items-__prefix__-description" rows="4" placeholder="Leistungsbeschreibung …"
+                  class="pos-input w-full"></textarea>
+      </div>
+      <div class="price-fields grid grid-cols-5 gap-2">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Menge</label>
+          <input type="number" name="items-__prefix__-quantity" value="1" step="0.01" min="0"
+                 class="pos-input item-qty">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Einheit</label>
+          <input type="text" name="items-__prefix__-unit" value="pauschal"
+                 class="pos-input">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">EP (Netto)</label>
+          <input type="number" name="items-__prefix__-unit_price" value="" step="0.01" min="0"
+                 class="pos-input item-price">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Rabatt %</label>
+          <input type="number" name="items-__prefix__-discount_percent" value="" step="0.01" min="0" max="100"
+                 placeholder="0" class="pos-input item-discount">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">GP (Netto)</label>
+          <div class="row-total text-sm font-mono font-semibold text-slate-700 py-1.5 text-right">—</div>
+        </div>
+      </div>
+    </div>
+  </template>
 
-<!-- Katalog-Modal -->
-<div id="catalog-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
-    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-      <h3 class="text-base font-semibold text-slate-800">Produkt aus Katalog hinzufügen</h3>
-      <button type="button" id="btn-catalog-close" class="text-slate-400 hover:text-slate-600">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-      </button>
-    </div>
-    <div class="px-4 py-3 border-b border-slate-100">
-      <input type="text" id="catalog-search" placeholder="Suchen..."
-             class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1666b0]">
-    </div>
-    <div id="catalog-list" class="overflow-y-auto flex-1 divide-y divide-slate-50 px-2 py-2">
-      <p class="text-center text-slate-400 text-sm py-8">Lade Katalog...</p>
+  <!-- Katalog-Modal -->
+  <div id="catalog-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+        <h3 class="text-base font-semibold text-slate-800">Produkt aus Katalog hinzufügen</h3>
+        <button type="button" id="btn-catalog-close" class="text-slate-400 hover:text-slate-600">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="px-4 py-3 border-b border-slate-100">
+        <input type="text" id="catalog-search" placeholder="Suchen..."
+               class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+      </div>
+      <div id="catalog-list" class="overflow-y-auto flex-1 divide-y divide-slate-50 px-2 py-2">
+        <p class="text-center text-slate-400 text-sm py-8">Lade Katalog...</p>
+      </div>
     </div>
   </div>
-</div>
 
-{% endblock %}
-
-{% block extra_js %}
 <script>
+// ── Positions-Logik ────────────────────────────────────────────
 (function () {
-  // ── Management-Form Tracking ──────────────────────────────────────
   const totalFormsInput = document.getElementById('id_items-TOTAL_FORMS');
   let formIdx = parseInt(totalFormsInput.value, 10);
 
-  // ── Zeile hinzufügen ─────────────────────────────────────────────
+  function fmt(n) {
+    return n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  }
+
+  function getItemType(card) {
+    const sel = card.querySelector('.item-type-select');
+    return sel ? sel.value : (card.dataset.type || 'normal');
+  }
+
+  function applyTypeStyle(card) {
+    const type = getItemType(card);
+    card.classList.remove('type-optional', 'type-text');
+    if (type === 'optional') card.classList.add('type-optional');
+    if (type === 'text')     card.classList.add('type-text');
+    const priceFields = card.querySelector('.price-fields');
+    if (priceFields) priceFields.style.display = (type === 'text') ? 'none' : '';
+  }
+
+  function renumberAll() {
+    let num = 1;
+    document.querySelectorAll('#items-container .pos-card').forEach(function(card) {
+      const del = card.querySelector('input[type="checkbox"][name$="-DELETE"]');
+      if (del && del.checked) return;
+      const numEl = card.querySelector('.pos-number');
+      if (numEl) numEl.textContent = num;
+      const posInput = card.querySelector('input[name$="-position"]');
+      if (posInput) posInput.value = num;
+      num++;
+    });
+  }
+
+  function recalculate() {
+    let subtotal = 0;
+    document.querySelectorAll('#items-container .pos-card').forEach(function (card) {
+      const del = card.querySelector('input[type="checkbox"][name$="-DELETE"]');
+      if (del && del.checked) return;
+      const type = getItemType(card);
+      if (type === 'optional' || type === 'text') {
+        const rt = card.querySelector('.row-total');
+        if (rt) rt.textContent = type === 'optional' ? '(optional)' : '—';
+        return;
+      }
+      const qtyEl      = card.querySelector('.item-qty');
+      const priceEl    = card.querySelector('.item-price');
+      const discountEl = card.querySelector('.item-discount');
+      if (!qtyEl || !priceEl) return;
+      const qty      = parseFloat(qtyEl.value) || 0;
+      const price    = parseFloat(priceEl.value) || 0;
+      const disc     = parseFloat(discountEl ? discountEl.value : 0) || 0;
+      const rowGross = qty * price;
+      const rowNet   = rowGross * (1 - disc / 100);
+      subtotal += rowNet;
+      const rt = card.querySelector('.row-total');
+      if (rt) {
+        if (disc > 0) {
+          rt.innerHTML = `<span class="line-through text-slate-400 text-xs">${fmt(rowGross)}</span><br>${fmt(rowNet)}`;
+        } else {
+          rt.textContent = fmt(rowNet);
+        }
+      }
+    });
+
+    const discPctEl = document.getElementById('{{ form.discount_percent.id_for_label }}');
+    const discPct   = discPctEl ? (parseFloat(discPctEl.value) || 0) : 0;
+    const discAmt   = subtotal * discPct / 100;
+    const net       = subtotal - discAmt;
+
+    const kleinEl  = document.getElementById('{{ form.is_kleinunternehmer.id_for_label }}');
+    const isKlein  = kleinEl && kleinEl.checked;
+    const taxRateEl = document.getElementById('{{ form.tax_rate.id_for_label }}');
+    const taxRate   = (!isKlein && taxRateEl) ? (parseFloat(taxRateEl.value) || 19) : 0;
+    const tax       = net * taxRate / 100;
+    const gross     = net + tax;
+
+    document.getElementById('live-subtotal').textContent = fmt(subtotal);
+    document.getElementById('live-net').textContent      = fmt(net);
+    document.getElementById('live-gross').textContent    = fmt(gross);
+
+    const discRow = document.getElementById('discount-row');
+    if (discPct > 0) {
+      discRow.classList.remove('hidden');
+      document.getElementById('live-discount-pct').textContent = discPct.toLocaleString('de-DE', {maximumFractionDigits:2});
+      document.getElementById('live-discount-amt').textContent = '−' + fmt(discAmt);
+    } else {
+      discRow.classList.add('hidden');
+    }
+
+    const taxRow   = document.getElementById('tax-row');
+    const kleinRow = document.getElementById('kleinunternehmer-row');
+    if (isKlein) {
+      taxRow.classList.add('hidden');
+      kleinRow.classList.remove('hidden');
+    } else {
+      taxRow.classList.remove('hidden');
+      kleinRow.classList.add('hidden');
+      document.getElementById('live-tax').textContent = fmt(tax);
+      const liveTaxRate = document.getElementById('live-tax-rate');
+      if (liveTaxRate) liveTaxRate.textContent = taxRate.toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2});
+    }
+  }
+
+  function bindCardEvents(card) {
+    const typeSelect = card.querySelector('.item-type-select');
+    if (typeSelect) {
+      typeSelect.addEventListener('change', function() {
+        card.dataset.type = this.value;
+        applyTypeStyle(card);
+        recalculate();
+      });
+      applyTypeStyle(card);
+    }
+
+    const removeBtn = card.querySelector('.remove-row');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', function () {
+        card.remove();
+        renumberAll();
+        recalculate();
+      });
+    }
+
+    const deleteChk = card.querySelector('input[type="checkbox"][name$="-DELETE"]');
+    if (deleteChk) {
+      deleteChk.style.display = 'none';
+      const deleteIcon = card.querySelector('.delete-icon');
+      if (deleteIcon) {
+        deleteIcon.addEventListener('click', function () {
+          deleteChk.checked = !deleteChk.checked;
+          card.classList.toggle('deleted', deleteChk.checked);
+          renumberAll();
+          recalculate();
+        });
+      }
+    }
+
+    card.querySelectorAll('.item-qty, .item-price, .item-discount').forEach(function (inp) {
+      inp.addEventListener('input', recalculate);
+    });
+  }
+
+  document.querySelectorAll('#items-container .pos-card').forEach(function(card) {
+    bindCardEvents(card);
+  });
+
   document.getElementById('add-row').addEventListener('click', function () {
     const template = document.getElementById('item-row-template');
     const clone    = template.content.cloneNode(true);
-
-    // __prefix__ durch aktuellen Index ersetzen
     clone.querySelectorAll('[name]').forEach(function (el) {
       el.name = el.name.replace('__prefix__', formIdx);
     });
     clone.querySelectorAll('[id]').forEach(function (el) {
       el.id = el.id.replace('__prefix__', formIdx);
     });
-
-    // Positions-Nummer setzen
-    const posInput = clone.querySelector('input[name$="-position"]');
-    if (posInput) {
-      posInput.value = document.querySelectorAll('.item-row:not([style*="none"])').length + 1;
-    }
-
-    document.getElementById('items-tbody').appendChild(clone);
+    const container = document.getElementById('items-container');
+    container.appendChild(clone);
     totalFormsInput.value = ++formIdx;
-    bindRowEvents(document.querySelector('#items-tbody tr:last-child'));
+    const newCard = container.lastElementChild;
+    bindCardEvents(newCard);
+    renumberAll();
     recalculate();
+    const ta = newCard.querySelector('textarea');
+    if (ta) ta.focus();
   });
 
-  // ── Zeile entfernen ──────────────────────────────────────────────
-  function bindRowEvents(row) {
-    const removeBtn = row.querySelector('.remove-row');
-    if (removeBtn) {
-      removeBtn.addEventListener('click', function () {
-        row.remove();
-        recalculate();
-      });
-    }
-    // DELETE checkbox styling
-    const deleteChk = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
-    if (deleteChk) {
-      deleteChk.style.display = 'none';
-      const deleteIcon = row.querySelector('.delete-icon');
-      if (deleteIcon) {
-        deleteIcon.addEventListener('click', function () {
-          deleteChk.checked = !deleteChk.checked;
-          row.style.opacity = deleteChk.checked ? '0.4' : '1';
-        });
-      }
-    }
-    // Live-Berechnung pro Zeile
-    row.querySelectorAll('.item-qty, .item-price').forEach(function (inp) {
-      inp.addEventListener('input', recalculate);
-    });
-  }
+  const discPctEl = document.getElementById('{{ form.discount_percent.id_for_label }}');
+  if (discPctEl) discPctEl.addEventListener('input', recalculate);
+  const kleinEl = document.getElementById('{{ form.is_kleinunternehmer.id_for_label }}');
+  if (kleinEl) kleinEl.addEventListener('change', recalculate);
+  const taxRateEl = document.getElementById('{{ form.tax_rate.id_for_label }}');
+  if (taxRateEl) taxRateEl.addEventListener('input', recalculate);
 
-  // ── Bestehende Zeilen binden ─────────────────────────────────────
-  document.querySelectorAll('#items-tbody .item-row').forEach(function (row) {
-    bindRowEvents(row);
-  });
-
-  // ── Live-Summenberechnung ────────────────────────────────────────
-  function fmt(n) {
-    return n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-  }
-
-  function recalculate() {
-    let net = 0;
-    document.querySelectorAll('#items-tbody .item-row').forEach(function (row) {
-      // Überspringe als gelöscht markierte Zeilen
-      const deleteChk = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
-      if (deleteChk && deleteChk.checked) {
-        row.querySelector('.row-total').textContent = '—';
-        return;
-      }
-
-      const qtyEl   = row.querySelector('.item-qty');
-      const priceEl = row.querySelector('.item-price');
-      if (!qtyEl || !priceEl) return;
-
-      const qty   = parseFloat(qtyEl.value) || 0;
-      const price = parseFloat(priceEl.value) || 0;
-      const rowNet = qty * price;
-      net += rowNet;
-      row.querySelector('.row-total').textContent = fmt(rowNet);
-    });
-
-    const taxRateEl = document.getElementById('id_tax_rate');
-    const taxRate = taxRateEl ? (parseFloat(taxRateEl.value) || 19) : 19;
-    const tax   = net * taxRate / 100;
-    const gross = net + tax;
-
-    document.getElementById('live-net').textContent   = fmt(net);
-    document.getElementById('live-tax').textContent   = fmt(tax);
-    document.getElementById('live-gross').textContent = fmt(gross);
-    const liveTaxRate = document.getElementById('live-tax-rate');
-    if (liveTaxRate) liveTaxRate.textContent = taxRate.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
-
-  // MwSt-Feld Änderung beachten
-  const taxRateField = document.getElementById('id_tax_rate');
-  if (taxRateField) taxRateField.addEventListener('input', recalculate);
-
-  // Initial berechnen
   recalculate();
-
 })();
 
-// ── Produktkatalog Schnellauswahl ─────────────────────────────────────────
+// ── Produktkatalog ─────────────────────────────────────────────
 (function() {
-  const modal = document.getElementById('catalog-modal');
-  const btnOpen = document.getElementById('btn-catalog-open');
-  const btnClose = document.getElementById('btn-catalog-close');
+  const modal       = document.getElementById('catalog-modal');
+  const btnOpen     = document.getElementById('btn-catalog-open');
+  const btnClose    = document.getElementById('btn-catalog-close');
   const searchInput = document.getElementById('catalog-search');
   const catalogList = document.getElementById('catalog-list');
-  let catalogItems = [];
+  let catalogItems  = [];
 
   btnOpen.addEventListener('click', function() {
     modal.classList.remove('hidden');
     if (catalogItems.length === 0) loadCatalog();
     searchInput.focus();
   });
-
-  btnClose.addEventListener('click', function() {
-    modal.classList.add('hidden');
-  });
-
+  btnClose.addEventListener('click', function() { modal.classList.add('hidden'); });
   modal.addEventListener('click', function(e) {
     if (e.target === modal) modal.classList.add('hidden');
   });
-
-  searchInput.addEventListener('input', function() {
-    renderCatalog(this.value.toLowerCase());
-  });
+  searchInput.addEventListener('input', function() { renderCatalog(this.value.toLowerCase()); });
 
   function loadCatalog() {
     fetch('{% url "crm:catalog_api" %}')
       .then(r => r.json())
-      .then(data => {
-        catalogItems = data.items;
-        renderCatalog('');
-      })
+      .then(data => { catalogItems = data.items; renderCatalog(''); })
       .catch(() => {
         catalogList.innerHTML = '<p class="text-center text-red-500 text-sm py-8">Fehler beim Laden.</p>';
       });
+  }
+
+  function escHtml(str) {
+    return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
   function renderCatalog(query) {
@@ -474,7 +716,6 @@
       catalogList.innerHTML = '<p class="text-center text-slate-400 text-sm py-8">Keine Produkte gefunden.</p>';
       return;
     }
-    // Group by category
     const groups = {};
     filtered.forEach(item => {
       const cat = item.category || 'Allgemein';
@@ -484,11 +725,11 @@
     let html = '';
     Object.entries(groups).forEach(([cat, items]) => {
       if (Object.keys(groups).length > 1) {
-        html += `<div class="px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wide bg-slate-50">${cat}</div>`;
+        html += `<div class="px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wide bg-slate-50">${escHtml(cat)}</div>`;
       }
       items.forEach(item => {
         html += `
-          <div class="flex items-center gap-3 px-3 py-3 hover:bg-blue-50 cursor-pointer rounded-lg catalog-item"
+          <div class="flex items-center gap-3 px-3 py-3 hover:bg-emerald-50 cursor-pointer rounded-lg catalog-item"
                data-name="${escHtml(item.name)}"
                data-description="${escHtml(item.description)}"
                data-unit="${escHtml(item.unit)}"
@@ -502,7 +743,7 @@
               <p class="text-sm font-mono text-slate-700">${parseFloat(item.unit_price).toFixed(2).replace('.', ',')} €</p>
               <p class="text-xs text-slate-400">${item.quantity} ${escHtml(item.unit)}</p>
             </div>
-            <div class="ml-1 text-[#1666b0]">
+            <div class="ml-1 text-emerald-600">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
               </svg>
@@ -514,40 +755,153 @@
     catalogList.querySelectorAll('.catalog-item').forEach(el => {
       el.addEventListener('click', function() {
         addCatalogItem({
-          name: this.dataset.name,
-          description: this.dataset.description,
-          unit: this.dataset.unit,
-          quantity: this.dataset.quantity,
-          unitPrice: this.dataset.unitPrice,
+          name: this.dataset.name, description: this.dataset.description,
+          unit: this.dataset.unit, quantity: this.dataset.quantity, unitPrice: this.dataset.unitPrice,
         });
         modal.classList.add('hidden');
       });
     });
   }
 
+  function addCatalogItem(item) {
+    document.getElementById('add-row').click();
+    const cards    = document.querySelectorAll('#items-container .pos-card');
+    const lastCard = cards[cards.length - 1];
+    if (!lastCard) return;
+    const descInput  = lastCard.querySelector('textarea[name$="-description"]');
+    const qtyInput   = lastCard.querySelector('input[name$="-quantity"]');
+    const unitInput  = lastCard.querySelector('input[name$="-unit"]');
+    const priceInput = lastCard.querySelector('input[name$="-unit_price"]');
+    if (descInput)  descInput.value  = item.description ? item.name + '\n' + item.description : item.name;
+    if (qtyInput)   qtyInput.value   = item.quantity;
+    if (unitInput)  unitInput.value  = item.unit;
+    if (priceInput) { priceInput.value = item.unitPrice; priceInput.dispatchEvent(new Event('input', {bubbles:true})); }
+  }
+})();
+
+// ── Textbausteine ──────────────────────────────────────────────
+(function() {
+  const tbUrl = '{% url "crm:textblock_api" %}';
+  let cache = {};
+
+  function loadBlocks(category, dropdown) {
+    if (cache[category]) { renderBlocks(cache[category], dropdown); return; }
+    dropdown.innerHTML = '<div class="px-4 py-3 text-xs text-slate-400">Lade …</div>';
+    fetch(`${tbUrl}?category=${encodeURIComponent(category)}`)
+      .then(r => r.json())
+      .then(data => { cache[category] = data.blocks || []; renderBlocks(cache[category], dropdown); })
+      .catch(() => { dropdown.innerHTML = '<div class="px-4 py-3 text-xs text-red-500">Fehler beim Laden.</div>'; });
+  }
+
   function escHtml(str) {
     return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  function addCatalogItem(item) {
-    document.getElementById('add-row').click();
-    const rows = document.querySelectorAll('#items-tbody .item-row');
-    const lastRow = rows[rows.length - 1];
-    if (!lastRow) return;
-
-    const descInput = lastRow.querySelector('textarea[name$="-description"], input[name$="-description"]');
-    const qtyInput = lastRow.querySelector('input[name$="-quantity"]');
-    const unitInput = lastRow.querySelector('input[name$="-unit"]');
-    const priceInput = lastRow.querySelector('input[name$="-unit_price"]');
-
-    if (descInput) descInput.value = item.description ? item.name + '\n' + item.description : item.name;
-    if (qtyInput) qtyInput.value = item.quantity;
-    if (unitInput) unitInput.value = item.unit;
-    if (priceInput) priceInput.value = item.unitPrice;
-
-    if (priceInput) priceInput.dispatchEvent(new Event('input', {bubbles: true}));
-    if (qtyInput) qtyInput.dispatchEvent(new Event('input', {bubbles: true}));
+  function renderBlocks(blocks, dropdown) {
+    if (blocks.length === 0) {
+      dropdown.innerHTML = `<div class="px-4 py-3 text-xs text-slate-400">Keine Textbausteine in dieser Kategorie.<br>
+        <a href="{% url 'crm:textblock_create' %}" target="_blank" class="text-emerald-600 hover:underline">Jetzt anlegen</a></div>`;
+      return;
+    }
+    let html = '';
+    blocks.forEach(b => {
+      html += `<button type="button" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 border-b border-slate-100 last:border-0 tb-block-btn"
+                       data-content="${escHtml(b.content)}">
+        <div class="text-sm font-medium text-slate-800">${escHtml(b.name)}</div>
+        <div class="text-xs text-slate-400 truncate mt-0.5">${escHtml(b.content.substring(0, 80))}${b.content.length > 80 ? '…' : ''}</div>
+      </button>`;
+    });
+    dropdown.innerHTML = html;
+    dropdown.querySelectorAll('.tb-block-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const targetId = dropdown.closest('.relative').querySelector('.tb-btn').dataset.target;
+        const textarea = document.getElementById(targetId);
+        if (textarea) textarea.value = this.dataset.content;
+        dropdown.classList.add('hidden');
+      });
+    });
   }
+
+  document.querySelectorAll('.tb-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const dropdown = this.nextElementSibling;
+      document.querySelectorAll('.tb-dropdown').forEach(d => { if (d !== dropdown) d.classList.add('hidden'); });
+      if (dropdown.classList.contains('hidden')) {
+        dropdown.classList.remove('hidden');
+        loadBlocks(this.dataset.category, dropdown);
+      } else {
+        dropdown.classList.add('hidden');
+      }
+    });
+  });
+
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.tb-btn') && !e.target.closest('.tb-dropdown')) {
+      document.querySelectorAll('.tb-dropdown').forEach(d => d.classList.add('hidden'));
+    }
+  });
+})();
+</script>
+
+<script>
+// ── Empfänger-Autocomplete ─────────────────────────────────────
+(function() {
+  const searchInput  = document.getElementById('recipient-search');
+  const dropdown     = document.getElementById('recipient-dropdown');
+  const fieldName    = document.getElementById('{{ form.recipient_name.id_for_label }}');
+  const fieldEmail   = document.getElementById('{{ form.recipient_email.id_for_label }}');
+  const fieldAddress = document.getElementById('{{ form.recipient_address.id_for_label }}');
+  const searchUrl    = "{% url 'crm:recipient_search' %}";
+  const contactCreateUrl = "{% url 'crm:contact_create' %}";
+
+  if (!searchInput) return;
+  let debounceTimer;
+
+  searchInput.addEventListener('input', function() {
+    clearTimeout(debounceTimer);
+    const q = this.value.trim();
+    if (q.length < 2) { dropdown.classList.add('hidden'); return; }
+    debounceTimer = setTimeout(() => {
+      fetch(`${searchUrl}?q=${encodeURIComponent(q)}`)
+        .then(r => r.json())
+        .then(data => {
+          dropdown.innerHTML = '';
+          if (data.results.length === 0) {
+            dropdown.innerHTML = `<div class="px-4 py-2 text-xs text-slate-400">Kein Treffer —
+              <a href="${contactCreateUrl}" target="_blank"
+                 class="text-emerald-600 hover:underline font-medium">Neuen Kontakt anlegen</a></div>`;
+          } else {
+            data.results.forEach(r => {
+              const el = document.createElement('div');
+              el.className = 'px-4 py-2.5 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0';
+              el.innerHTML = `
+                <div class="text-sm font-medium text-slate-800">${r.label}</div>
+                <div class="text-xs text-slate-400">${r.email || ''}${r.address ? ' · ' + r.address.split('\n')[0] : ''}</div>`;
+              el.addEventListener('click', () => {
+                if (fieldName)    fieldName.value    = r.name;
+                if (fieldEmail)   fieldEmail.value   = r.email;
+                if (fieldAddress) fieldAddress.value = r.address;
+                searchInput.value = r.label;
+                dropdown.classList.add('hidden');
+              });
+              dropdown.appendChild(el);
+            });
+            const newEl = document.createElement('div');
+            newEl.className = 'px-4 py-2 text-xs text-slate-400 border-t border-slate-100';
+            newEl.innerHTML = `Nicht dabei? <a href="${contactCreateUrl}" target="_blank" class="text-emerald-600 hover:underline font-medium">Neuen Kontakt anlegen</a>`;
+            dropdown.appendChild(newEl);
+          }
+          dropdown.classList.remove('hidden');
+        });
+    }, 250);
+  });
+
+  document.addEventListener('click', function(e) {
+    if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.classList.add('hidden');
+    }
+  });
 })();
 </script>
 
@@ -576,12 +930,7 @@ function initGoogleAutocomplete() {
     const line1   = number ? street + ' ' + number : street;
     const parts   = [line1, postal && city ? postal + ' ' + city : (postal || city), country].filter(Boolean);
     const textarea = document.getElementById('{{ form.recipient_address.id_for_label }}');
-    if (textarea) {
-      textarea.value = parts.join('\n');
-      textarea.style.transition = 'background 0.3s';
-      textarea.style.background = '#f0fdf4';
-      setTimeout(() => { textarea.style.background = ''; }, 1200);
-    }
+    if (textarea) textarea.value = parts.join('\n');
     searchInput.value = '';
   });
 }
@@ -589,66 +938,5 @@ function initGoogleAutocomplete() {
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initGoogleAutocomplete" async defer></script>
 {% endif %}
 
-<script>
-(function() {
-  const searchInput  = document.getElementById('recipient-search');
-  const dropdown     = document.getElementById('recipient-dropdown');
-  const fieldName    = document.getElementById('{{ form.recipient_name.id_for_label }}');
-  const fieldEmail   = document.getElementById('{{ form.recipient_email.id_for_label }}');
-  const fieldAddress = document.getElementById('{{ form.recipient_address.id_for_label }}');
-  const searchUrl    = "{% url 'crm:recipient_search' %}";
-  const contactCreateUrl = "{% url 'crm:contact_create' %}";
-
-  if (!searchInput) return;
-
-  let debounceTimer;
-
-  searchInput.addEventListener('input', function() {
-    clearTimeout(debounceTimer);
-    const q = this.value.trim();
-    if (q.length < 2) { dropdown.classList.add('hidden'); return; }
-    debounceTimer = setTimeout(() => {
-      fetch(`${searchUrl}?q=${encodeURIComponent(q)}`)
-        .then(r => r.json())
-        .then(data => {
-          dropdown.innerHTML = '';
-          if (data.results.length === 0) {
-            dropdown.innerHTML = `
-              <div class="px-4 py-2 text-xs text-slate-400">Kein Treffer —
-                <a href="${contactCreateUrl}" target="_blank"
-                   class="text-[#1666b0] hover:underline font-medium">Neuen Kontakt anlegen</a>
-              </div>`;
-          } else {
-            data.results.forEach(r => {
-              const el = document.createElement('div');
-              el.className = 'px-4 py-2.5 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0';
-              el.innerHTML = `
-                <div class="text-sm font-medium text-slate-800">${r.label}</div>
-                <div class="text-xs text-slate-400">${r.email || ''}${r.address ? ' · ' + r.address.split('\n')[0] : ''}</div>`;
-              el.addEventListener('click', () => {
-                if (fieldName)    fieldName.value    = r.name;
-                if (fieldEmail)   fieldEmail.value   = r.email;
-                if (fieldAddress) fieldAddress.value = r.address;
-                searchInput.value = r.label;
-                dropdown.classList.add('hidden');
-              });
-              dropdown.appendChild(el);
-            });
-            const newEl = document.createElement('div');
-            newEl.className = 'px-4 py-2 text-xs text-slate-400 border-t border-slate-100';
-            newEl.innerHTML = `Nicht dabei? <a href="${contactCreateUrl}" target="_blank" class="text-[#1666b0] hover:underline font-medium">Neuen Kontakt anlegen</a>`;
-            dropdown.appendChild(newEl);
-          }
-          dropdown.classList.remove('hidden');
-        });
-    }, 250);
-  });
-
-  document.addEventListener('click', function(e) {
-    if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
-      dropdown.classList.add('hidden');
-    }
-  });
-})();
-</script>
-{% endblock %}
+</body>
+</html>

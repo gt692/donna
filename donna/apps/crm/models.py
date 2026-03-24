@@ -771,6 +771,14 @@ class Offer(models.Model):
     recipient_name    = models.CharField(max_length=255, blank=True, verbose_name=_("Empfänger Name"))
     recipient_email   = models.EmailField(blank=True, verbose_name=_("Empfänger E-Mail"))
     recipient_address = models.TextField(blank=True, verbose_name=_("Empfänger Adresse"))
+    discount_percent  = models.DecimalField(
+        max_digits=5, decimal_places=2, default=Decimal("0"),
+        verbose_name=_("Gesamtrabatt (%)"),
+    )
+    is_kleinunternehmer = models.BooleanField(
+        default=False,
+        verbose_name=_("Kleinunternehmer (§19 UStG)"),
+    )
 
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -813,10 +821,22 @@ class Offer(models.Model):
 
     @property
     def net_total(self):
-        return sum((item.net_amount for item in self.items.all()), Decimal("0.00"))
+        subtotal = sum((item.net_amount for item in self.items.all()), Decimal("0.00"))
+        if self.discount_percent:
+            subtotal = subtotal * (1 - self.discount_percent / Decimal("100"))
+        return subtotal.quantize(Decimal("0.01"))
+
+    @property
+    def discount_amount(self):
+        if not self.discount_percent:
+            return Decimal("0.00")
+        subtotal = sum((item.net_amount for item in self.items.all()), Decimal("0.00"))
+        return (subtotal * self.discount_percent / Decimal("100")).quantize(Decimal("0.01"))
 
     @property
     def tax_amount(self):
+        if self.is_kleinunternehmer:
+            return Decimal("0.00")
         return (self.net_total * self.tax_rate / Decimal("100")).quantize(Decimal("0.01"))
 
     @property
@@ -825,6 +845,11 @@ class Offer(models.Model):
 
 
 class OfferItem(models.Model):
+    class ItemType(models.TextChoices):
+        NORMAL   = "normal",   _("Normal")
+        OPTIONAL = "optional", _("Optional")
+        TEXT     = "text",     _("Freitext")
+
     offer       = models.ForeignKey(
         Offer,
         on_delete=models.CASCADE,
@@ -832,6 +857,10 @@ class OfferItem(models.Model):
         verbose_name=_("Angebot"),
     )
     position    = models.PositiveSmallIntegerField(default=1, verbose_name=_("Position"))
+    item_type   = models.CharField(
+        max_length=10, choices=ItemType.choices, default=ItemType.NORMAL,
+        verbose_name=_("Typ"),
+    )
     description = models.TextField(verbose_name=_("Beschreibung"))
     quantity    = models.DecimalField(
         max_digits=8, decimal_places=2, default=Decimal("1"),
@@ -842,8 +871,12 @@ class OfferItem(models.Model):
         verbose_name=_("Einheit"),
     )
     unit_price = models.DecimalField(
-        max_digits=12, decimal_places=2,
+        max_digits=12, decimal_places=2, default=Decimal("0"),
         verbose_name=_("Einzelpreis (€ netto)"),
+    )
+    discount_percent = models.DecimalField(
+        max_digits=5, decimal_places=2, default=Decimal("0"),
+        verbose_name=_("Rabatt (%)"),
     )
 
     class Meta:
@@ -853,7 +886,12 @@ class OfferItem(models.Model):
 
     @property
     def net_amount(self):
-        return (self.quantity * self.unit_price).quantize(Decimal("0.01"))
+        if self.item_type in (self.ItemType.OPTIONAL, self.ItemType.TEXT):
+            return Decimal("0.00")
+        amount = (self.quantity * self.unit_price).quantize(Decimal("0.01"))
+        if self.discount_percent:
+            amount = amount * (1 - self.discount_percent / Decimal("100"))
+        return amount.quantize(Decimal("0.01"))
 
 
 # ---------------------------------------------------------------------------
@@ -889,6 +927,8 @@ class Invoice(models.Model):
     recipient_name    = models.CharField(max_length=255, blank=True)
     recipient_email   = models.EmailField(blank=True)
     recipient_address = models.TextField(blank=True)
+    discount_percent  = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0"))
+    is_kleinunternehmer = models.BooleanField(default=False)
     net_total_cached  = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     created_by     = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="created_invoices")
     created_at     = models.DateTimeField(auto_now_add=True)
@@ -916,10 +956,22 @@ class Invoice(models.Model):
 
     @property
     def net_total(self):
-        return sum((item.net_amount for item in self.items.all()), Decimal("0.00"))
+        subtotal = sum((item.net_amount for item in self.items.all()), Decimal("0.00"))
+        if self.discount_percent:
+            subtotal = subtotal * (1 - self.discount_percent / Decimal("100"))
+        return subtotal.quantize(Decimal("0.01"))
+
+    @property
+    def discount_amount(self):
+        if not self.discount_percent:
+            return Decimal("0.00")
+        subtotal = sum((item.net_amount for item in self.items.all()), Decimal("0.00"))
+        return (subtotal * self.discount_percent / Decimal("100")).quantize(Decimal("0.01"))
 
     @property
     def tax_amount(self):
+        if self.is_kleinunternehmer:
+            return Decimal("0.00")
         return (self.net_total * self.tax_rate / Decimal("100")).quantize(Decimal("0.01"))
 
     @property
@@ -945,16 +997,28 @@ class Invoice(models.Model):
 
 
 class InvoiceItem(models.Model):
-    invoice     = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="items")
-    position    = models.PositiveSmallIntegerField(default=1)
-    description = models.TextField()
-    quantity    = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("1"))
-    unit        = models.CharField(max_length=50, blank=True, default="pauschal")
-    unit_price  = models.DecimalField(max_digits=12, decimal_places=2)
+    class ItemType(models.TextChoices):
+        NORMAL   = "normal",   "Normal"
+        OPTIONAL = "optional", "Optional"
+        TEXT     = "text",     "Freitext"
+
+    invoice          = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="items")
+    position         = models.PositiveSmallIntegerField(default=1)
+    item_type        = models.CharField(max_length=10, choices=ItemType.choices, default=ItemType.NORMAL)
+    description      = models.TextField()
+    quantity         = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("1"))
+    unit             = models.CharField(max_length=50, blank=True, default="pauschal")
+    unit_price       = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0"))
 
     @property
     def net_amount(self):
-        return (self.quantity * self.unit_price).quantize(Decimal("0.01"))
+        if self.item_type in (self.ItemType.OPTIONAL, self.ItemType.TEXT):
+            return Decimal("0.00")
+        amount = (self.quantity * self.unit_price).quantize(Decimal("0.01"))
+        if self.discount_percent:
+            amount = amount * (1 - self.discount_percent / Decimal("100"))
+        return amount.quantize(Decimal("0.01"))
 
     class Meta:
         ordering = ["position"]
@@ -989,6 +1053,31 @@ class ProductCatalog(models.Model):
     @property
     def net_amount(self):
         return (self.quantity * self.unit_price).quantize(Decimal("0.01"))
+
+
+# ---------------------------------------------------------------------------
+# TextBlock — Wiederverwendbare Textbausteine für Angebote/Rechnungen
+# ---------------------------------------------------------------------------
+
+class TextBlock(models.Model):
+    class Category(models.TextChoices):
+        INTRO   = "intro",   _("Einleitungstext")
+        CLOSING = "closing", _("Nachbemerkung")
+        PAYMENT = "payment", _("Zahlungsbedingung")
+        OTHER   = "other",   _("Sonstiges")
+
+    name     = models.CharField(max_length=100, verbose_name=_("Name"))
+    category = models.CharField(max_length=20, choices=Category.choices, verbose_name=_("Kategorie"))
+    content  = models.TextField(verbose_name=_("Inhalt"))
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["category", "name"]
+        verbose_name = _("Textbaustein")
+        verbose_name_plural = _("Textbausteine")
+
+    def __str__(self):
+        return f"{self.get_category_display()} — {self.name}"
 
 
 # ---------------------------------------------------------------------------

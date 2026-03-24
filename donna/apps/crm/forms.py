@@ -6,7 +6,7 @@ from django.forms import inlineformset_factory
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import Lookup
-from .models import Account, Contact, Invoice, InvoiceItem, Offer, OfferItem, Project
+from .models import Account, Contact, Invoice, InvoiceItem, Offer, OfferItem, Project, TextBlock
 
 _INPUT = (
     "w-full px-3 py-2 rounded-lg border border-slate-200 bg-white "
@@ -206,6 +206,7 @@ class OfferForm(forms.ModelForm):
         model  = Offer
         fields = [
             "title", "offer_date", "valid_until", "tax_rate",
+            "discount_percent", "is_kleinunternehmer",
             "intro_text", "closing_text", "payment_terms",
             "recipient_name", "recipient_email", "recipient_address",
         ]
@@ -213,10 +214,12 @@ class OfferForm(forms.ModelForm):
             "title":             forms.TextInput(attrs={"class": _INPUT, "placeholder": "Angebotstitel"}),
             "offer_date":        forms.DateInput(attrs={"class": _INPUT, "type": "date"}, format="%Y-%m-%d"),
             "valid_until":       forms.DateInput(attrs={"class": _INPUT, "type": "date"}, format="%Y-%m-%d"),
-            "tax_rate":          forms.NumberInput(attrs={"class": _INPUT, "step": "0.01"}),
-            "intro_text":        forms.Textarea(attrs={"class": _INPUT, "rows": 3, "placeholder": "Einleitungstext …"}),
-            "closing_text":      forms.Textarea(attrs={"class": _INPUT, "rows": 3, "placeholder": "Nachbemerkung …"}),
-            "payment_terms":     forms.Textarea(attrs={"class": _INPUT, "rows": 2, "placeholder": "z.B. Zahlbar innerhalb von 14 Tagen ohne Abzug."}),
+            "tax_rate":          forms.NumberInput(attrs={"class": _INPUT, "step": "0.01", "id": "id_tax_rate"}),
+            "discount_percent":  forms.NumberInput(attrs={"class": _INPUT, "step": "0.01", "min": "0", "max": "100", "placeholder": "0"}),
+            "is_kleinunternehmer": forms.CheckboxInput(attrs={"class": "w-4 h-4 rounded border-slate-300 text-[#1666b0]"}),
+            "intro_text":        forms.Textarea(attrs={"class": _INPUT, "rows": 4, "placeholder": "Einleitungstext …"}),
+            "closing_text":      forms.Textarea(attrs={"class": _INPUT, "rows": 4, "placeholder": "Nachbemerkung …"}),
+            "payment_terms":     forms.Textarea(attrs={"class": _INPUT, "rows": 3, "placeholder": "z.B. Zahlbar innerhalb von 14 Tagen ohne Abzug."}),
             "recipient_name":    forms.TextInput(attrs={"class": _INPUT, "placeholder": "Empfänger Name"}),
             "recipient_email":   forms.EmailInput(attrs={"class": _INPUT, "placeholder": "empfaenger@beispiel.de"}),
             "recipient_address": forms.Textarea(attrs={"class": _INPUT, "rows": 3, "placeholder": "Straße, Nr.\nPLZ Ort"}),
@@ -224,41 +227,30 @@ class OfferForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["valid_until"].required = False
-        self.fields["intro_text"].required = False
-        self.fields["closing_text"].required = False
-        self.fields["payment_terms"].required = False
-        self.fields["recipient_name"].required = False
-        self.fields["recipient_email"].required = False
-        self.fields["recipient_address"].required = False
+        for f in ("valid_until", "intro_text", "closing_text", "payment_terms",
+                  "recipient_name", "recipient_email", "recipient_address",
+                  "discount_percent"):
+            self.fields[f].required = False
 
+
+_ITEM_INPUT = "w-full px-2 py-1.5 text-sm rounded border border-slate-200 focus:outline-none focus:border-[#1666b0] transition"
 
 class OfferItemForm(forms.ModelForm):
     class Meta:
         model  = OfferItem
-        fields = ["position", "description", "quantity", "unit", "unit_price"]
+        fields = ["position", "item_type", "description", "quantity", "unit", "unit_price", "discount_percent"]
         widgets = {
-            "position":    forms.NumberInput(attrs={
-                "class": "w-16 px-2 py-1.5 text-sm rounded border border-slate-200 text-center",
-                "min": "1",
-            }),
-            "description": forms.Textarea(attrs={
-                "class": "w-full px-2 py-1.5 text-sm rounded border border-slate-200 resize-none",
-                "rows": 2,
+            "position":         forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-center", "min": "1"}),
+            "item_type":        forms.Select(attrs={"class": _ITEM_INPUT + " item-type-select cursor-pointer"}),
+            "description":      forms.Textarea(attrs={
+                "class": _ITEM_INPUT + " resize-y item-description",
+                "rows": 4,
                 "placeholder": "Leistungsbeschreibung …",
             }),
-            "quantity":    forms.NumberInput(attrs={
-                "class": "w-24 px-2 py-1.5 text-sm rounded border border-slate-200 text-right item-qty",
-                "step": "0.01", "min": "0",
-            }),
-            "unit":        forms.TextInput(attrs={
-                "class": "w-28 px-2 py-1.5 text-sm rounded border border-slate-200",
-                "placeholder": "pauschal",
-            }),
-            "unit_price":  forms.NumberInput(attrs={
-                "class": "w-32 px-2 py-1.5 text-sm rounded border border-slate-200 text-right item-price",
-                "step": "0.01", "min": "0",
-            }),
+            "quantity":         forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-right item-qty", "step": "0.01", "min": "0"}),
+            "unit":             forms.TextInput(attrs={"class": _ITEM_INPUT, "placeholder": "pauschal"}),
+            "unit_price":       forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-right item-price", "step": "0.01", "min": "0"}),
+            "discount_percent": forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-right item-discount", "step": "0.01", "min": "0", "max": "100", "placeholder": "0"}),
         }
 
 
@@ -288,37 +280,60 @@ class InvoiceForm(forms.ModelForm):
         model = Invoice
         fields = [
             "title", "invoice_type", "invoice_date", "due_date", "tax_rate",
+            "discount_percent", "is_kleinunternehmer",
             "intro_text", "closing_text", "payment_info",
             "recipient_name", "recipient_email", "recipient_address",
         ]
         widgets = {
-            "title":            forms.TextInput(attrs={"class": _INPUT}),
-            "invoice_type":     forms.Select(attrs={"class": _SELECT}),
-            "invoice_date":     forms.DateInput(attrs={"class": _INPUT, "type": "date"}),
-            "due_date":         forms.DateInput(attrs={"class": _INPUT, "type": "date"}),
-            "tax_rate":         forms.NumberInput(attrs={"class": _INPUT, "step": "0.01"}),
-            "intro_text":       forms.Textarea(attrs={"class": _INPUT, "rows": 3}),
-            "closing_text":     forms.Textarea(attrs={"class": _INPUT, "rows": 3}),
-            "payment_info":     forms.Textarea(attrs={"class": _INPUT, "rows": 3}),
-            "recipient_name":   forms.TextInput(attrs={"class": _INPUT}),
-            "recipient_email":  forms.EmailInput(attrs={"class": _INPUT}),
+            "title":             forms.TextInput(attrs={"class": _INPUT}),
+            "invoice_type":      forms.Select(attrs={"class": _SELECT}),
+            "invoice_date":      forms.DateInput(attrs={"class": _INPUT, "type": "date"}),
+            "due_date":          forms.DateInput(attrs={"class": _INPUT, "type": "date"}),
+            "tax_rate":          forms.NumberInput(attrs={"class": _INPUT, "step": "0.01", "id": "id_tax_rate"}),
+            "discount_percent":  forms.NumberInput(attrs={"class": _INPUT, "step": "0.01", "min": "0", "max": "100", "placeholder": "0"}),
+            "is_kleinunternehmer": forms.CheckboxInput(attrs={"class": "w-4 h-4 rounded border-slate-300 text-[#1666b0]"}),
+            "intro_text":        forms.Textarea(attrs={"class": _INPUT, "rows": 4}),
+            "closing_text":      forms.Textarea(attrs={"class": _INPUT, "rows": 4}),
+            "payment_info":      forms.Textarea(attrs={"class": _INPUT, "rows": 3}),
+            "recipient_name":    forms.TextInput(attrs={"class": _INPUT}),
+            "recipient_email":   forms.EmailInput(attrs={"class": _INPUT}),
             "recipient_address": forms.Textarea(attrs={"class": _INPUT, "rows": 3}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for f in ("due_date", "intro_text", "closing_text", "payment_info",
+                  "recipient_name", "recipient_email", "recipient_address",
+                  "discount_percent"):
+            self.fields[f].required = False
 
 
 class InvoiceItemForm(forms.ModelForm):
     class Meta:
         model = InvoiceItem
-        fields = ["position", "description", "quantity", "unit", "unit_price"]
+        fields = ["position", "item_type", "description", "quantity", "unit", "unit_price", "discount_percent"]
         widgets = {
-            "position":    forms.NumberInput(attrs={"class": _INPUT + " w-16"}),
-            "description": forms.Textarea(attrs={"class": _INPUT, "rows": 2}),
-            "quantity":    forms.NumberInput(attrs={"class": _INPUT + " w-24", "step": "0.01"}),
-            "unit":        forms.TextInput(attrs={"class": _INPUT + " w-28"}),
-            "unit_price":  forms.NumberInput(attrs={"class": _INPUT + " w-32", "step": "0.01"}),
+            "position":         forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-center", "min": "1"}),
+            "item_type":        forms.Select(attrs={"class": _ITEM_INPUT + " item-type-select cursor-pointer"}),
+            "description":      forms.Textarea(attrs={"class": _ITEM_INPUT + " resize-y item-description", "rows": 4, "placeholder": "Leistungsbeschreibung …"}),
+            "quantity":         forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-right item-qty", "step": "0.01", "min": "0"}),
+            "unit":             forms.TextInput(attrs={"class": _ITEM_INPUT, "placeholder": "pauschal"}),
+            "unit_price":       forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-right item-price", "step": "0.01", "min": "0"}),
+            "discount_percent": forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-right item-discount", "step": "0.01", "min": "0", "max": "100", "placeholder": "0"}),
         }
 
 
 InvoiceItemFormSet = forms.inlineformset_factory(
     Invoice, InvoiceItem, form=InvoiceItemForm, extra=1, can_delete=True
 )
+
+
+class TextBlockForm(forms.ModelForm):
+    class Meta:
+        model = TextBlock
+        fields = ["name", "category", "content"]
+        widgets = {
+            "name":     forms.TextInput(attrs={"class": _INPUT, "placeholder": "Name des Bausteins"}),
+            "category": forms.Select(attrs={"class": _SELECT}),
+            "content":  forms.Textarea(attrs={"class": _INPUT, "rows": 6, "placeholder": "Inhalt …"}),
+        }
