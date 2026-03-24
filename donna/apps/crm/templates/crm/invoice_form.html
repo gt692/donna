@@ -571,7 +571,7 @@
             <div>
               <label class="block text-xs text-slate-400 mb-1">Einheit</label>
               <input type="text" name="items-__prefix__-unit" value=""
-                     list="unit-datalist" autocomplete="off"
+                     list="unit-datalist"
                      class="pos-input">
             </div>
             <div>
@@ -1176,10 +1176,20 @@ function initGoogleAutocomplete() {
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initGoogleAutocomplete" async defer></script>
 {% endif %}
 
-<!-- Einheiten-Datalist -->
-<datalist id="unit-datalist">
-  {% for unit_name in unit_names %}<option value="{{ unit_name }}">{% endfor %}
-</datalist>
+<!-- Einheiten-Datalist (dynamisch via API) -->
+<datalist id="unit-datalist"></datalist>
+<script>
+fetch('{% url "crm:unit_api" %}')
+  .then(r => r.json())
+  .then(data => {
+    const dl = document.getElementById('unit-datalist');
+    (data.units || []).forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u;
+      dl.appendChild(opt);
+    });
+  });
+</script>
 
 </body>
 </html>
