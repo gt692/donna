@@ -23,6 +23,7 @@
         <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Kategorie</th>
         <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Gilt für</th>
         <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Vorschau</th>
+        <th class="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide w-10" title="Standard für Kategorie">★</th>
         <th class="px-5 py-3 w-24"></th>
       </tr>
     </thead>
@@ -41,6 +42,14 @@
           {% endif %}
         </td>
         <td class="px-5 py-3 text-slate-400 text-xs max-w-md truncate">{{ tb.content|truncatechars:100 }}</td>
+        <td class="px-5 py-3 text-center">
+          <form method="post" action="{% url 'crm:textblock_set_default' tb.pk %}">
+            {% csrf_token %}
+            <button type="submit"
+                    class="text-lg leading-none transition {% if tb.is_default %}text-amber-400 hover:text-amber-300{% else %}text-slate-200 hover:text-amber-300{% endif %}"
+                    title="{% if tb.is_default %}Standard aufheben{% else %}Als Standard setzen{% endif %}">★</button>
+          </form>
+        </td>
         <td class="px-5 py-3 flex items-center gap-2 justify-end">
           <a href="{% url 'crm:textblock_edit' tb.pk %}"
              class="text-xs text-[#2F6FB3] hover:underline">Bearbeiten</a>

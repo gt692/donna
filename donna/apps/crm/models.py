@@ -1076,10 +1076,11 @@ class TextBlock(models.Model):
         OFFER   = "offer",   _("Nur Angebote")
         INVOICE = "invoice", _("Nur Rechnungen")
 
-    name     = models.CharField(max_length=100, verbose_name=_("Name"))
-    category = models.CharField(max_length=20, choices=Category.choices, verbose_name=_("Kategorie"))
-    scope    = models.CharField(max_length=10, choices=Scope.choices, default="both", verbose_name=_("Gilt für"))
-    content  = models.TextField(verbose_name=_("Inhalt"))
+    name       = models.CharField(max_length=100, verbose_name=_("Name"))
+    category   = models.CharField(max_length=20, choices=Category.choices, verbose_name=_("Kategorie"))
+    scope      = models.CharField(max_length=10, choices=Scope.choices, default="both", verbose_name=_("Gilt für"))
+    content    = models.TextField(verbose_name=_("Inhalt"))
+    is_default = models.BooleanField(default=False, verbose_name=_("Standard"))
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

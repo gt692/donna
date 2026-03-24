@@ -59,6 +59,22 @@
     .field-wrap textarea { resize: vertical; }
     * { box-sizing: border-box; }
 
+    .text-card-body textarea {
+      border: none !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      padding: 0.75rem 1rem;
+      background: transparent;
+      min-height: 5rem;
+      width: 100%;
+    }
+    .text-card-body textarea:focus { outline: none; background: #f0fdf9; }
+
+    .type-btn { background: #fff; color: #64748b; transition: background 0.1s, color 0.1s; }
+    .type-btn.active-normal   { background: #059669; color: #fff; }
+    .type-btn.active-optional { background: #f59e0b; color: #fff; }
+    .type-btn.active-text     { background: #64748b; color: #fff; }
+
     /* Keine Spinner bei Zahlenfeldern */
     input[type=number]::-webkit-inner-spin-button,
     input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
@@ -257,10 +273,7 @@
               <div class="tb-dropdown hidden"></div>
             </div>
           </div>
-          <div class="field-wrap">
-            <label for="{{ form.intro_text.id_for_label }}">Einleitungstext</label>
-            {{ form.intro_text }}
-          </div>
+          <div class="text-card-body">{{ form.intro_text }}</div>
         </div>
 
         <!-- Positionen -->
@@ -269,7 +282,7 @@
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Positionen</span>
           </div>
 
-          <div id="items-container" class="divide-y divide-slate-100">
+          <div id="items-container" class="divide-y divide-slate-200">
             {% for item_form in formset %}
             <div class="pos-card px-4 py-3
                         {% if item_form.instance.pk %}existing-row{% endif %}"
@@ -287,8 +300,11 @@
                 <span class="pos-number flex-none w-7 h-7 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center">
                   {{ forloop.counter }}
                 </span>
-                <div class="flex-none">
-                  {{ item_form.item_type }}
+                {{ item_form.item_type }}
+                <div class="type-btn-group flex-none flex rounded-lg border border-slate-200 overflow-hidden text-xs font-medium">
+                  <button type="button" class="type-btn px-2.5 py-1 {% if item_form.instance.item_type == 'normal' or not item_form.instance.pk %}active-normal{% endif %}" data-value="normal">Normal</button>
+                  <button type="button" class="type-btn px-2.5 py-1 border-l border-slate-200 {% if item_form.instance.item_type == 'optional' %}active-optional{% endif %}" data-value="optional">Optional</button>
+                  <button type="button" class="type-btn px-2.5 py-1 border-l border-slate-200 {% if item_form.instance.item_type == 'text' %}active-text{% endif %}" data-value="text">Freitext</button>
                 </div>
                 <div class="flex-1"></div>
                 {% if item_form.instance.pk %}
@@ -446,10 +462,7 @@
               <div class="tb-dropdown hidden"></div>
             </div>
           </div>
-          <div class="field-wrap">
-            <label for="{{ form.payment_info.id_for_label }}">IBAN, BIC, Verwendungszweck …</label>
-            {{ form.payment_info }}
-          </div>
+          <div class="text-card-body">{{ form.payment_info }}</div>
         </div>
 
         <!-- Schlusstext -->
@@ -468,10 +481,7 @@
               <div class="tb-dropdown hidden"></div>
             </div>
           </div>
-          <div class="field-wrap">
-            <label for="{{ form.closing_text.id_for_label }}">Schlusstext</label>
-            {{ form.closing_text }}
-          </div>
+          <div class="text-card-body">{{ form.closing_text }}</div>
         </div>
 
         {% if form.non_field_errors %}
@@ -495,12 +505,12 @@
           </svg>
         </span>
         <span class="pos-number flex-none w-7 h-7 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center">1</span>
-        <select name="items-__prefix__-item_type"
-                class="flex-none text-xs font-medium px-2.5 py-1 rounded-full border border-slate-200 bg-white cursor-pointer item-type-select focus:outline-none focus:border-emerald-500">
-          <option value="normal">Normal</option>
-          <option value="optional">Optional</option>
-          <option value="text">Freitext</option>
-        </select>
+        <input type="hidden" name="items-__prefix__-item_type" value="normal" class="item-type-input">
+        <div class="type-btn-group flex-none flex rounded-lg border border-slate-200 overflow-hidden text-xs font-medium">
+          <button type="button" class="type-btn active-normal px-2.5 py-1" data-value="normal">Normal</button>
+          <button type="button" class="type-btn px-2.5 py-1 border-l border-slate-200" data-value="optional">Optional</button>
+          <button type="button" class="type-btn px-2.5 py-1 border-l border-slate-200" data-value="text">Freitext</button>
+        </div>
         <div class="flex-1"></div>
         <button type="button" class="remove-row text-slate-300 hover:text-red-500 transition flex-none">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -588,8 +598,8 @@
   }
 
   function getItemType(card) {
-    const sel = card.querySelector('.item-type-select');
-    return sel ? sel.value : (card.dataset.type || 'normal');
+    const inp = card.querySelector('.item-type-input');
+    return inp ? inp.value : (card.dataset.type || 'normal');
   }
 
   function applyTypeStyle(card) {
@@ -707,16 +717,26 @@
     }
   }
 
+  function updateTypeBtns(card, value) {
+    card.querySelectorAll('.type-btn').forEach(function(btn) {
+      btn.classList.remove('active-normal', 'active-optional', 'active-text');
+      if (btn.dataset.value === value) btn.classList.add('active-' + value);
+    });
+  }
+
   function bindCardEvents(card) {
-    const typeSelect = card.querySelector('.item-type-select');
-    if (typeSelect) {
-      typeSelect.addEventListener('change', function() {
-        card.dataset.type = this.value;
+    const typeInput = card.querySelector('.item-type-input');
+    card.querySelectorAll('.type-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const val = this.dataset.value;
+        if (typeInput) typeInput.value = val;
+        card.dataset.type = val;
+        updateTypeBtns(card, val);
         applyTypeStyle(card);
         recalculate();
       });
-      applyTypeStyle(card);
-    }
+    });
+    if (typeInput) applyTypeStyle(card);
 
     const removeBtn = card.querySelector('.remove-row');
     if (removeBtn) {

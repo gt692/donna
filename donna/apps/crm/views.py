@@ -1380,6 +1380,19 @@ class OfferListView(CRMMixin, ListView):
         return ctx
 
 
+def _textblock_defaults(scope: str) -> dict:
+    """Return initial field values from is_default TextBlocks for the given scope (offer/invoice)."""
+    payment_field = "payment_info" if scope == "invoice" else "payment_terms"
+    mapping = {"intro": "intro_text", "closing": "closing_text", "payment": payment_field}
+    initial = {}
+    qs = TextBlock.objects.filter(is_default=True, scope__in=[scope, "both"])
+    for tb in qs:
+        field = mapping.get(tb.category)
+        if field and field not in initial:
+            initial[field] = tb.content
+    return initial
+
+
 class OfferCreateView(AdminOrLeadMixin, View):
     template_name = "crm/offer_form.html"
 
@@ -1388,12 +1401,12 @@ class OfferCreateView(AdminOrLeadMixin, View):
 
     def get(self, request, pk):
         project = self._get_project(pk)
-        initial = {"title": f"Angebot – {project.name}"}
+        initial = {**_textblock_defaults("offer"), "title": f"Angebot – {project.name}"}
         # Pre-fill from GET params (e.g. from LeadInquiryImportView)
         for field in ["recipient_name", "recipient_email", "recipient_address"]:
             if request.GET.get(field):
                 initial[field] = request.GET[field]
-        # Pre-fill description into intro_text
+        # Pre-fill description into intro_text (overrides textblock default)
         if request.GET.get("description"):
             initial["intro_text"] = request.GET["description"]
         # Also try from account if not pre-filled
@@ -1444,7 +1457,7 @@ class OfferCreateStandaloneView(AdminOrLeadMixin, View):
     template_name = "crm/offer_form.html"
 
     def get(self, request):
-        form    = OfferForm(initial={"title": "Angebot"})
+        form    = OfferForm(initial={**_textblock_defaults("offer"), "title": "Angebot"})
         formset = _build_offer_formset(request, extra=3)
         return render(request, self.template_name, {
             "form": form, "formset": formset, "project": None,
@@ -1875,7 +1888,7 @@ class InvoiceListView(CRMMixin, ListView):
 class InvoiceCreateView(AdminOrLeadMixin, View):
     def get(self, request, pk):
         project = get_object_or_404(Project, pk=pk)
-        initial = {"title": f"Rechnung – {project.name}"}
+        initial = {**_textblock_defaults("invoice"), "title": f"Rechnung – {project.name}"}
         if project.account:
             initial["recipient_name"] = project.account.name
             initial["recipient_email"] = project.account.billing_email or project.account.email
@@ -1914,7 +1927,7 @@ class InvoiceCreateStandaloneView(AdminOrLeadMixin, View):
     """Rechnung direkt aus der Rechnungsliste erstellen — ohne Projekt-PK in der URL."""
 
     def get(self, request):
-        form    = InvoiceForm()
+        form    = InvoiceForm(initial=_textblock_defaults("invoice"))
         formset = _build_invoice_formset(request, extra=3)
         return render(request, "crm/invoice_form.html", {
             "form": form, "formset": formset, "project": None, "offer": None,
@@ -2530,6 +2543,21 @@ class TextBlockDeleteView(AdminOrLeadMixin, View):
     def post(self, request, pk):
         get_object_or_404(TextBlock, pk=pk).delete()
         messages.success(request, "Textbaustein gelöscht.")
+        return redirect("crm:textblock_list")
+
+
+class TextBlockSetDefaultView(AdminOrLeadMixin, View):
+    """Toggle: setzt diesen Baustein als Standard seiner Kategorie (oder hebt ihn auf)."""
+    def post(self, request, pk):
+        tb = get_object_or_404(TextBlock, pk=pk)
+        if tb.is_default:
+            tb.is_default = False
+            tb.save(update_fields=["is_default"])
+        else:
+            # clear existing default in same category, then set new one
+            TextBlock.objects.filter(category=tb.category, is_default=True).update(is_default=False)
+            tb.is_default = True
+            tb.save(update_fields=["is_default"])
         return redirect("crm:textblock_list")
 
 

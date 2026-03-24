@@ -241,7 +241,7 @@ class OfferItemForm(forms.ModelForm):
         fields = ["position", "item_type", "description", "quantity", "unit", "unit_price", "discount_percent"]
         widgets = {
             "position":         forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-center", "min": "1"}),
-            "item_type":        forms.Select(attrs={"class": _ITEM_INPUT + " item-type-select cursor-pointer"}),
+            "item_type":        forms.HiddenInput(attrs={"class": "item-type-input"}),
             "description":      forms.Textarea(attrs={
                 "class": _ITEM_INPUT + " resize-y item-description",
                 "rows": 4,
@@ -314,7 +314,7 @@ class InvoiceItemForm(forms.ModelForm):
         fields = ["position", "item_type", "description", "quantity", "unit", "unit_price", "discount_percent"]
         widgets = {
             "position":         forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-center", "min": "1"}),
-            "item_type":        forms.Select(attrs={"class": _ITEM_INPUT + " item-type-select cursor-pointer"}),
+            "item_type":        forms.HiddenInput(attrs={"class": "item-type-input"}),
             "description":      forms.Textarea(attrs={"class": _ITEM_INPUT + " resize-y item-description", "rows": 4, "placeholder": "Leistungsbeschreibung …"}),
             "quantity":         forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-right item-qty", "step": "0.01", "min": "0"}),
             "unit":             forms.TextInput(attrs={"class": _ITEM_INPUT, "placeholder": "pauschal", "list": "unit-datalist", "autocomplete": "off"}),

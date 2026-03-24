@@ -11,7 +11,7 @@ from .views import (
     LeadCommissionView, LeadInquiryImportView, LeadInquiryPublicView, LeadListView,
     OfferCreateStandaloneView, OfferCreateView, OfferDeleteView, OfferDetailView, OfferListView,
     RecipientSearchView,
-    TextBlockAPIView, TextBlockCreateView, TextBlockDeleteView, TextBlockListView, TextBlockUpdateView,
+    TextBlockAPIView, TextBlockCreateView, TextBlockDeleteView, TextBlockListView, TextBlockSetDefaultView, TextBlockUpdateView,
     UnitAPIView, UnitCreateView, UnitDeleteView, UnitListView, UnitReorderView, UnitUpdateView,
     OfferOrderConfirmationView, OfferPDFView, OfferSendView, OfferStatusUpdateView, OfferUpdateView,
     ProductCatalogAPIView,
@@ -115,6 +115,7 @@ urlpatterns = [
     path("textblocks/new/",          TextBlockCreateView.as_view(), name="textblock_create"),
     path("textblocks/<int:pk>/edit/", TextBlockUpdateView.as_view(), name="textblock_edit"),
     path("textblocks/<int:pk>/delete/", TextBlockDeleteView.as_view(), name="textblock_delete"),
+    path("textblocks/<int:pk>/set-default/", TextBlockSetDefaultView.as_view(), name="textblock_set_default"),
     path("textblocks/api/",          TextBlockAPIView.as_view(),    name="textblock_api"),
 
     # Einheiten
