@@ -26,6 +26,12 @@ def company_settings(request):
     return {"company_settings": CompanySettings.get()}
 
 
+def unit_names(request):
+    """Stellt Einheiten-Namen global für Datalist-Dropdowns bereit."""
+    from apps.crm.models import Unit
+    return {"unit_names": list(Unit.objects.values_list("name", flat=True))}
+
+
 def lead_pending_count(request):
     """Zählt Leads mit eingegangenen Kontaktdaten-Anfragen für den Sidebar-Badge."""
     if not request.user.is_authenticated:

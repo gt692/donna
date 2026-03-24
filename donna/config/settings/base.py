@@ -85,6 +85,7 @@ TEMPLATES = [
                 "apps.core.context_processors.pending_approvals",
                 "apps.core.context_processors.lead_pending_count",
                 "apps.core.context_processors.company_settings",
+                "apps.core.context_processors.unit_names",
             ],
         },
     },
