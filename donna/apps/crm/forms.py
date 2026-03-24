@@ -174,9 +174,10 @@ class ProjectForm(forms.ModelForm):
         self.fields["company"].choices = company_choices
         self.fields["company"].widget.choices = company_choices
         self.fields["company"].required = True
-        project_type_choices = Lookup.choices_for("project_type")
-        self.fields["project_type"].choices = project_type_choices
-        self.fields["project_type"].widget.choices = project_type_choices
+        from apps.crm.models import ProjectType as ProjectTypeModel
+        self.fields["project_type"].queryset = ProjectTypeModel.objects.filter(is_active=True)
+        self.fields["project_type"].empty_label = "— Projekttyp wählen —"
+        self.fields["project_type"].required = False
 
         # primary_contact ist optional im AccountForm
 

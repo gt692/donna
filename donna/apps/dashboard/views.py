@@ -16,7 +16,7 @@ from django.views.generic import CreateView, ListView, TemplateView, UpdateView,
 from decimal import Decimal
 
 from apps.core.models import CompanyCredential, CompanySettings, Lookup, Role, RoleHourlyRate, User
-from apps.crm.models import Account, CompanyProjectTypeMapping, ProductCatalog, Project, RevenueTarget
+from apps.crm.models import Account, ProductCatalog, Project, RevenueTarget
 from apps.worktrack.models import TimeEntry
 
 from .forms import CompanySettingsForm, UserCreateForm, UserEditForm
@@ -752,68 +752,65 @@ class CompanyCredentialDeleteView(AdminRequiredMixin, View):
 
 
 # ---------------------------------------------------------------------------
-# Projekttyp-Zuweisungen (CompanyProjectTypeMapping)
+# Projekttypen-Verwaltung
 # ---------------------------------------------------------------------------
 
-class ProjectTypeMappingListView(AdminRequiredMixin, TemplateView):
-    template_name = "dashboard/admin/project_type_mapping_list.html"
+from apps.crm.models import ProjectType as ProjectTypeModel
+
+class ProjectTypeListView(AdminRequiredMixin, TemplateView):
+    template_name = "dashboard/admin/project_type_list.html"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        company_labels = {e["value"]: e["label"] for e in Lookup.entries_for("company")}
-        company_colors = {e["value"]: e["color"] for e in Lookup.entries_for("company")}
-        type_labels    = {e["value"]: e["label"] for e in Lookup.entries_for("project_type")}
-
-        # Gruppiert nach Unternehmen
-        groups: dict = {}
-        for m in CompanyProjectTypeMapping.objects.order_by("company", "project_type"):
-            groups.setdefault(m.company, []).append(m)
-
-        ctx["groups"]         = groups
-        ctx["company_labels"] = company_labels
-        ctx["company_colors"] = company_colors
-        ctx["type_labels"]    = type_labels
-        ctx["total_count"]    = CompanyProjectTypeMapping.objects.count()
+        ctx["project_types"] = ProjectTypeModel.objects.all()
         return ctx
 
 
-class ProjectTypeMappingCreateView(AdminRequiredMixin, CreateView):
-    model = CompanyProjectTypeMapping
-    fields = ["company", "project_type"]
-    template_name = "dashboard/admin/project_type_mapping_form.html"
-    success_url = reverse_lazy("dashboard:project_type_mapping_list")
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        from django import forms as dj_forms
-        company_choices = [("", "— Unternehmen wählen —")] + Lookup.choices_for("company")
-        type_choices    = [("", "— Projekttyp wählen —")] + Lookup.choices_for("project_type")
-        form.fields["company"].widget = dj_forms.Select(
-            attrs={"class": _INPUT_CSS + " cursor-pointer"}, choices=company_choices,
-        )
-        form.fields["project_type"].widget = dj_forms.Select(
-            attrs={"class": _INPUT_CSS + " cursor-pointer"}, choices=type_choices,
-        )
-        return form
+class ProjectTypeCreateView(AdminRequiredMixin, CreateView):
+    model         = ProjectTypeModel
+    fields        = ["name", "description", "color", "order", "is_active"]
+    template_name = "dashboard/admin/project_type_form.html"
+    success_url   = reverse_lazy("dashboard:project_type_list")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["page_title"]   = "Neue Projekttyp-Zuweisung"
-        ctx["submit_label"] = "Zuweisung anlegen"
+        ctx["page_title"]   = "Neuer Projekttyp"
+        ctx["submit_label"] = "Projekttyp anlegen"
         return ctx
 
     def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, "Zuweisung wurde angelegt.")
-        return response
+        messages.success(self.request, f"Projekttyp \"{form.instance.name}\" wurde angelegt.")
+        return super().form_valid(form)
 
 
-class ProjectTypeMappingDeleteView(AdminRequiredMixin, View):
+class ProjectTypeUpdateView(AdminRequiredMixin, UpdateView):
+    model         = ProjectTypeModel
+    fields        = ["name", "description", "color", "order", "is_active"]
+    template_name = "dashboard/admin/project_type_form.html"
+    success_url   = reverse_lazy("dashboard:project_type_list")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"]   = f"Projekttyp bearbeiten: {self.object.name}"
+        ctx["submit_label"] = "Änderungen speichern"
+        ctx["edit_obj"]     = self.object
+        return ctx
+
+    def form_valid(self, form):
+        messages.success(self.request, f"Projekttyp \"{form.instance.name}\" wurde gespeichert.")
+        return super().form_valid(form)
+
+
+class ProjectTypeDeleteView(AdminRequiredMixin, View):
     def post(self, request, pk):
-        mapping = get_object_or_404(CompanyProjectTypeMapping, pk=pk)
-        mapping.delete()
-        messages.success(request, "Zuweisung wurde gelöscht.")
-        return redirect("dashboard:project_type_mapping_list")
+        pt = get_object_or_404(ProjectTypeModel, pk=pk)
+        name = pt.name
+        if pt.projects.exists():
+            messages.error(request, f"\"{name}\" kann nicht gelöscht werden – es sind noch Projekte zugeordnet.")
+        else:
+            pt.delete()
+            messages.success(request, f"Projekttyp \"{name}\" wurde gelöscht.")
+        return redirect("dashboard:project_type_list")
 
 
 # ---------------------------------------------------------------------------

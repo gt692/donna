@@ -1,0 +1,78 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}Projekttypen{% endblock %}
+{% block page_heading %}Projekttypen{% endblock %}
+{% block page_subheading %}Typen für Projekte verwalten{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'dashboard:project_type_create' %}"
+     class="flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    </svg>
+    Neuer Projekttyp
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="mb-4 px-4 py-3 rounded-lg text-sm
+        {% if message.tags == 'error' %}bg-red-50 border border-red-200 text-red-700
+        {% else %}bg-green-50 border border-green-200 text-green-700{% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    {% if project_types %}
+      <div class="divide-y divide-slate-100">
+        {% for pt in project_types %}
+        <div class="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition">
+          <div class="w-4 h-4 rounded-full flex-shrink-0" style="background-color: {{ pt.color }}"></div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-slate-800">{{ pt.name }}</p>
+            {% if pt.description %}
+              <p class="text-xs text-slate-400 mt-0.5">{{ pt.description }}</p>
+            {% endif %}
+          </div>
+          <div class="flex items-center gap-2">
+            {% if not pt.is_active %}
+              <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Inaktiv</span>
+            {% endif %}
+            <span class="text-xs text-slate-400">{{ pt.projects.count }} Projekt{{ pt.projects.count|pluralize:"e" }}</span>
+            <a href="{% url 'dashboard:project_type_update' pt.pk %}"
+               class="text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition">
+              Bearbeiten
+            </a>
+            {% if not pt.projects.exists %}
+            <form method="post" action="{% url 'dashboard:project_type_delete' pt.pk %}"
+                  onsubmit="return confirm('Projekttyp \"{{ pt.name }}\" wirklich löschen?')">
+              {% csrf_token %}
+              <button type="submit"
+                      class="text-xs font-medium px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition">
+                Löschen
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="px-6 py-12 text-center">
+        <p class="text-slate-400 text-sm mb-4">Noch keine Projekttypen angelegt.</p>
+        <a href="{% url 'dashboard:project_type_create' %}"
+           class="inline-flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+          Ersten Projekttyp anlegen
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

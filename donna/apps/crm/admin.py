@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from .models import Account, CompanyProjectTypeMapping, Document, ProductCatalog, Project, RevenueTarget
+from .models import Account, Document, ProductCatalog, Project, ProjectType, RevenueTarget
 
 
 # ---------------------------------------------------------------------------
@@ -254,24 +254,14 @@ class RevenueTargetAdmin(admin.ModelAdmin):
 
 
 # ---------------------------------------------------------------------------
-# CompanyProjectTypeMapping Admin
+# ProjectType Admin
 # ---------------------------------------------------------------------------
 
-@admin.register(CompanyProjectTypeMapping)
-class CompanyProjectTypeMappingAdmin(admin.ModelAdmin):
-    list_display  = ("company", "project_type")
-    list_filter   = ("company",)
-    ordering      = ("company", "project_type")
-    fieldsets = (
-        (None, {
-            "fields": ("company", "project_type"),
-            "description": _(
-                "Trage hier ein, welche Projekttypen für ein Unternehmen auswählbar sein sollen. "
-                "Werte müssen mit den internen Werten der Auswahloptionen übereinstimmen, "
-                "z.B. 'gt_immo' und 'consulting'."
-            ),
-        }),
-    )
+@admin.register(ProjectType)
+class ProjectTypeAdmin(admin.ModelAdmin):
+    list_display  = ("name", "color", "order", "is_active")
+    list_editable = ("order", "is_active")
+    ordering      = ("order", "name")
 
     def get_form(self, request, obj=None, **kwargs):
         from django import forms as dj_forms
