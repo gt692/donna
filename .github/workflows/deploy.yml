@@ -21,7 +21,6 @@ jobs:
             cd /opt/donna &&
             git pull &&
             source donna/.venv/bin/activate &&
-            pip install -r donna/requirements.txt -q &&
             python donna/manage.py migrate --no-input &&
             systemctl restart donna
           "
