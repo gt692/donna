@@ -124,20 +124,20 @@
       {% if commission_net is not None %}
       <div class="bg-white rounded-xl border border-slate-200 p-4">
         <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Provision netto</p>
-        <p class="text-2xl font-bold text-slate-800">{{ commission_net|floatformat:0 }} €</p>
-        <p class="text-xs text-slate-400 mt-1">{{ commission_gross|floatformat:0 }} € brutto (inkl. 19 % USt.)</p>
+        <p class="text-2xl font-bold text-slate-800">{{ commission_net|floatformat:"0g" }} €</p>
+        <p class="text-xs text-slate-400 mt-1">{{ commission_gross|floatformat:"0g" }} € brutto (inkl. 19 % USt.)</p>
         {% if has_rates and commission_net > 0 %}
           {% with ratio=cost_approved|floatformat:0 %}
-          <p class="text-xs text-slate-400 mt-1">Aufwand: {{ cost_approved|floatformat:0 }} € von {{ commission_net|floatformat:0 }} € Provision</p>
+          <p class="text-xs text-slate-400 mt-1">Aufwand: {{ cost_approved|floatformat:"0g" }} € von {{ commission_net|floatformat:"0g" }} € Provision</p>
           {% endwith %}
         {% endif %}
       </div>
       {% elif has_rates %}
       <div class="bg-white rounded-xl border border-slate-200 p-4">
         <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Kosten (freigegeben, netto)</p>
-        <p class="text-2xl font-bold text-slate-800">{{ cost_approved|floatformat:0 }} €</p>
+        <p class="text-2xl font-bold text-slate-800">{{ cost_approved|floatformat:"0g" }} €</p>
         {% if budget_amount_total %}
-          <p class="text-xs text-slate-400 mt-1">von {{ budget_amount_total|floatformat:0 }} € Budget (netto)</p>
+          <p class="text-xs text-slate-400 mt-1">von {{ budget_amount_total|floatformat:"0g" }} € Budget (netto)</p>
           <div class="mt-2 w-full bg-slate-100 rounded-full h-1.5">
             <div class="h-1.5 rounded-full transition-all
               {% if budget_cost_pct >= 90 %}bg-red-500{% elif budget_cost_pct >= 75 %}bg-amber-500{% else %}bg-emerald-500{% endif %}"
@@ -146,9 +146,9 @@
           <p class="text-xs mt-0.5
             {% if budget_remaining < 0 %}text-red-600{% elif budget_cost_pct >= 75 %}text-amber-600{% else %}text-slate-400{% endif %}">
             {% if budget_remaining >= 0 %}
-              {{ budget_remaining|floatformat:0 }} € verbleibend
+              {{ budget_remaining|floatformat:"0g" }} € verbleibend
             {% else %}
-              {{ budget_remaining|floatformat:0|slice:"1:" }} € überzogen
+              {{ budget_remaining|floatformat:"0g"|slice:"1:" }} € überzogen
             {% endif %}
           </p>
         {% endif %}
@@ -329,7 +329,7 @@
               <p class="text-xs text-slate-400">{{ offer.offer_date|date:"d.m.Y" }}</p>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
-              <span class="text-xs font-mono text-slate-600">{{ offer.gross_total|floatformat:2 }} €</span>
+              <span class="text-xs font-mono text-slate-600">{{ offer.gross_total|floatformat:"2g" }} €</span>
               {% with s=offer.status %}
                 {% if s == "draft" %}
                   <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">Entwurf</span>
@@ -377,7 +377,7 @@
             </p>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
-            <span class="text-xs font-mono text-slate-600">{{ inv.gross_total|floatformat:2 }} €</span>
+            <span class="text-xs font-mono text-slate-600">{{ inv.gross_total|floatformat:"2g" }} €</span>
             {% if inv.is_overdue %}
               <span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">Überfällig</span>
             {% elif inv.status == "draft" %}
@@ -594,7 +594,7 @@
           {% if project.purchase_price %}
             <div class="flex justify-between">
               <dt class="text-slate-500">Not. Kaufpreis</dt>
-              <dd class="text-slate-700">{{ project.purchase_price|floatformat:0 }} €</dd>
+              <dd class="text-slate-700">{{ project.purchase_price|floatformat:"0g" }} €</dd>
             </div>
           {% endif %}
           {% if project.commission_inner %}
@@ -612,24 +612,24 @@
           {% if commission_net is not None %}
             <div class="flex justify-between pt-2 border-t border-slate-100">
               <dt class="text-slate-500">Provision netto</dt>
-              <dd class="text-slate-700 font-semibold">{{ commission_net|floatformat:0 }} €</dd>
+              <dd class="text-slate-700 font-semibold">{{ commission_net|floatformat:"0g" }} €</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-slate-500">Provision brutto</dt>
-              <dd class="text-slate-700 font-semibold">{{ commission_gross|floatformat:0 }} €</dd>
+              <dd class="text-slate-700 font-semibold">{{ commission_gross|floatformat:"0g" }} €</dd>
             </div>
           {% endif %}
         {% else %}
           {% if project.budget_amount %}
             <div class="flex justify-between">
               <dt class="text-slate-500">Ursprungs-Budget</dt>
-              <dd class="text-slate-700">{{ project.budget_amount|floatformat:0 }} € <span class="text-xs text-slate-400">netto</span></dd>
+              <dd class="text-slate-700">{{ project.budget_amount|floatformat:"0g" }} € <span class="text-xs text-slate-400">netto</span></dd>
             </div>
           {% endif %}
           {% if budget_amount_total and budget_extensions %}
             <div class="flex justify-between">
               <dt class="text-slate-500">Gesamt-Budget</dt>
-              <dd class="text-slate-700 font-semibold">{{ budget_amount_total|floatformat:0 }} € <span class="text-xs text-slate-400">netto</span></dd>
+              <dd class="text-slate-700 font-semibold">{{ budget_amount_total|floatformat:"0g" }} € <span class="text-xs text-slate-400">netto</span></dd>
             </div>
           {% endif %}
         {% endif %}
@@ -661,7 +661,7 @@
         {% for ext in budget_extensions %}
         <div class="flex items-start gap-3 px-5 py-3">
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-slate-700">+{{ ext.amount|floatformat:0 }} € <span class="text-xs font-normal text-slate-400">netto</span></p>
+            <p class="text-sm font-semibold text-slate-700">+{{ ext.amount|floatformat:"0g" }} € <span class="text-xs font-normal text-slate-400">netto</span></p>
             <p class="text-xs text-slate-400">{{ ext.approved_at|date:"d.m.Y" }}{% if ext.note %} · {{ ext.note }}{% endif %}</p>
           </div>
           {% if request.user.can_approve_time_entries %}
@@ -772,7 +772,7 @@
             </div>
             <span class="text-sm text-slate-600 flex-1">{{ item.member.get_full_name }}</span>
             {% if item.rate %}
-              <span class="text-xs text-slate-400 font-mono">{{ item.rate|floatformat:0 }} €/h</span>
+              <span class="text-xs text-slate-400 font-mono">{{ item.rate|floatformat:"0g" }} €/h</span>
             {% endif %}
           </div>
         {% empty %}

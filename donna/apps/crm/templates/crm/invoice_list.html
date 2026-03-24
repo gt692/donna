@@ -84,7 +84,7 @@
           {% if inv.due_date %}{{ inv.due_date|date:"d.m.Y" }}{% else %}—{% endif %}
         </td>
         <td class="px-5 py-3 text-right font-mono font-semibold text-slate-700">
-          {{ inv.gross_total|floatformat:2 }} €
+          {{ inv.gross_total|floatformat:"2g" }} €
         </td>
         <td class="px-5 py-3">
           {% if inv.is_overdue %}

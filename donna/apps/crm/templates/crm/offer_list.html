@@ -78,7 +78,7 @@
         </td>
         <td class="px-5 py-3 text-slate-500 text-xs">{{ offer.offer_date|date:"d.m.Y" }}</td>
         <td class="px-5 py-3 text-right font-mono font-semibold text-slate-700">
-          {{ offer.gross_total|floatformat:2 }} €
+          {{ offer.gross_total|floatformat:"2g" }} €
         </td>
         <td class="px-5 py-3">
           {% with s=offer.status %}

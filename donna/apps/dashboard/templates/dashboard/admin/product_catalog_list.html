@@ -57,7 +57,7 @@
             <td class="px-6 py-4 text-slate-600">{{ product.unit }}</td>
             <td class="px-6 py-4 text-right font-mono text-slate-700">{{ product.quantity }}</td>
             <td class="px-6 py-4 text-right font-mono font-semibold text-slate-800">
-              {{ product.unit_price|floatformat:2 }} €
+              {{ product.unit_price|floatformat:"2g" }} €
             </td>
             <td class="px-6 py-4 text-center">
               {% if product.is_active %}

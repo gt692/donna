@@ -99,8 +99,8 @@
               <td class="px-4 py-3 text-slate-700 whitespace-pre-wrap">{{ item.description }}</td>
               <td class="px-4 py-3 text-right text-slate-600 font-mono">{{ item.quantity|floatformat:2 }}</td>
               <td class="px-4 py-3 text-slate-500">{{ item.unit }}</td>
-              <td class="px-4 py-3 text-right text-slate-600 font-mono">{{ item.unit_price|floatformat:2 }} €</td>
-              <td class="px-4 py-3 text-right text-slate-800 font-semibold font-mono">{{ item.net_amount|floatformat:2 }} €</td>
+              <td class="px-4 py-3 text-right text-slate-600 font-mono">{{ item.unit_price|floatformat:"2g" }} €</td>
+              <td class="px-4 py-3 text-right text-slate-800 font-semibold font-mono">{{ item.net_amount|floatformat:"2g" }} €</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -112,15 +112,15 @@
           <div class="w-64 space-y-1.5 text-sm">
             <div class="flex justify-between">
               <span class="text-slate-500">Nettobetrag</span>
-              <span class="font-mono font-medium text-slate-700">{{ net_total|floatformat:2 }} €</span>
+              <span class="font-mono font-medium text-slate-700">{{ net_total|floatformat:"2g" }} €</span>
             </div>
             <div class="flex justify-between">
               <span class="text-slate-500">Umsatzsteuer {{ offer.tax_rate|floatformat:2 }} %</span>
-              <span class="font-mono font-medium text-slate-700">{{ tax_amount|floatformat:2 }} €</span>
+              <span class="font-mono font-medium text-slate-700">{{ tax_amount|floatformat:"2g" }} €</span>
             </div>
             <div class="flex justify-between pt-2 border-t border-slate-200 text-base font-bold">
               <span class="text-slate-800">Bruttobetrag</span>
-              <span class="font-mono text-[#2F6FB3]">{{ gross_total|floatformat:2 }} €</span>
+              <span class="font-mono text-[#2F6FB3]">{{ gross_total|floatformat:"2g" }} €</span>
             </div>
           </div>
         </div>
