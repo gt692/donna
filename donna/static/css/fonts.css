@@ -1,0 +1,24 @@
+/*
+ * Donna — Self-hosted web fonts
+ * DSGVO-konform: Keine externen Font-CDN-Requests bei Seitenaufruf.
+ * Satoshi (Headlines/Brand): © Indian Type Foundry, SIL OFL 1.1
+ * Inter (UI/Body): © Rasmus Andersson, SIL OFL 1.1
+ */
+
+/* ── Inter Variable — UI & Body ──────────────────────────────── */
+@font-face {
+  font-family: 'Inter';
+  src: url('../fonts/inter/InterVariable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── Satoshi Variable — Headlines & Brand ────────────────────── */
+@font-face {
+  font-family: 'Satoshi';
+  src: url('../fonts/satoshi/Satoshi-Variable.woff2') format('woff2-variations');
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
