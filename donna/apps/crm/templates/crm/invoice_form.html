@@ -80,10 +80,20 @@
     input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     input[type=number] { -moz-appearance: textfield; }
 
-    .pos-card { transition: background 0.15s; }
-    .pos-card.type-optional { background: #fffbeb; }
-    .pos-card.type-text     { background: #f8fafc; }
+    /* Positions-Karten */
+    .pos-card {
+      display: flex;
+      border-radius: 0.625rem;
+      border: 1px solid #e2e8f0;
+      border-left: 3px solid #e2e8f0;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+    .pos-card:hover { border-color: #cbd5e1; }
+    .pos-card.type-optional { border-left-color: #f59e0b; }
+    .pos-card.type-text     { border-left-color: #94a3b8; }
     .pos-card.deleted       { opacity: 0.35; }
+    .tabnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 
     .pos-input {
       padding: 0.375rem 0.5rem;
@@ -282,98 +292,105 @@
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Positionen</span>
           </div>
 
-          <div id="items-container" class="divide-y divide-slate-200">
+          <div id="items-container" class="p-3 space-y-2 bg-slate-50">
             {% for item_form in formset %}
-            <div class="pos-card px-4 py-3
-                        {% if item_form.instance.pk %}existing-row{% endif %}"
+            <div class="pos-card {% if item_form.instance.pk %}existing-row{% endif %}"
                  data-type="{{ item_form.instance.item_type|default:'normal' }}"
                  {% if item_form.instance.pk %}data-pk="{{ item_form.instance.pk }}"{% endif %}>
 
               {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
 
-              <div class="flex items-center gap-2 mb-2">
-                <span class="drag-handle flex-none cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-400 transition" title="Ziehen zum Sortieren">
+              <!-- Linke Nummernspalte -->
+              <div class="w-10 flex-none flex flex-col items-center py-4 gap-3 bg-slate-50 border-r border-slate-100">
+                <span class="drag-handle cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-400 transition" title="Ziehen zum Sortieren">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/>
                   </svg>
                 </span>
-                <span class="pos-number flex-none w-7 h-7 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center">
-                  {{ forloop.counter }}
-                </span>
-                {{ item_form.item_type }}
-                <div class="type-btn-group flex-none flex rounded-lg border border-slate-200 overflow-hidden text-xs font-medium">
-                  <button type="button" class="type-btn px-2.5 py-1 {% if item_form.instance.item_type == 'normal' or not item_form.instance.pk %}active-normal{% endif %}" data-value="normal">Normal</button>
-                  <button type="button" class="type-btn px-2.5 py-1 border-l border-slate-200 {% if item_form.instance.item_type == 'optional' %}active-optional{% endif %}" data-value="optional">Optional</button>
-                  <button type="button" class="type-btn px-2.5 py-1 border-l border-slate-200 {% if item_form.instance.item_type == 'text' %}active-text{% endif %}" data-value="text">Freitext</button>
-                </div>
-                <div class="flex-1"></div>
-                {% if item_form.instance.pk %}
-                  <label class="cursor-pointer text-slate-300 hover:text-red-500 transition flex-none" title="Löschen">
-                    {{ item_form.DELETE }}
-                    <span class="delete-icon">
+                <span class="pos-number w-6 h-6 rounded-full bg-[#059669] text-white text-[10px] font-bold flex items-center justify-center select-none">{{ forloop.counter }}</span>
+              </div>
+
+              <!-- Inhalt -->
+              <div class="flex-1 min-w-0 px-4 py-3">
+                <!-- Typ + Löschen -->
+                <div class="flex items-center gap-2 mb-3">
+                  {{ item_form.item_type }}
+                  <div class="type-btn-group flex rounded-md border border-slate-200 overflow-hidden text-xs font-medium">
+                    <button type="button" class="type-btn px-2.5 py-1 {% if item_form.instance.item_type == 'normal' or not item_form.instance.pk %}active-normal{% endif %}" data-value="normal">Normal</button>
+                    <button type="button" class="type-btn px-2.5 py-1 border-l border-slate-200 {% if item_form.instance.item_type == 'optional' %}active-optional{% endif %}" data-value="optional">Optional</button>
+                    <button type="button" class="type-btn px-2.5 py-1 border-l border-slate-200 {% if item_form.instance.item_type == 'text' %}active-text{% endif %}" data-value="text">Freitext</button>
+                  </div>
+                  <div class="flex-1"></div>
+                  {% if item_form.instance.pk %}
+                    <label class="cursor-pointer text-slate-300 hover:text-red-500 transition flex-none" title="Löschen">
+                      {{ item_form.DELETE }}
+                      <span class="delete-icon">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                      </span>
+                    </label>
+                  {% else %}
+                    <button type="button" class="remove-row text-slate-300 hover:text-red-500 transition flex-none">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                       </svg>
-                    </span>
-                  </label>
-                {% else %}
-                  <button type="button" class="remove-row text-slate-300 hover:text-red-500 transition flex-none">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
-                  </button>
-                {% endif %}
-                <div class="hidden">{{ item_form.position }}</div>
-              </div>
-
-              <div class="mb-2">
-                {{ item_form.description }}
-              </div>
-
-              <div class="price-fields">
-                <div class="grid grid-cols-4 gap-2 mb-1">
-                  <div>
-                    <label class="block text-xs text-slate-400 mb-1">Menge</label>
-                    {{ item_form.quantity }}
-                  </div>
-                  <div>
-                    <label class="block text-xs text-slate-400 mb-1">Einheit</label>
-                    {{ item_form.unit }}
-                  </div>
-                  <div>
-                    <label class="block text-xs text-slate-400 mb-1">EP (Netto)</label>
-                    {{ item_form.unit_price }}
-                  </div>
-                  <div>
-                    <label class="block text-xs text-slate-400 mb-1">GP (Netto)</label>
-                    <div class="row-total text-sm font-mono font-semibold text-slate-700 py-1.5 text-right">—</div>
-                  </div>
+                    </button>
+                  {% endif %}
+                  <div class="hidden">{{ item_form.position }}</div>
                 </div>
-                <!-- Rabatt (ein-/ausblendbar) -->
-                <div class="item-discount-row {% if not item_form.instance.discount_percent %}hidden{% endif %} flex items-center gap-2 mt-1">
-                  <label class="text-xs text-amber-600 font-medium flex-none">Rabatt %</label>
-                  <div class="w-32">{{ item_form.discount_percent }}</div>
-                  <button type="button" class="item-discount-remove text-slate-300 hover:text-red-400 transition" title="Rabatt entfernen">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
+
+                <!-- Beschreibung -->
+                <div class="mb-3">
+                  {{ item_form.description }}
+                </div>
+
+                <!-- Preis-Felder -->
+                <div class="price-fields">
+                  <div class="grid grid-cols-4 gap-2">
+                    <div>
+                      <label class="block text-xs text-slate-400 mb-1">Menge</label>
+                      {{ item_form.quantity }}
+                    </div>
+                    <div>
+                      <label class="block text-xs text-slate-400 mb-1">Einheit</label>
+                      {{ item_form.unit }}
+                    </div>
+                    <div>
+                      <label class="block text-xs text-slate-400 mb-1">EP (Netto)</label>
+                      {{ item_form.unit_price }}
+                    </div>
+                    <div>
+                      <label class="block text-xs text-slate-400 mb-1">GP (Netto)</label>
+                      <div class="row-total tabnum text-sm font-semibold text-slate-700 py-1.5 text-right">—</div>
+                    </div>
+                  </div>
+                  <!-- Rabatt -->
+                  <div class="item-discount-row {% if not item_form.instance.discount_percent %}hidden{% endif %} flex items-center gap-2 mt-2">
+                    <label class="text-xs text-amber-600 font-medium flex-none">Rabatt %</label>
+                    <div class="w-32">{{ item_form.discount_percent }}</div>
+                    <button type="button" class="item-discount-remove text-slate-300 hover:text-red-400 transition" title="Rabatt entfernen">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <button type="button" class="item-discount-add {% if item_form.instance.discount_percent %}hidden{% endif %} text-xs text-slate-400 hover:text-amber-600 transition mt-2">
+                    + Rabatt hinzufügen
                   </button>
                 </div>
-                <button type="button" class="item-discount-add {% if item_form.instance.discount_percent %}hidden{% endif %} text-xs text-slate-400 hover:text-amber-600 transition mt-1">
-                  + Rabatt hinzufügen
-                </button>
               </div>
             </div>
             {% endfor %}
           </div>
 
           <!-- Position hinzufügen -->
-          <div class="px-4 py-3 border-t border-slate-100">
+          <div class="px-3 py-3 bg-slate-50 border-t border-slate-200">
             <button type="button" id="add-row"
                     class="flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-800
-                           border border-emerald-600 hover:bg-emerald-50 px-3 py-1.5 rounded-lg transition">
+                           border border-emerald-600 hover:bg-emerald-50 px-3 py-1.5 rounded-lg transition bg-white">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
               </svg>
@@ -415,31 +432,32 @@
               </button>
             </div>
 
-            <div class="bg-slate-800 px-5 py-3">
-              <div class="space-y-1.5">
-                <div class="flex justify-between text-xs text-slate-400">
+            <!-- Summen-Bar -->
+            <div class="bg-white px-6 py-5 border-t border-slate-100">
+              <div class="ml-auto w-72 space-y-2">
+                <div class="flex justify-between text-sm text-slate-500">
                   <span>Zwischensumme</span>
-                  <span id="live-subtotal" class="font-mono">0,00 €</span>
+                  <span id="live-subtotal" class="tabnum font-medium text-slate-700">0,00 €</span>
                 </div>
-                <div id="discount-row" class="flex justify-between text-xs text-amber-400 hidden">
+                <div id="discount-row" class="hidden flex justify-between text-sm text-amber-600">
                   <span id="discount-row-label">Gesamtrabatt</span>
-                  <span id="live-discount-amt" class="font-mono">−0,00 €</span>
+                  <span id="live-discount-amt" class="tabnum">−0,00 €</span>
                 </div>
-                <div class="flex justify-between text-xs text-slate-400">
+                <div class="flex justify-between text-sm text-slate-500 pt-2 border-t border-slate-100">
                   <span>Nettobetrag</span>
-                  <span id="live-net" class="font-mono">0,00 €</span>
+                  <span id="live-net" class="tabnum font-medium text-slate-700">0,00 €</span>
                 </div>
-                <div id="tax-row" class="flex justify-between text-xs text-slate-400">
-                  <span>Umsatzsteuer <span id="live-tax-rate">19,00</span> %</span>
-                  <span id="live-tax" class="font-mono">0,00 €</span>
+                <div id="tax-row" class="flex justify-between text-sm text-slate-400">
+                  <span>USt. <span id="live-tax-rate">19,00</span> %</span>
+                  <span id="live-tax" class="tabnum">0,00 €</span>
                 </div>
-                <div id="kleinunternehmer-row" class="hidden flex justify-between text-xs text-slate-400">
+                <div id="kleinunternehmer-row" class="hidden flex justify-between text-sm text-slate-400">
                   <span>Umsatzsteuer (§ 19 UStG)</span>
-                  <span class="font-mono">entfällt</span>
+                  <span class="tabnum">entfällt</span>
                 </div>
-                <div class="flex justify-between pt-1.5 border-t border-slate-600">
-                  <span class="text-sm font-semibold text-white">Gesamtbetrag</span>
-                  <span id="live-gross" class="font-mono font-bold text-white text-xl">0,00 €</span>
+                <div class="flex justify-between items-baseline pt-3 border-t-2 border-slate-200">
+                  <span class="text-sm font-semibold text-slate-700">Gesamtbetrag</span>
+                  <span id="live-gross" class="tabnum text-2xl font-bold text-slate-900">0,00 €</span>
                 </div>
               </div>
             </div>
@@ -496,72 +514,86 @@
 
   <!-- Template-Karte für neue Positionen -->
   <template id="item-row-template">
-    <div class="pos-card px-4 py-3 new-row border-b border-slate-100" data-type="normal">
+    <div class="pos-card new-row" data-type="normal">
       <input type="hidden" name="items-__prefix__-id" value="">
-      <div class="flex items-center gap-2 mb-2">
-        <span class="drag-handle flex-none cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-400 transition" title="Ziehen zum Sortieren">
+
+      <!-- Linke Nummernspalte -->
+      <div class="w-10 flex-none flex flex-col items-center py-4 gap-3 bg-slate-50 border-r border-slate-100">
+        <span class="drag-handle cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-400 transition" title="Ziehen zum Sortieren">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/>
           </svg>
         </span>
-        <span class="pos-number flex-none w-7 h-7 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center">1</span>
-        <input type="hidden" name="items-__prefix__-item_type" value="normal" class="item-type-input">
-        <div class="type-btn-group flex-none flex rounded-lg border border-slate-200 overflow-hidden text-xs font-medium">
-          <button type="button" class="type-btn active-normal px-2.5 py-1" data-value="normal">Normal</button>
-          <button type="button" class="type-btn px-2.5 py-1 border-l border-slate-200" data-value="optional">Optional</button>
-          <button type="button" class="type-btn px-2.5 py-1 border-l border-slate-200" data-value="text">Freitext</button>
-        </div>
-        <div class="flex-1"></div>
-        <button type="button" class="remove-row text-slate-300 hover:text-red-500 transition flex-none">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-          </svg>
-        </button>
-        <input type="hidden" name="items-__prefix__-position" value="1">
+        <span class="pos-number w-6 h-6 rounded-full bg-[#059669] text-white text-[10px] font-bold flex items-center justify-center select-none">1</span>
       </div>
-      <div class="mb-2">
-        <textarea name="items-__prefix__-description" rows="4" placeholder="Leistungsbeschreibung …"
-                  class="pos-input w-full"></textarea>
-      </div>
-      <div class="price-fields">
-        <div class="grid grid-cols-4 gap-2 mb-1">
-          <div>
-            <label class="block text-xs text-slate-400 mb-1">Menge</label>
-            <input type="number" name="items-__prefix__-quantity" value="1" step="0.01" min="0"
-                   class="pos-input item-qty">
+
+      <!-- Inhalt -->
+      <div class="flex-1 min-w-0 px-4 py-3">
+        <!-- Typ + Löschen -->
+        <div class="flex items-center gap-2 mb-3">
+          <input type="hidden" name="items-__prefix__-item_type" value="normal" class="item-type-input">
+          <div class="type-btn-group flex rounded-md border border-slate-200 overflow-hidden text-xs font-medium">
+            <button type="button" class="type-btn active-normal px-2.5 py-1" data-value="normal">Normal</button>
+            <button type="button" class="type-btn px-2.5 py-1 border-l border-slate-200" data-value="optional">Optional</button>
+            <button type="button" class="type-btn px-2.5 py-1 border-l border-slate-200" data-value="text">Freitext</button>
           </div>
-          <div>
-            <label class="block text-xs text-slate-400 mb-1">Einheit</label>
-            <input type="text" name="items-__prefix__-unit" value=""
-                   list="unit-datalist" autocomplete="off"
-                   class="pos-input">
-          </div>
-          <div>
-            <label class="block text-xs text-slate-400 mb-1">EP (Netto)</label>
-            <input type="number" name="items-__prefix__-unit_price" value="" step="0.01" min="0"
-                   class="pos-input item-price">
-          </div>
-          <div>
-            <label class="block text-xs text-slate-400 mb-1">GP (Netto)</label>
-            <div class="row-total text-sm font-mono font-semibold text-slate-700 py-1.5 text-right">—</div>
-          </div>
-        </div>
-        <div class="item-discount-row hidden flex items-center gap-2 mt-1">
-          <label class="text-xs text-amber-600 font-medium flex-none">Rabatt %</label>
-          <div class="w-32">
-            <input type="number" name="items-__prefix__-discount_percent" value="" step="0.01" min="0" max="100"
-                   placeholder="0" class="pos-input item-discount">
-          </div>
-          <button type="button" class="item-discount-remove text-slate-300 hover:text-red-400 transition" title="Rabatt entfernen">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          <div class="flex-1"></div>
+          <button type="button" class="remove-row text-slate-300 hover:text-red-500 transition flex-none">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
             </svg>
           </button>
+          <input type="hidden" name="items-__prefix__-position" value="1">
         </div>
-        <button type="button" class="item-discount-add text-xs text-slate-400 hover:text-amber-600 transition mt-1">
-          + Rabatt hinzufügen
-        </button>
+
+        <!-- Beschreibung -->
+        <div class="mb-3">
+          <textarea name="items-__prefix__-description" rows="4" placeholder="Leistungsbeschreibung …"
+                    class="pos-input w-full"></textarea>
+        </div>
+
+        <!-- Preisfelder -->
+        <div class="price-fields">
+          <div class="grid grid-cols-4 gap-2">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Menge</label>
+              <input type="number" name="items-__prefix__-quantity" value="1" step="0.01" min="0"
+                     class="pos-input item-qty">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Einheit</label>
+              <input type="text" name="items-__prefix__-unit" value=""
+                     list="unit-datalist" autocomplete="off"
+                     class="pos-input">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">EP (Netto)</label>
+              <input type="number" name="items-__prefix__-unit_price" value="" step="0.01" min="0"
+                     class="pos-input item-price">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">GP (Netto)</label>
+              <div class="row-total tabnum text-sm font-semibold text-slate-700 py-1.5 text-right">—</div>
+            </div>
+          </div>
+          <!-- Rabatt -->
+          <div class="item-discount-row hidden flex items-center gap-2 mt-2">
+            <label class="text-xs text-amber-600 font-medium flex-none">Rabatt %</label>
+            <div class="w-32">
+              <input type="number" name="items-__prefix__-discount_percent" value="" step="0.01" min="0" max="100"
+                     placeholder="0" class="pos-input item-discount">
+            </div>
+            <button type="button" class="item-discount-remove text-slate-300 hover:text-red-400 transition" title="Rabatt entfernen">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <button type="button" class="item-discount-add text-xs text-slate-400 hover:text-amber-600 transition mt-2">
+            + Rabatt hinzufügen
+          </button>
+        </div>
       </div>
     </div>
   </template>
