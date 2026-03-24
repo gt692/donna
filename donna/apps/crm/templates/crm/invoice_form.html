@@ -42,6 +42,11 @@
     .field-wrap textarea { resize: vertical; }
     * { box-sizing: border-box; }
 
+    /* Keine Spinner bei Zahlenfeldern */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+
     .pos-card { transition: background 0.15s; }
     .pos-card.type-optional { background: #fffbeb; }
     .pos-card.type-text     { background: #f8fafc; }
@@ -297,27 +302,38 @@
                 {{ item_form.description }}
               </div>
 
-              <div class="price-fields grid grid-cols-5 gap-2">
-                <div>
-                  <label class="block text-xs text-slate-400 mb-1">Menge</label>
-                  {{ item_form.quantity }}
+              <div class="price-fields">
+                <div class="grid grid-cols-4 gap-2 mb-1">
+                  <div>
+                    <label class="block text-xs text-slate-400 mb-1">Menge</label>
+                    {{ item_form.quantity }}
+                  </div>
+                  <div>
+                    <label class="block text-xs text-slate-400 mb-1">Einheit</label>
+                    {{ item_form.unit }}
+                  </div>
+                  <div>
+                    <label class="block text-xs text-slate-400 mb-1">EP (Netto)</label>
+                    {{ item_form.unit_price }}
+                  </div>
+                  <div>
+                    <label class="block text-xs text-slate-400 mb-1">GP (Netto)</label>
+                    <div class="row-total text-sm font-mono font-semibold text-slate-700 py-1.5 text-right">—</div>
+                  </div>
                 </div>
-                <div>
-                  <label class="block text-xs text-slate-400 mb-1">Einheit</label>
-                  {{ item_form.unit }}
+                <!-- Rabatt (ein-/ausblendbar) -->
+                <div class="item-discount-row {% if not item_form.instance.discount_percent %}hidden{% endif %} flex items-center gap-2 mt-1">
+                  <label class="text-xs text-amber-600 font-medium flex-none">Rabatt %</label>
+                  <div class="w-32">{{ item_form.discount_percent }}</div>
+                  <button type="button" class="item-discount-remove text-slate-300 hover:text-red-400 transition" title="Rabatt entfernen">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
                 </div>
-                <div>
-                  <label class="block text-xs text-slate-400 mb-1">EP (Netto)</label>
-                  {{ item_form.unit_price }}
-                </div>
-                <div>
-                  <label class="block text-xs text-slate-400 mb-1">Rabatt %</label>
-                  {{ item_form.discount_percent }}
-                </div>
-                <div>
-                  <label class="block text-xs text-slate-400 mb-1">GP (Netto)</label>
-                  <div class="row-total text-sm font-mono font-semibold text-slate-700 py-1.5 text-right">—</div>
-                </div>
+                <button type="button" class="item-discount-add {% if item_form.instance.discount_percent %}hidden{% endif %} text-xs text-slate-400 hover:text-amber-600 transition mt-1">
+                  + Rabatt hinzufügen
+                </button>
               </div>
             </div>
             {% endfor %}
@@ -325,14 +341,38 @@
 
           <!-- Summen -->
           <div class="border-t border-slate-200">
-            <div class="flex items-center justify-between px-5 py-2.5 border-b border-slate-100 bg-slate-50">
-              <label class="text-xs font-medium text-slate-500" for="{{ form.discount_percent.id_for_label }}">
-                Gesamtrabatt (%)
-              </label>
-              <div class="w-32">
-                {{ form.discount_percent }}
+
+            <!-- Gesamtrabatt (ein-/ausblendbar) -->
+            <div id="discount-section" class="{% if not form.instance.discount_percent and not form.instance.discount_amount_eur %}hidden{% endif %} border-b border-slate-100 bg-amber-50">
+              <div class="flex items-center gap-2 px-5 py-2.5">
+                <div class="flex rounded-lg border border-amber-300 overflow-hidden text-xs font-medium flex-none">
+                  <button type="button" id="disc-mode-pct"
+                          class="px-2.5 py-1 transition disc-mode-btn bg-amber-400 text-white">%</button>
+                  <button type="button" id="disc-mode-eur"
+                          class="px-2.5 py-1 transition disc-mode-btn text-amber-600">€</button>
+                </div>
+                <label class="text-xs font-medium text-amber-700 flex-none">Gesamtrabatt</label>
+                <div class="flex-1 max-w-xs">
+                  <div id="disc-pct-wrap">{{ form.discount_percent }}</div>
+                  <div id="disc-eur-wrap" class="hidden">{{ form.discount_amount_eur }}</div>
+                </div>
+                <button type="button" id="discount-remove"
+                        class="flex-none text-slate-400 hover:text-red-500 transition" title="Rabatt entfernen">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
               </div>
             </div>
+
+            <!-- "Gesamtrabatt hinzufügen"-Link -->
+            <div id="discount-add" class="{% if form.instance.discount_percent or form.instance.discount_amount_eur %}hidden{% endif %} px-5 py-2 bg-slate-50 border-b border-slate-100">
+              <button type="button" id="discount-show"
+                      class="text-xs text-slate-400 hover:text-emerald-600 transition">
+                + Gesamtrabatt hinzufügen
+              </button>
+            </div>
+
             <div class="bg-slate-800 px-5 py-3">
               <div class="space-y-1.5">
                 <div class="flex justify-between text-xs text-slate-400">
@@ -340,7 +380,7 @@
                   <span id="live-subtotal" class="font-mono">0,00 €</span>
                 </div>
                 <div id="discount-row" class="flex justify-between text-xs text-amber-400 hidden">
-                  <span>Gesamtrabatt (<span id="live-discount-pct">0</span>%)</span>
+                  <span id="discount-row-label">Gesamtrabatt</span>
                   <span id="live-discount-amt" class="font-mono">−0,00 €</span>
                 </div>
                 <div class="flex justify-between text-xs text-slate-400">
@@ -443,31 +483,44 @@
         <textarea name="items-__prefix__-description" rows="4" placeholder="Leistungsbeschreibung …"
                   class="pos-input w-full"></textarea>
       </div>
-      <div class="price-fields grid grid-cols-5 gap-2">
-        <div>
-          <label class="block text-xs text-slate-400 mb-1">Menge</label>
-          <input type="number" name="items-__prefix__-quantity" value="1" step="0.01" min="0"
-                 class="pos-input item-qty">
+      <div class="price-fields">
+        <div class="grid grid-cols-4 gap-2 mb-1">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Menge</label>
+            <input type="number" name="items-__prefix__-quantity" value="1" step="0.01" min="0"
+                   class="pos-input item-qty">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Einheit</label>
+            <input type="text" name="items-__prefix__-unit" value=""
+                   list="unit-datalist" autocomplete="off"
+                   class="pos-input">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">EP (Netto)</label>
+            <input type="number" name="items-__prefix__-unit_price" value="" step="0.01" min="0"
+                   class="pos-input item-price">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">GP (Netto)</label>
+            <div class="row-total text-sm font-mono font-semibold text-slate-700 py-1.5 text-right">—</div>
+          </div>
         </div>
-        <div>
-          <label class="block text-xs text-slate-400 mb-1">Einheit</label>
-          <input type="text" name="items-__prefix__-unit" value="pauschal"
-                 class="pos-input">
+        <div class="item-discount-row hidden flex items-center gap-2 mt-1">
+          <label class="text-xs text-amber-600 font-medium flex-none">Rabatt %</label>
+          <div class="w-32">
+            <input type="number" name="items-__prefix__-discount_percent" value="" step="0.01" min="0" max="100"
+                   placeholder="0" class="pos-input item-discount">
+          </div>
+          <button type="button" class="item-discount-remove text-slate-300 hover:text-red-400 transition" title="Rabatt entfernen">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
         </div>
-        <div>
-          <label class="block text-xs text-slate-400 mb-1">EP (Netto)</label>
-          <input type="number" name="items-__prefix__-unit_price" value="" step="0.01" min="0"
-                 class="pos-input item-price">
-        </div>
-        <div>
-          <label class="block text-xs text-slate-400 mb-1">Rabatt %</label>
-          <input type="number" name="items-__prefix__-discount_percent" value="" step="0.01" min="0" max="100"
-                 placeholder="0" class="pos-input item-discount">
-        </div>
-        <div>
-          <label class="block text-xs text-slate-400 mb-1">GP (Netto)</label>
-          <div class="row-total text-sm font-mono font-semibold text-slate-700 py-1.5 text-right">—</div>
-        </div>
+        <button type="button" class="item-discount-add text-xs text-slate-400 hover:text-amber-600 transition mt-1">
+          + Rabatt hinzufügen
+        </button>
       </div>
     </div>
   </template>
@@ -561,10 +614,24 @@
       }
     });
 
-    const discPctEl = document.getElementById('{{ form.discount_percent.id_for_label }}');
-    const discPct   = discPctEl ? (parseFloat(discPctEl.value) || 0) : 0;
-    const discAmt   = subtotal * discPct / 100;
-    const net       = subtotal - discAmt;
+    // Gesamtrabatt (% oder €)
+    const _discPctEl = document.getElementById('{{ form.discount_percent.id_for_label }}');
+    const _discEurEl = document.getElementById('{{ form.discount_amount_eur.id_for_label }}');
+    const discPct    = _discPctEl ? (parseFloat(_discPctEl.value) || 0) : 0;
+    const discEur    = _discEurEl ? (parseFloat(_discEurEl.value) || 0) : 0;
+    let discAmt;
+    let discLabel;
+    if (discEur > 0) {
+      discAmt  = Math.min(discEur, subtotal);
+      discLabel = `Gesamtrabatt (${discAmt.toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2})} €)`;
+    } else if (discPct > 0) {
+      discAmt  = subtotal * discPct / 100;
+      discLabel = `Gesamtrabatt (${discPct.toLocaleString('de-DE', {maximumFractionDigits:2})} %)`;
+    } else {
+      discAmt  = 0;
+      discLabel = 'Gesamtrabatt';
+    }
+    const net = subtotal - discAmt;
 
     const kleinEl  = document.getElementById('{{ form.is_kleinunternehmer.id_for_label }}');
     const isKlein  = kleinEl && kleinEl.checked;
@@ -578,9 +645,10 @@
     document.getElementById('live-gross').textContent    = fmt(gross);
 
     const discRow = document.getElementById('discount-row');
-    if (discPct > 0) {
+    if (discAmt > 0) {
       discRow.classList.remove('hidden');
-      document.getElementById('live-discount-pct').textContent = discPct.toLocaleString('de-DE', {maximumFractionDigits:2});
+      const lbl = document.getElementById('discount-row-label');
+      if (lbl) lbl.textContent = discLabel;
       document.getElementById('live-discount-amt').textContent = '−' + fmt(discAmt);
     } else {
       discRow.classList.add('hidden');
@@ -637,6 +705,26 @@
     card.querySelectorAll('.item-qty, .item-price, .item-discount').forEach(function (inp) {
       inp.addEventListener('input', recalculate);
     });
+
+    // Rabatt per Position: show/hide
+    const itemDiscAddBtn    = card.querySelector('.item-discount-add');
+    const itemDiscRemoveBtn = card.querySelector('.item-discount-remove');
+    const itemDiscRow       = card.querySelector('.item-discount-row');
+    const itemDiscInput     = card.querySelector('.item-discount');
+    if (itemDiscAddBtn && itemDiscRow) {
+      itemDiscAddBtn.addEventListener('click', function() {
+        itemDiscRow.classList.remove('hidden');
+        itemDiscAddBtn.classList.add('hidden');
+        if (itemDiscInput) itemDiscInput.focus();
+      });
+    }
+    if (itemDiscRemoveBtn && itemDiscRow) {
+      itemDiscRemoveBtn.addEventListener('click', function() {
+        itemDiscRow.classList.add('hidden');
+        itemDiscAddBtn && itemDiscAddBtn.classList.remove('hidden');
+        if (itemDiscInput) { itemDiscInput.value = ''; recalculate(); }
+      });
+    }
   }
 
   document.querySelectorAll('#items-container .pos-card').forEach(function(card) {
@@ -663,14 +751,64 @@
     if (ta) ta.focus();
   });
 
-  const discPctEl = document.getElementById('{{ form.discount_percent.id_for_label }}');
+  const discPctEl  = document.getElementById('{{ form.discount_percent.id_for_label }}');
+  const discEurEl  = document.getElementById('{{ form.discount_amount_eur.id_for_label }}');
   if (discPctEl) discPctEl.addEventListener('input', recalculate);
+  if (discEurEl) discEurEl.addEventListener('input', recalculate);
   const kleinEl = document.getElementById('{{ form.is_kleinunternehmer.id_for_label }}');
   if (kleinEl) kleinEl.addEventListener('change', recalculate);
   const taxRateEl = document.getElementById('{{ form.tax_rate.id_for_label }}');
   if (taxRateEl) taxRateEl.addEventListener('input', recalculate);
 
   recalculate();
+
+  // Gesamtrabatt: show/hide & Modus-Toggle
+  const discSection   = document.getElementById('discount-section');
+  const discAddBtn    = document.getElementById('discount-add');
+  const discShowBtn   = document.getElementById('discount-show');
+  const discRemoveBtn = document.getElementById('discount-remove');
+  const discModePct   = document.getElementById('disc-mode-pct');
+  const discModeEur   = document.getElementById('disc-mode-eur');
+  const discPctWrap   = document.getElementById('disc-pct-wrap');
+  const discEurWrap   = document.getElementById('disc-eur-wrap');
+
+  if (discEurEl && discEurEl.value) { activateDiscMode('eur'); }
+
+  function activateDiscMode(mode) {
+    if (mode === 'eur') {
+      discPctWrap.classList.add('hidden');
+      discEurWrap.classList.remove('hidden');
+      discModePct.classList.remove('bg-amber-400','text-white');
+      discModePct.classList.add('text-amber-600');
+      discModeEur.classList.add('bg-amber-400','text-white');
+      discModeEur.classList.remove('text-amber-600');
+      if (discPctEl) { discPctEl.value = ''; }
+    } else {
+      discEurWrap.classList.add('hidden');
+      discPctWrap.classList.remove('hidden');
+      discModeEur.classList.remove('bg-amber-400','text-white');
+      discModeEur.classList.add('text-amber-600');
+      discModePct.classList.add('bg-amber-400','text-white');
+      discModePct.classList.remove('text-amber-600');
+      if (discEurEl) { discEurEl.value = ''; }
+    }
+    recalculate();
+  }
+
+  if (discModePct) discModePct.addEventListener('click', () => activateDiscMode('pct'));
+  if (discModeEur) discModeEur.addEventListener('click', () => activateDiscMode('eur'));
+
+  if (discShowBtn) discShowBtn.addEventListener('click', function() {
+    discSection.classList.remove('hidden');
+    discAddBtn.classList.add('hidden');
+  });
+  if (discRemoveBtn) discRemoveBtn.addEventListener('click', function() {
+    discSection.classList.add('hidden');
+    discAddBtn.classList.remove('hidden');
+    if (discPctEl) discPctEl.value = '';
+    if (discEurEl) discEurEl.value = '';
+    recalculate();
+  });
 })();
 
 // ── Produktkatalog ─────────────────────────────────────────────
@@ -937,6 +1075,21 @@ function initGoogleAutocomplete() {
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initGoogleAutocomplete" async defer></script>
 {% endif %}
+
+<!-- Einheiten-Datalist -->
+<datalist id="unit-datalist"></datalist>
+<script>
+fetch('{% url "crm:unit_api" %}')
+  .then(r => r.json())
+  .then(data => {
+    const dl = document.getElementById('unit-datalist');
+    data.units.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u;
+      dl.appendChild(opt);
+    });
+  });
+</script>
 
 </body>
 </html>

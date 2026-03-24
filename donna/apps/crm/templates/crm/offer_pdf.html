@@ -302,14 +302,39 @@
   <!-- Summen -->
   <div class="totals-wrapper">
     <table class="totals-table">
+      {% if discount_amount %}
       <tr>
         <td class="label">Zwischensumme (netto)</td>
-        <td class="amount">{{ net_total|floatformat:2 }} €</td>
+        <td class="amount">{{ subtotal|floatformat:2 }} €</td>
+      </tr>
+      <tr>
+        <td class="label" style="color:#b45309;">
+          {% if offer.discount_amount_eur %}Rabatt ({{ discount_amount|floatformat:2 }} €)
+          {% else %}Rabatt ({{ offer.discount_percent|floatformat:2 }} %){% endif %}
+        </td>
+        <td class="amount" style="color:#b45309;">−{{ discount_amount|floatformat:2 }} €</td>
       </tr>
       <tr class="separator">
-        <td class="label">Umsatzsteuer {{ offer.tax_rate|floatformat:0 }} %</td>
+        <td class="label">Nettobetrag</td>
+        <td class="amount">{{ net_total|floatformat:2 }} €</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td class="label">Nettobetrag</td>
+        <td class="amount">{{ net_total|floatformat:2 }} €</td>
+      </tr>
+      {% endif %}
+      {% if offer.is_kleinunternehmer %}
+      <tr class="separator">
+        <td class="label" style="color:#888;">Umsatzsteuer gem. § 19 UStG</td>
+        <td class="amount" style="color:#888;">entfällt</td>
+      </tr>
+      {% else %}
+      <tr class="separator">
+        <td class="label">Umsatzsteuer {{ offer.tax_rate|floatformat:2 }} %</td>
         <td class="amount">{{ tax_amount|floatformat:2 }} €</td>
       </tr>
+      {% endif %}
       <tr class="gross">
         <td class="label">Gesamtbetrag</td>
         <td class="amount">{{ gross_total|floatformat:2 }} €</td>

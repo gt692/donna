@@ -37,8 +37,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView, View
 
-from .forms import AccountForm, ContactForm, InvoiceForm, InvoiceItemForm, InvoiceItemFormSet, OfferForm, OfferItemFormSet, ProjectForm, TextBlockForm
-from .models import Account, CompanyProjectTypeMapping, Contact, Document, Invoice, InvoiceItem, LeadInquiry, Offer, OfferItem, Project, ProjectActivity, ProjectBudgetExtension, ProjectMemberRate, TextBlock
+from .forms import AccountForm, ContactForm, InvoiceForm, InvoiceItemForm, InvoiceItemFormSet, OfferForm, OfferItemFormSet, ProjectForm, TextBlockForm, UnitForm
+from .models import Account, CompanyProjectTypeMapping, Contact, Document, Invoice, InvoiceItem, LeadInquiry, Offer, OfferItem, Project, ProjectActivity, ProjectBudgetExtension, ProjectMemberRate, TextBlock, Unit
 
 
 # ---------------------------------------------------------------------------
@@ -1444,7 +1444,7 @@ class OfferCreateStandaloneView(AdminOrLeadMixin, View):
     template_name = "crm/offer_form.html"
 
     def get(self, request):
-        form    = OfferForm()
+        form    = OfferForm(initial={"title": "Angebot"})
         formset = _build_offer_formset(request, extra=3)
         return render(request, self.template_name, {
             "form": form, "formset": formset, "project": None,
@@ -1541,13 +1541,18 @@ class OfferPDFView(LoginRequiredMixin, View):
                 content_type="text/plain; charset=utf-8",
             )
 
+        items    = list(offer.items.all())
+        subtotal = sum((i.net_amount for i in items), __import__('decimal').Decimal("0.00"))
         from django.template.loader import render_to_string
         html_string = render_to_string("crm/offer_pdf.html", {
-            "offer":      offer,
-            "items":      list(offer.items.all()),
-            "net_total":  offer.net_total,
-            "tax_amount": offer.tax_amount,
-            "gross_total": offer.gross_total,
+            "offer":           offer,
+            "items":           items,
+            "subtotal":        subtotal,
+            "discount_amount": offer.discount_amount,
+            "net_total":       offer.net_total,
+            "tax_amount":      offer.tax_amount,
+            "gross_total":     offer.gross_total,
+            **_company_ctx(),
         }, request=request)
 
         pdf = weasyprint.HTML(string=html_string, base_url=request.build_absolute_uri("/")).write_pdf()
@@ -1559,13 +1564,18 @@ class OfferPDFView(LoginRequiredMixin, View):
 def _generate_offer_pdf_bytes(offer, request=None):
     """Shared helper: renders offer PDF and returns bytes. Raises ImportError if WeasyPrint missing."""
     import weasyprint
+    from decimal import Decimal
     from django.template.loader import render_to_string
+    items    = list(offer.items.all())
+    subtotal = sum((i.net_amount for i in items), Decimal("0.00"))
     html_string = render_to_string("crm/offer_pdf.html", {
-        "offer":       offer,
-        "items":       list(offer.items.all()),
-        "net_total":   offer.net_total,
-        "tax_amount":  offer.tax_amount,
-        "gross_total": offer.gross_total,
+        "offer":           offer,
+        "items":           items,
+        "subtotal":        subtotal,
+        "discount_amount": offer.discount_amount,
+        "net_total":       offer.net_total,
+        "tax_amount":      offer.tax_amount,
+        "gross_total":     offer.gross_total,
         **_company_ctx(),
     })
     base_url = request.build_absolute_uri("/") if request else "/"
@@ -2531,3 +2541,63 @@ class TextBlockAPIView(CRMMixin, View):
         if category:
             qs = qs.filter(category=category)
         return JsonResponse({"blocks": [{"id": tb.pk, "name": tb.name, "content": tb.content} for tb in qs]})
+
+
+# ---------------------------------------------------------------------------
+# Unit (Einheiten) CRUD
+# ---------------------------------------------------------------------------
+
+class UnitListView(AdminOrLeadMixin, ListView):
+    model = Unit
+    template_name = "crm/unit_list.html"
+    context_object_name = "units"
+
+
+class UnitCreateView(AdminOrLeadMixin, View):
+    def get(self, request):
+        return render(request, "crm/unit_form.html", {
+            "form": UnitForm(), "page_title": "Neue Einheit"
+        })
+
+    def post(self, request):
+        form = UnitForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Einheit gespeichert.")
+            return redirect("crm:unit_list")
+        return render(request, "crm/unit_form.html", {
+            "form": form, "page_title": "Neue Einheit"
+        })
+
+
+class UnitUpdateView(AdminOrLeadMixin, View):
+    def get(self, request, pk):
+        unit = get_object_or_404(Unit, pk=pk)
+        return render(request, "crm/unit_form.html", {
+            "form": UnitForm(instance=unit), "unit": unit, "page_title": "Einheit bearbeiten"
+        })
+
+    def post(self, request, pk):
+        unit = get_object_or_404(Unit, pk=pk)
+        form = UnitForm(request.POST, instance=unit)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Einheit gespeichert.")
+            return redirect("crm:unit_list")
+        return render(request, "crm/unit_form.html", {
+            "form": form, "unit": unit, "page_title": "Einheit bearbeiten"
+        })
+
+
+class UnitDeleteView(AdminOrLeadMixin, View):
+    def post(self, request, pk):
+        get_object_or_404(Unit, pk=pk).delete()
+        messages.success(request, "Einheit gelöscht.")
+        return redirect("crm:unit_list")
+
+
+class UnitAPIView(CRMMixin, View):
+    """AJAX: Alle Einheiten für Datalist/Autocomplete."""
+    def get(self, request):
+        units = list(Unit.objects.values_list("name", flat=True))
+        return JsonResponse({"units": units})

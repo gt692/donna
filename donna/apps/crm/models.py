@@ -775,6 +775,10 @@ class Offer(models.Model):
         max_digits=5, decimal_places=2, default=Decimal("0"),
         verbose_name=_("Gesamtrabatt (%)"),
     )
+    discount_amount_eur = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        verbose_name=_("Gesamtrabatt (€)"),
+    )
     is_kleinunternehmer = models.BooleanField(
         default=False,
         verbose_name=_("Kleinunternehmer (§19 UStG)"),
@@ -822,16 +826,16 @@ class Offer(models.Model):
     @property
     def net_total(self):
         subtotal = sum((item.net_amount for item in self.items.all()), Decimal("0.00"))
-        if self.discount_percent:
-            subtotal = subtotal * (1 - self.discount_percent / Decimal("100"))
-        return subtotal.quantize(Decimal("0.01"))
+        return (subtotal - self.discount_amount).quantize(Decimal("0.01"))
 
     @property
     def discount_amount(self):
-        if not self.discount_percent:
-            return Decimal("0.00")
         subtotal = sum((item.net_amount for item in self.items.all()), Decimal("0.00"))
-        return (subtotal * self.discount_percent / Decimal("100")).quantize(Decimal("0.01"))
+        if self.discount_amount_eur:
+            return min(self.discount_amount_eur, subtotal).quantize(Decimal("0.01"))
+        if self.discount_percent:
+            return (subtotal * self.discount_percent / Decimal("100")).quantize(Decimal("0.01"))
+        return Decimal("0.00")
 
     @property
     def tax_amount(self):
@@ -846,7 +850,7 @@ class Offer(models.Model):
 
 class OfferItem(models.Model):
     class ItemType(models.TextChoices):
-        NORMAL   = "normal",   _("Normal")
+        NORMAL   = "normal",   _("Standard")
         OPTIONAL = "optional", _("Optional")
         TEXT     = "text",     _("Freitext")
 
@@ -927,7 +931,8 @@ class Invoice(models.Model):
     recipient_name    = models.CharField(max_length=255, blank=True)
     recipient_email   = models.EmailField(blank=True)
     recipient_address = models.TextField(blank=True)
-    discount_percent  = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0"))
+    discount_percent    = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0"))
+    discount_amount_eur = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     is_kleinunternehmer = models.BooleanField(default=False)
     net_total_cached  = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     created_by     = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="created_invoices")
@@ -957,16 +962,16 @@ class Invoice(models.Model):
     @property
     def net_total(self):
         subtotal = sum((item.net_amount for item in self.items.all()), Decimal("0.00"))
-        if self.discount_percent:
-            subtotal = subtotal * (1 - self.discount_percent / Decimal("100"))
-        return subtotal.quantize(Decimal("0.01"))
+        return (subtotal - self.discount_amount).quantize(Decimal("0.01"))
 
     @property
     def discount_amount(self):
-        if not self.discount_percent:
-            return Decimal("0.00")
         subtotal = sum((item.net_amount for item in self.items.all()), Decimal("0.00"))
-        return (subtotal * self.discount_percent / Decimal("100")).quantize(Decimal("0.01"))
+        if self.discount_amount_eur:
+            return min(self.discount_amount_eur, subtotal).quantize(Decimal("0.01"))
+        if self.discount_percent:
+            return (subtotal * self.discount_percent / Decimal("100")).quantize(Decimal("0.01"))
+        return Decimal("0.00")
 
     @property
     def tax_amount(self):
@@ -998,7 +1003,7 @@ class Invoice(models.Model):
 
 class InvoiceItem(models.Model):
     class ItemType(models.TextChoices):
-        NORMAL   = "normal",   "Normal"
+        NORMAL   = "normal",   "Standard"
         OPTIONAL = "optional", "Optional"
         TEXT     = "text",     "Freitext"
 
@@ -1078,6 +1083,19 @@ class TextBlock(models.Model):
 
     def __str__(self):
         return f"{self.get_category_display()} — {self.name}"
+
+
+class Unit(models.Model):
+    name       = models.CharField(max_length=50, unique=True, verbose_name=_("Einheit"))
+    sort_order = models.PositiveSmallIntegerField(default=0, verbose_name=_("Reihenfolge"))
+
+    class Meta:
+        ordering = ["sort_order", "name"]
+        verbose_name = _("Einheit")
+        verbose_name_plural = _("Einheiten")
+
+    def __str__(self):
+        return self.name
 
 
 # ---------------------------------------------------------------------------
