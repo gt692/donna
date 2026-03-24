@@ -1042,11 +1042,13 @@
     const cards   = document.querySelectorAll('#items-container .pos-card');
     const lastCard = cards[cards.length - 1];
     if (!lastCard) return;
+    const titleInput = lastCard.querySelector('input[name$="-title"]');
     const descInput  = lastCard.querySelector('textarea[name$="-description"]');
     const qtyInput   = lastCard.querySelector('input[name$="-quantity"]');
     const unitInput  = lastCard.querySelector('input[name$="-unit"]');
     const priceInput = lastCard.querySelector('input[name$="-unit_price"]');
-    if (descInput) descInput.value = item.description ? item.name + '\n' + item.description : item.name;
+    if (titleInput) titleInput.value = item.name;
+    if (descInput)  descInput.value  = item.description || '';
     if (qtyInput)  qtyInput.value  = item.quantity;
     if (unitInput) unitInput.value = item.unit;
     if (priceInput) {
