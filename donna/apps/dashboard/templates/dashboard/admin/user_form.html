@@ -17,7 +17,9 @@
 
 {% block content %}
 <div class="max-w-2xl mx-auto">
-  <form method="post" novalidate>
+
+  <!-- Haupt-Formular -->
+  <form id="user-edit-form" method="post" novalidate>
     {% csrf_token %}
 
     {% if form.errors %}
@@ -108,17 +110,14 @@
           </p>
         </div>
       </div>
-      <form method="post" action="{% url 'dashboard:user_reinvite' edit_user.pk %}" class="flex-shrink-0">
-        {% csrf_token %}
-        <button type="submit"
-                class="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-amber-100 border border-amber-300 text-amber-800 hover:bg-amber-200 transition whitespace-nowrap">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-          </svg>
-          Einladung erneut senden
-        </button>
-      </form>
+      <button type="submit" form="reinvite-form"
+              class="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-amber-100 border border-amber-300 text-amber-800 hover:bg-amber-200 transition whitespace-nowrap flex-shrink-0">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+        </svg>
+        Einladung erneut senden
+      </button>
     </div>
     {% endif %}
 
@@ -165,17 +164,14 @@
             {% if edit_user.totp_enabled %}Neu einrichten{% else %}2FA einrichten{% endif %}
           </a>
           {% if edit_user.totp_enabled %}
-            <form method="post" action="{% url 'dashboard:user_totp_disable' edit_user.pk %}"
-                  onsubmit="return confirm('2FA für {{ edit_user.get_full_name }} wirklich deaktivieren?')">
-              {% csrf_token %}
-              <button type="submit"
-                      class="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-                Deaktivieren
-              </button>
-            </form>
+            <button type="submit" form="totp-disable-form"
+                    onclick="return confirm('2FA für {{ edit_user.get_full_name }} wirklich deaktivieren?')"
+                    class="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+              Deaktivieren
+            </button>
           {% endif %}
         </div>
       </div>
@@ -215,5 +211,18 @@
       </button>
     </div>
   </form>
+
+  <!-- Separate Hilfs-Forms außerhalb des Haupt-Forms -->
+  {% if edit_user and not edit_user.is_active and edit_user.invitation_token %}
+  <form id="reinvite-form" method="post" action="{% url 'dashboard:user_reinvite' edit_user.pk %}">
+    {% csrf_token %}
+  </form>
+  {% endif %}
+  {% if edit_user and edit_user.totp_enabled %}
+  <form id="totp-disable-form" method="post" action="{% url 'dashboard:user_totp_disable' edit_user.pk %}">
+    {% csrf_token %}
+  </form>
+  {% endif %}
+
 </div>
 {% endblock %}
