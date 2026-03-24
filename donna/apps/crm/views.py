@@ -1403,8 +1403,7 @@ class OfferCreateView(AdminOrLeadMixin, View):
             offer.save()
             formset.instance = offer
             formset.save()
-            messages.success(request, f"Angebot {offer.offer_number} erstellt.")
-            return redirect("crm:offer_detail", pk=offer.pk)
+            return redirect("crm:offer_preview", pk=offer.pk)
 
         return render(request, self.template_name, {
             "form":    form,
@@ -1441,8 +1440,7 @@ class OfferCreateStandaloneView(AdminOrLeadMixin, View):
             offer.save()
             formset.instance = offer
             formset.save()
-            messages.success(request, f"Angebot {offer.offer_number} erstellt.")
-            return redirect("crm:offer_detail", pk=offer.pk)
+            return redirect("crm:offer_preview", pk=offer.pk)
         return render(request, self.template_name, {
             "form": form, "formset": formset, "project": None,
             "page_title": "Neues Angebot",
@@ -1493,8 +1491,7 @@ class OfferUpdateView(AdminOrLeadMixin, View):
         if form.is_valid() and formset.is_valid():
             form.save()
             formset.save()
-            messages.success(request, f"Angebot {offer.offer_number} gespeichert.")
-            return redirect("crm:offer_detail", pk=offer.pk)
+            return redirect("crm:offer_preview", pk=offer.pk)
 
         return render(request, self.template_name, {
             "form":    form,
@@ -1503,6 +1500,27 @@ class OfferUpdateView(AdminOrLeadMixin, View):
             "offer":   offer,
             "page_title": f"Angebot {offer.offer_number} bearbeiten",
             "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
+        })
+
+
+class OfferPreviewView(LoginRequiredMixin, View):
+    """Browser-Vorschau eines Angebots — sieht aus wie das PDF, mit Aktionsleiste oben."""
+    login_url = "/auth/login/"
+
+    def get(self, request, pk):
+        from decimal import Decimal
+        offer   = get_object_or_404(Offer, pk=pk)
+        items   = list(offer.items.all())
+        subtotal = sum((i.net_amount for i in items), Decimal("0.00"))
+        return render(request, "crm/offer_preview.html", {
+            "offer":           offer,
+            "items":           items,
+            "subtotal":        subtotal,
+            "discount_amount": offer.discount_amount,
+            "net_total":       offer.net_total,
+            "tax_amount":      offer.tax_amount,
+            "gross_total":     offer.gross_total,
+            **_company_ctx(),
         })
 
 

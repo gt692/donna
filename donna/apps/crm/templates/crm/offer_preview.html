@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vorschau – {{ offer.offer_number }}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 9.5pt;
+      color: #1a1a2e;
+      background: #e8edf2;
+    }
+
+    /* ── Aktionsleiste ──────────────────────────────────────── */
+    .preview-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      height: 56px;
+      background: #1a202c;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      gap: 12px;
+    }
+    .preview-bar-left { display: flex; align-items: center; gap: 12px; }
+    .preview-bar-right { display: flex; align-items: center; gap: 8px; }
+    .preview-bar .label {
+      font-size: 13px;
+      color: #94a3b8;
+    }
+    .preview-bar .doc-id {
+      font-size: 13px;
+      color: #e2e8f0;
+      font-weight: 600;
+    }
+    .btn-back {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px;
+      background: transparent;
+      border: 1px solid #475569;
+      color: #cbd5e1;
+      border-radius: 8px;
+      font-size: 13px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .btn-back:hover { background: #2d3748; border-color: #64748b; }
+    .btn-done {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 18px;
+      background: {{ company_settings.primary_color }};
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-done:hover { opacity: 0.85; }
+    .btn-pdf {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px;
+      background: transparent;
+      border: 1px solid #475569;
+      color: #cbd5e1;
+      border-radius: 8px;
+      font-size: 13px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-pdf:hover { background: #2d3748; }
+
+    /* ── Seiten-Wrapper ─────────────────────────────────────── */
+    .page-outer {
+      padding: 76px 24px 48px;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
+    .page-sheet {
+      background: #fff;
+      width: 210mm;
+      max-width: 100%;
+      min-height: 297mm;
+      padding: 18mm 18mm 38mm 20mm;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.18);
+      border-radius: 2px;
+    }
+
+    @media print {
+      body { background: #fff; }
+      .preview-bar { display: none; }
+      .page-outer { padding: 0; }
+      .page-sheet { box-shadow: none; border-radius: 0; width: 100%; padding: 0; }
+    }
+
+    /* ── Header ──────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 10pt;
+      border-bottom: 2pt solid {{ company_settings.primary_color }};
+      margin-bottom: 18pt;
+    }
+    .header-brand {
+      font-size: 22pt;
+      font-weight: 700;
+      color: {{ company_settings.primary_color }};
+      letter-spacing: -0.5pt;
+      line-height: 1.1;
+    }
+    .header-brand-sub { font-size: 7.5pt; color: #999; margin-top: 3pt; }
+    .header-meta table { border-collapse: collapse; font-size: 8.5pt; color: #444; }
+    .header-meta table td { padding: 1.5pt 0; }
+    .header-meta table td.lbl { color: #888; padding-right: 10pt; text-align: right; white-space: nowrap; }
+    .header-meta table td.val { font-weight: 600; text-align: right; }
+    .header-meta .doc-number { font-size: 14pt; font-weight: 700; color: {{ company_settings.primary_color }}; }
+
+    /* ── Empfänger ───────────────────────────────────────────── */
+    .sender-line {
+      font-size: 7.5pt; color: #888;
+      border-bottom: 0.5pt solid #bbb;
+      padding-bottom: 2pt; margin-bottom: 6pt;
+    }
+    .recipient-block { margin-bottom: 18pt; font-size: 10pt; line-height: 1.6; min-height: 42pt; }
+    .recipient-block .name { font-weight: 600; }
+
+    /* ── Dokumenttitel ───────────────────────────────────────── */
+    .doc-title { font-size: 14pt; font-weight: 700; color: #1a1a2e; margin-bottom: 8pt; margin-top: 12pt; }
+    .intro-text { font-size: 9.5pt; line-height: 1.65; color: #333; margin-bottom: 16pt; white-space: pre-wrap; }
+
+    /* ── Positionstabelle ────────────────────────────────────── */
+    .positions-table { width: 100%; border-collapse: collapse; margin-bottom: 16pt; font-size: 9pt; }
+    .positions-table thead tr { background-color: {{ company_settings.primary_color }}; color: #fff; }
+    .positions-table thead th { padding: 5.5pt 7pt; text-align: left; font-weight: 600; font-size: 8pt; letter-spacing: 0.3pt; }
+    .positions-table thead th.text-right { text-align: right; }
+    .positions-table tbody tr:nth-child(even) { background-color: #f4f8fc; }
+    .positions-table tbody td { padding: 5.5pt 7pt; vertical-align: top; border-bottom: 0.5pt solid #dde8f0; line-height: 1.5; }
+    .positions-table tbody td.text-right { text-align: right; white-space: nowrap; }
+    .positions-table tbody td.pos-nr { color: #999; width: 22pt; text-align: center; font-size: 8pt; }
+    .positions-table tbody td.desc strong { display: block; font-size: 9pt; margin-bottom: 1.5pt; }
+
+    /* ── Summen ──────────────────────────────────────────────── */
+    .totals-wrapper { display: flex; justify-content: flex-end; margin-bottom: 20pt; }
+    .totals-table { width: 230pt; border-collapse: collapse; font-size: 9.5pt; }
+    .totals-table td { padding: 3.5pt 7pt; vertical-align: middle; }
+    .totals-table td.label { color: #555; }
+    .totals-table td.amount { text-align: right; font-weight: 600; }
+    .totals-table tr.separator td { border-top: 0.5pt solid #ccc; padding-top: 5pt; }
+    .totals-table tr.gross td {
+      font-size: 11.5pt; font-weight: 700;
+      color: {{ company_settings.primary_color }};
+      border-top: 2pt solid {{ company_settings.primary_color }};
+      padding-top: 5pt;
+    }
+
+    /* ── Zahlungsbedingung / Schlusstext ─────────────────────── */
+    .payment-terms { font-size: 9.5pt; line-height: 1.6; color: #333; margin-bottom: 14pt; }
+    .closing-text { font-size: 9pt; line-height: 1.6; color: #555; margin-bottom: 18pt; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+
+<!-- ── Aktionsleiste ───────────────────────────────────────────── -->
+<div class="preview-bar">
+  <div class="preview-bar-left">
+    <a href="{% url 'crm:offer_edit' offer.pk %}" class="btn-back">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+      Bearbeiten
+    </a>
+    <span class="label">Vorschau</span>
+    <span class="doc-id">{{ offer.offer_number }}</span>
+  </div>
+  <div class="preview-bar-right">
+    <a href="{% url 'crm:offer_pdf' offer.pk %}" target="_blank" class="btn-pdf">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      PDF
+    </a>
+    <a href="{% url 'crm:offer_detail' offer.pk %}" class="btn-done">
+      Speichern &amp; Fertig
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      </svg>
+    </a>
+  </div>
+</div>
+
+<!-- ── Dokument ────────────────────────────────────────────────── -->
+<div class="page-outer">
+  <div class="page-sheet">
+
+    <!-- Kopfzeile -->
+    <div class="header">
+      <div>
+        {% if company_logo_uri %}
+          <img src="{{ company_logo_uri }}" style="max-height: 52pt; max-width: 160pt; object-fit: contain;" alt="Logo">
+        {% else %}
+          <div class="header-brand">{{ company_settings.company_name }}{% if company_settings.legal_form %} <span style="font-size:13pt; font-weight:400;">{{ company_settings.legal_form }}</span>{% endif %}</div>
+          {% if company_settings.slogan %}<div class="header-brand-sub">{{ company_settings.slogan }}</div>{% endif %}
+        {% endif %}
+      </div>
+      <div class="header-meta">
+        <table>
+          <tr>
+            <td class="lbl">{% if offer.is_order_confirmation %}AB-Nr.:{% else %}Angebotsnr.:{% endif %}</td>
+            <td class="val doc-number">{{ offer.offer_number }}</td>
+          </tr>
+          {% if offer.project.account %}
+          <tr>
+            <td class="lbl">Kundennr.:</td>
+            <td class="val">{{ offer.project.account.account_number }}</td>
+          </tr>
+          {% endif %}
+          <tr>
+            <td class="lbl">Datum:</td>
+            <td class="val">{{ offer.offer_date|date:"d.m.Y" }}</td>
+          </tr>
+          {% if offer.valid_until and not offer.is_order_confirmation %}
+          <tr>
+            <td class="lbl">Gültig bis:</td>
+            <td class="val">{{ offer.valid_until|date:"d.m.Y" }}</td>
+          </tr>
+          {% endif %}
+        </table>
+      </div>
+    </div>
+
+    <!-- Empfänger -->
+    <div>
+      <div class="sender-line">{{ company_settings.company_name }}{% if company_settings.legal_form %} {{ company_settings.legal_form }}{% endif %}{% if company_settings.street %} · {{ company_settings.street }} · {{ company_settings.postal_code }} {{ company_settings.city }}{% endif %}</div>
+      <div class="recipient-block">
+        {% if offer.recipient_name %}<div class="name">{{ offer.recipient_name }}</div>{% endif %}
+        {% if offer.recipient_address %}<div style="white-space: pre-line;">{{ offer.recipient_address }}</div>{% endif %}
+      </div>
+    </div>
+
+    <!-- Dokumenttitel + Einleitung -->
+    <div class="doc-title">{% if offer.is_order_confirmation %}Auftragsbestätigung{% else %}Angebot{% endif %}: {{ offer.title }}</div>
+    {% if offer.intro_text %}<div class="intro-text">{{ offer.intro_text }}</div>{% endif %}
+
+    <!-- Positionstabelle -->
+    <table class="positions-table">
+      <thead>
+        <tr>
+          <th style="width:22pt;">Pos.</th>
+          <th>Bezeichnung</th>
+          <th class="text-right" style="width:55pt;">Menge</th>
+          <th style="width:52pt;">Einheit</th>
+          <th class="text-right" style="width:68pt;">Einzel €</th>
+          <th class="text-right" style="width:78pt;">Gesamt €</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td class="pos-nr">{{ item.position }}</td>
+          <td class="desc">{% if item.title %}<strong>{{ item.title }}</strong>{% if item.description %}<br>{% endif %}{% endif %}{{ item.description }}</td>
+          <td class="text-right" style="width:55pt;">{{ item.quantity|floatformat:2 }}</td>
+          <td>{{ item.unit }}</td>
+          <td class="text-right" style="width:68pt;">{{ item.unit_price|floatformat:"2g" }}</td>
+          <td class="text-right" style="width:78pt; font-weight:600;">{{ item.net_amount|floatformat:"2g" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" style="text-align:center; color:#aaa; padding:12pt;">Keine Positionen.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Summen -->
+    <div class="totals-wrapper">
+      <table class="totals-table">
+        {% if discount_amount %}
+        <tr>
+          <td class="label">Zwischensumme (netto)</td>
+          <td class="amount">{{ subtotal|floatformat:"2g" }} €</td>
+        </tr>
+        <tr>
+          <td class="label" style="color:#b45309;">
+            {% if offer.discount_amount_eur %}Rabatt ({{ discount_amount|floatformat:"2g" }} €)
+            {% else %}Rabatt ({{ offer.discount_percent|floatformat:2 }} %){% endif %}
+          </td>
+          <td class="amount" style="color:#b45309;">−{{ discount_amount|floatformat:"2g" }} €</td>
+        </tr>
+        <tr class="separator">
+          <td class="label">Nettobetrag</td>
+          <td class="amount">{{ net_total|floatformat:"2g" }} €</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td class="label">Nettobetrag</td>
+          <td class="amount">{{ net_total|floatformat:"2g" }} €</td>
+        </tr>
+        {% endif %}
+        {% if offer.is_kleinunternehmer %}
+        <tr class="separator">
+          <td class="label" style="color:#888;">Umsatzsteuer gem. § 19 UStG</td>
+          <td class="amount" style="color:#888;">entfällt</td>
+        </tr>
+        {% else %}
+        <tr class="separator">
+          <td class="label">Umsatzsteuer {{ offer.tax_rate|floatformat:2 }} %</td>
+          <td class="amount">{{ tax_amount|floatformat:"2g" }} €</td>
+        </tr>
+        {% endif %}
+        <tr class="gross">
+          <td class="label">Gesamtbetrag</td>
+          <td class="amount">{{ gross_total|floatformat:"2g" }} €</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Zahlungsbedingung -->
+    {% if offer.payment_terms %}
+    <div class="payment-terms">{{ offer.payment_terms }}</div>
+    {% endif %}
+
+    <!-- Schlusstext -->
+    {% if offer.closing_text %}
+    <div class="closing-text">{{ offer.closing_text }}</div>
+    {% endif %}
+
+  </div>
+</div>
+
+</body>
+</html>
