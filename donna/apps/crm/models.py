@@ -865,7 +865,8 @@ class OfferItem(models.Model):
         max_length=10, choices=ItemType.choices, default=ItemType.NORMAL,
         verbose_name=_("Typ"),
     )
-    description = models.TextField(verbose_name=_("Beschreibung"))
+    title       = models.CharField(max_length=255, blank=True, default="", verbose_name=_("Titel"))
+    description = models.TextField(blank=True, default="", verbose_name=_("Beschreibung"))
     quantity    = models.DecimalField(
         max_digits=8, decimal_places=2, default=Decimal("1"),
         verbose_name=_("Menge"),
@@ -1010,7 +1011,8 @@ class InvoiceItem(models.Model):
     invoice          = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name="items")
     position         = models.PositiveSmallIntegerField(default=1)
     item_type        = models.CharField(max_length=10, choices=ItemType.choices, default=ItemType.NORMAL)
-    description      = models.TextField()
+    title            = models.CharField(max_length=255, blank=True, default="")
+    description      = models.TextField(blank=True, default="")
     quantity         = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("1"))
     unit             = models.CharField(max_length=50, blank=True, default="pauschal")
     unit_price       = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))

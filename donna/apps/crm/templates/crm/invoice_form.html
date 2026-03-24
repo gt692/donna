@@ -342,7 +342,10 @@
                   <div class="hidden">{{ item_form.position }}</div>
                 </div>
 
-                <!-- Beschreibung -->
+                <!-- Titel + Beschreibung -->
+                <div class="mb-2">
+                  {{ item_form.title }}
+                </div>
                 <div class="mb-3">
                   {{ item_form.description }}
                 </div>
@@ -547,9 +550,13 @@
           <input type="hidden" name="items-__prefix__-position" value="1">
         </div>
 
-        <!-- Beschreibung -->
+        <!-- Titel + Beschreibung -->
+        <div class="mb-2">
+          <input type="text" name="items-__prefix__-title" placeholder="Positionstitel …"
+                 class="pos-input w-full font-medium">
+        </div>
         <div class="mb-3">
-          <textarea name="items-__prefix__-description" rows="4" placeholder="Leistungsbeschreibung …"
+          <textarea name="items-__prefix__-description" rows="3" placeholder="Leistungsbeschreibung (optional) …"
                     class="pos-input w-full"></textarea>
         </div>
 

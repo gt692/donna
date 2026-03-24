@@ -287,7 +287,7 @@
       {% for item in items %}
       <tr>
         <td class="pos-nr">{{ item.position }}</td>
-        <td class="desc">{{ item.description }}</td>
+        <td class="desc">{% if item.title %}<strong>{{ item.title }}</strong>{% if item.description %}<br>{% endif %}{% endif %}{{ item.description }}</td>
         <td class="text-right qty-unit">{{ item.quantity|floatformat:2 }}</td>
         <td>{{ item.unit }}</td>
         <td class="text-right unit-price">{{ item.unit_price|floatformat:2 }}</td>

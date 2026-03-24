@@ -238,14 +238,15 @@ _ITEM_INPUT = "w-full px-2 py-1.5 text-sm rounded border border-slate-200 focus:
 class OfferItemForm(forms.ModelForm):
     class Meta:
         model  = OfferItem
-        fields = ["position", "item_type", "description", "quantity", "unit", "unit_price", "discount_percent"]
+        fields = ["position", "item_type", "title", "description", "quantity", "unit", "unit_price", "discount_percent"]
         widgets = {
             "position":         forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-center", "min": "1"}),
             "item_type":        forms.HiddenInput(attrs={"class": "item-type-input"}),
+            "title":            forms.TextInput(attrs={"class": _ITEM_INPUT + " item-title font-medium", "placeholder": "Positionstitel …"}),
             "description":      forms.Textarea(attrs={
                 "class": _ITEM_INPUT + " resize-y item-description",
-                "rows": 4,
-                "placeholder": "Leistungsbeschreibung …",
+                "rows": 3,
+                "placeholder": "Leistungsbeschreibung (optional) …",
             }),
             "quantity":         forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-right item-qty", "step": "0.01", "min": "0"}),
             "unit":             forms.TextInput(attrs={"class": _ITEM_INPUT, "placeholder": "pauschal", "list": "unit-datalist", "autocomplete": "off"}),
@@ -311,11 +312,12 @@ class InvoiceForm(forms.ModelForm):
 class InvoiceItemForm(forms.ModelForm):
     class Meta:
         model = InvoiceItem
-        fields = ["position", "item_type", "description", "quantity", "unit", "unit_price", "discount_percent"]
+        fields = ["position", "item_type", "title", "description", "quantity", "unit", "unit_price", "discount_percent"]
         widgets = {
             "position":         forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-center", "min": "1"}),
             "item_type":        forms.HiddenInput(attrs={"class": "item-type-input"}),
-            "description":      forms.Textarea(attrs={"class": _ITEM_INPUT + " resize-y item-description", "rows": 4, "placeholder": "Leistungsbeschreibung …"}),
+            "title":            forms.TextInput(attrs={"class": _ITEM_INPUT + " item-title font-medium", "placeholder": "Positionstitel …"}),
+            "description":      forms.Textarea(attrs={"class": _ITEM_INPUT + " resize-y item-description", "rows": 3, "placeholder": "Leistungsbeschreibung (optional) …"}),
             "quantity":         forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-right item-qty", "step": "0.01", "min": "0"}),
             "unit":             forms.TextInput(attrs={"class": _ITEM_INPUT, "placeholder": "pauschal", "list": "unit-datalist", "autocomplete": "off"}),
             "unit_price":       forms.NumberInput(attrs={"class": _ITEM_INPUT + " text-right item-price", "step": "0.01", "min": "0"}),
