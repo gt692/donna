@@ -20,6 +20,14 @@
   <form method="post" novalidate>
     {% csrf_token %}
 
+    {% if form.errors %}
+    <div class="bg-red-50 border border-red-200 rounded-xl px-5 py-4 mb-4 text-sm text-red-700">
+      <p class="font-semibold mb-1">Bitte korrigiere folgende Fehler:</p>
+      {% for field in form %}{% if field.errors %}<p>{{ field.label }}: {{ field.errors|join:", " }}</p>{% endif %}{% endfor %}
+      {% if form.non_field_errors %}<p>{{ form.non_field_errors|join:", " }}</p>{% endif %}
+    </div>
+    {% endif %}
+
     <!-- Persönliche Daten -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
       <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
