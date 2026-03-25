@@ -387,7 +387,6 @@ class CompanySettings(models.Model):
     email           = models.EmailField(blank=True, verbose_name="E-Mail")
     phone           = models.CharField(max_length=50, blank=True, verbose_name="Telefon")
     website         = models.URLField(blank=True, verbose_name="Website")
-    pdf_footer_text = models.TextField(blank=True, verbose_name="PDF-Fußzeile")
     payment_days    = models.PositiveSmallIntegerField(default=14, verbose_name="Zahlungsziel (Tage)")
     primary_color   = models.CharField(max_length=7, default="#2F6FB3", verbose_name="Primärfarbe (Hex)")
     updated_at      = models.DateTimeField(auto_now=True)
