@@ -227,7 +227,7 @@
           <td class="lbl">Rechnungsnr.:</td>
           <td class="val doc-number">{{ invoice.invoice_number }}</td>
         </tr>
-        {% if invoice.project.account %}
+        {% if invoice.project and invoice.project.account %}
         <tr>
           <td class="lbl">Kundennr.:</td>
           <td class="val">{{ invoice.project.account.account_number }}</td>

@@ -2,7 +2,7 @@
 
 {% block title %}{{ invoice.invoice_number }}{% endblock %}
 {% block page_heading %}{{ invoice.invoice_number }}{% endblock %}
-{% block page_subheading %}<a href="{% url 'crm:project_detail' invoice.project.pk %}" class="hover:text-slate-600 transition">{{ invoice.project.name }}</a>{% endblock %}
+{% block page_subheading %}{% if invoice.project %}<a href="{% url 'crm:project_detail' invoice.project.pk %}" class="hover:text-slate-600 transition">{{ invoice.project.name }}</a>{% else %}Kein Projekt{% endif %}{% endblock %}
 
 {% block topbar_actions %}
   <a href="{% url 'crm:invoice_pdf' invoice.pk %}" target="_blank"

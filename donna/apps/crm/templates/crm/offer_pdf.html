@@ -290,7 +290,7 @@
           <td class="lbl">{% if offer.is_order_confirmation %}AB-Nr.:{% else %}Angebotsnr.:{% endif %}</td>
           <td class="val doc-number">{{ offer.display_number }}</td>
         </tr>
-        {% if offer.project.account %}
+        {% if offer.project and offer.project.account %}
         <tr>
           <td class="lbl">Kundennr.:</td>
           <td class="val">{{ offer.project.account.account_number }}</td>

@@ -1616,13 +1616,14 @@ class OfferSendView(AdminOrLeadMixin, View):
         offer.save(update_fields=["status"])
 
         # PDF-Snapshot als Dokument am Projekt archivieren
-        from django.core.files.base import ContentFile
-        doc = Document(
-            project=offer.project,
-            document_type=Document.DocumentType.OFFER,
-            title=f"{offer.offer_number} – {offer.title}",
-        )
-        doc.file.save(f"{offer.offer_number}.pdf", ContentFile(pdf_bytes), save=True)
+        if offer.project:
+            from django.core.files.base import ContentFile
+            doc = Document(
+                project=offer.project,
+                document_type=Document.DocumentType.OFFER,
+                title=f"{offer.offer_number} – {offer.title}",
+            )
+            doc.file.save(f"{offer.offer_number}.pdf", ContentFile(pdf_bytes), save=True)
 
         messages.success(request, f"Angebot {offer.offer_number} wurde an {offer.recipient_email} versendet.")
         return redirect("crm:offer_detail", pk=offer.pk)
@@ -2083,8 +2084,9 @@ class InvoiceSendView(AdminOrLeadMixin, View):
         except Exception as e:
             messages.error(request, f"PDF-Generierung fehlgeschlagen: {e}")
             return redirect("crm:invoice_detail", pk=invoice.pk)
+        subject_suffix = f" – {invoice.project.name}" if invoice.project else ""
         email = EmailMessage(
-            subject=f"Rechnung {invoice.invoice_number} – {invoice.project.name}",
+            subject=f"Rechnung {invoice.invoice_number}{subject_suffix}",
             body=invoice.intro_text or f"Anbei erhalten Sie Ihre Rechnung {invoice.invoice_number}.",
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=[invoice.recipient_email],
@@ -2095,17 +2097,18 @@ class InvoiceSendView(AdminOrLeadMixin, View):
         invoice.save(update_fields=["status"])
 
         # PDF-Snapshot als Dokument am Projekt archivieren
-        from django.core.files.base import ContentFile
-        inv_doc = Document(
-            project=invoice.project,
-            document_type=Document.DocumentType.INVOICE,
-            title=f"{invoice.invoice_number} – {invoice.title}",
-        )
-        inv_doc.file.save(f"{invoice.invoice_number}.pdf", ContentFile(pdf_bytes), save=True)
-        project = invoice.project
-        if project.status not in {Project.Status.INVOICED, Project.Status.COMPLETED}:
-            project.status = Project.Status.INVOICED
-            project.save(update_fields=["status"])
+        if invoice.project:
+            from django.core.files.base import ContentFile
+            inv_doc = Document(
+                project=invoice.project,
+                document_type=Document.DocumentType.INVOICE,
+                title=f"{invoice.invoice_number} – {invoice.title}",
+            )
+            inv_doc.file.save(f"{invoice.invoice_number}.pdf", ContentFile(pdf_bytes), save=True)
+            project = invoice.project
+            if project.status not in {Project.Status.INVOICED, Project.Status.COMPLETED}:
+                project.status = Project.Status.INVOICED
+                project.save(update_fields=["status"])
         messages.success(request, f"Rechnung an {invoice.recipient_email} versendet.")
         return redirect("crm:invoice_detail", pk=invoice.pk)
 
@@ -2126,9 +2129,9 @@ class InvoiceStatusUpdateView(AdminOrLeadMixin, View):
         invoice.status = new_status
         if new_status == Invoice.Status.PAID:
             invoice.payment_date = date.today()
-            project = invoice.project
-            project.status = Project.Status.COMPLETED
-            project.save(update_fields=["status"])
+            if invoice.project:
+                invoice.project.status = Project.Status.COMPLETED
+                invoice.project.save(update_fields=["status"])
         invoice.save()
         messages.success(request, f"Status auf '{invoice.get_status_display()}' gesetzt.")
         return redirect("crm:invoice_detail", pk=invoice.pk)
@@ -2140,10 +2143,12 @@ class InvoiceDeleteView(AdminOrLeadMixin, View):
         if invoice.status != Invoice.Status.DRAFT:
             messages.error(request, "Nur Entwürfe können gelöscht werden.")
             return redirect("crm:invoice_detail", pk=invoice.pk)
-        project_pk = invoice.project.pk
+        project_pk = invoice.project_id
         invoice.delete()
         messages.success(request, "Rechnung gelöscht.")
-        return redirect("crm:project_detail", pk=project_pk)
+        if project_pk:
+            return redirect("crm:project_detail", pk=project_pk)
+        return redirect("crm:invoice_list")
 
 
 class InvoiceXRechnungView(LoginRequiredMixin, View):
