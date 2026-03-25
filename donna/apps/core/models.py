@@ -125,6 +125,13 @@ class User(AbstractUser):
     # Benachrichtigungs-Präferenzen
     notify_by_email = models.BooleanField(default=True, verbose_name=_("E-Mail-Benachrichtigungen"))
 
+    # Kanban-Sichtbarkeit: Mitarbeiter mit True erhalten eine eigene Aktiv-Spalte
+    show_in_kanban = models.BooleanField(
+        default=True,
+        verbose_name=_("Im Kanban anzeigen"),
+        help_text=_("Wenn aktiv, erhält dieser Mitarbeiter eine eigene Spalte im Kanban-Board."),
+    )
+
     # Einladungs-Flow
     invitation_token = models.CharField(
         max_length=64,

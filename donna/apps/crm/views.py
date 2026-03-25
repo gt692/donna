@@ -634,14 +634,7 @@ class ProjectBudgetExtensionDeleteView(AdminOrLeadMixin, View):
 class KanbanView(CRMMixin, TemplateView):
     template_name = "crm/kanban.html"
 
-    STATIC_COLS_BEFORE = [
-        {"status": "lead",       "label": "Lead",    "team_lead": None, "employee_col": False,
-         "hdr_bg": "bg-slate-100",  "hdr_border": "border-slate-200",
-         "dot": "bg-slate-400",     "badge_bg": "bg-slate-200",  "badge_text": "text-slate-600"},
-        {"status": "offer_sent", "label": "Angebot", "team_lead": None, "employee_col": False,
-         "hdr_bg": "bg-amber-50",   "hdr_border": "border-amber-200",
-         "dot": "bg-amber-400",     "badge_bg": "bg-amber-100",  "badge_text": "text-amber-700"},
-    ]
+    STATIC_COLS_BEFORE = []
     STATIC_COLS_AFTER = [
         {"status": "on_hold",  "label": "Pausiert", "team_lead": None, "employee_col": False,
          "hdr_bg": "bg-purple-50",  "hdr_border": "border-purple-200",
@@ -674,11 +667,11 @@ class KanbanView(CRMMixin, TemplateView):
             col_projects = [p for p in projects if p.status == col_def["status"]]
             columns.append({**col_def, "projects": col_projects, "count": len(col_projects)})
 
-        # Dynamic employee columns — one per eligible team lead (project_manager + admin)
+        # Dynamic employee columns — one per user with show_in_kanban=True
         from django.contrib.auth import get_user_model
         User = get_user_model()
         eligible_leads = list(
-            User.objects.filter(role__in=["project_manager", "admin"], is_active=True)
+            User.objects.filter(show_in_kanban=True, is_active=True)
             .order_by("last_name", "first_name")
         )
 

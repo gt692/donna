@@ -242,7 +242,6 @@ class Project(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
         related_name="led_projects",
-        limit_choices_to={"role__in": ["project_manager", "admin"]},
         verbose_name=_("Projektleiter"),
     )
     team_members = models.ManyToManyField(

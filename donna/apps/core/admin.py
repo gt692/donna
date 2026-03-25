@@ -59,8 +59,8 @@ class UserAdmin(BaseUserAdmin):
             },
         ),
         (
-            _("Benachrichtigungen"),
-            {"fields": ("notify_by_email",)},
+            _("Benachrichtigungen & Kanban"),
+            {"fields": ("notify_by_email", "show_in_kanban")},
         ),
         (
             _("Berechtigungen"),
