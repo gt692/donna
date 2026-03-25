@@ -1151,7 +1151,7 @@
           if (data.results.length === 0) {
             dropdown.innerHTML = `<div class="px-4 py-2 text-xs text-slate-400">Kein Treffer —
               <a href="${accountCreateUrl}" target="_blank"
-                 class="text-emerald-600 hover:underline font-medium">Neuen Account anlegen</a></div>`;
+                 class="text-emerald-600 hover:underline font-medium">Neuen Kunden anlegen</a></div>`;
           } else {
             data.results.forEach(r => {
               const el = document.createElement('div');
@@ -1167,7 +1167,7 @@
             });
             const newEl = document.createElement('div');
             newEl.className = 'px-4 py-2 text-xs text-slate-400 border-t border-slate-100';
-            newEl.innerHTML = `Nicht dabei? <a href="${accountCreateUrl}" target="_blank" class="text-emerald-600 hover:underline font-medium">Neuen Account anlegen</a>`;
+            newEl.innerHTML = `Nicht dabei? <a href="${accountCreateUrl}" target="_blank" class="text-emerald-600 hover:underline font-medium">Neuen Kunden anlegen</a>`;
             dropdown.appendChild(newEl);
           }
           dropdown.classList.remove('hidden');

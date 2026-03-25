@@ -52,7 +52,7 @@ class AccountForm(forms.ModelForm):
             is_active=True
         ).order_by("last_name", "first_name")
         self.fields["account_manager"].required = False
-        self.fields["account_manager"].empty_label = "— kein Account-Manager —"
+        self.fields["account_manager"].empty_label = "— kein Kundenbetreuer —"
         self.fields["primary_contact"].queryset = Contact.objects.all()
         self.fields["primary_contact"].required = False
         self.fields["primary_contact"].empty_label = "— kein Ansprechpartner —"

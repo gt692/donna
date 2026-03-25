@@ -1,8 +1,8 @@
 {% extends "dashboard/base.html" %}
 {% load i18n %}
 
-{% block title %}Accounts{% endblock %}
-{% block page_heading %}Accounts{% endblock %}
+{% block title %}Kunden{% endblock %}
+{% block page_heading %}Kunden{% endblock %}
 {% block page_subheading %}Kunden & interne Einheiten{% endblock %}
 
 {% block topbar_actions %}
@@ -12,7 +12,7 @@
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
       </svg>
-      Neuer Account
+      Neuer Kunde
     </a>
   {% endif %}
 {% endblock %}
@@ -27,7 +27,7 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
       </svg>
-      <input type="text" name="q" value="{{ q }}" placeholder="Account suchen …"
+      <input type="text" name="q" value="{{ q }}" placeholder="Kunde suchen …"
              class="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 bg-white
                     text-sm focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] transition">
     </div>
@@ -77,10 +77,10 @@
       </a>
     {% empty %}
       <div class="col-span-3 py-16 text-center text-slate-400">
-        <p class="text-lg mb-2">Noch keine Accounts vorhanden.</p>
+        <p class="text-lg mb-2">Noch keine Kunden vorhanden.</p>
         {% if request.user.can_approve_time_entries %}
           <a href="{% url 'crm:account_create' %}" class="text-[#2F6FB3] hover:text-[#1e4d82] font-medium transition">
-            Ersten Account anlegen →
+            Ersten Kunden anlegen →
           </a>
         {% endif %}
       </div>

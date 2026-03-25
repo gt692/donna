@@ -96,7 +96,7 @@ class Account(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
         related_name="managed_accounts",
-        verbose_name=_("Account-Manager"),
+        verbose_name=_("Kundenbetreuer"),
     )
 
     # Primärer externer Ansprechpartner (Kontakt-Objekt)
