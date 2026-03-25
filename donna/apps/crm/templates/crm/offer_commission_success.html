@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auftrag bestätigt</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; background: #f1f5f9; color: #1e293b; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 48px 40px; max-width: 480px; text-align: center; }
+    .check { width: 64px; height: 64px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+    .check svg { width: 32px; height: 32px; color: #16a34a; }
+    h1 { font-size: 24px; font-weight: 700; margin-bottom: 12px; color: #14532d; }
+    p { color: #475569; line-height: 1.7; font-size: 15px; margin-bottom: 8px; }
+    .detail { font-size: 13px; color: #94a3b8; margin-top: 20px; }
+    .brand { font-weight: 700; color: {{ company_settings.primary_color }}; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="check">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+      </svg>
+    </div>
+    <h1>Vielen Dank für Ihren Auftrag!</h1>
+    <p>Wir haben Ihre Beauftragung zu Angebot <strong>{{ offer.offer_number }}</strong> erhalten.</p>
+    {% if offer.recipient_email %}
+    <p>Eine Auftragsbestätigung (<strong>{{ offer.display_number }}</strong>) wurde an <strong>{{ offer.recipient_email }}</strong> gesendet.</p>
+    {% endif %}
+    <div class="detail">
+      Beauftragung registriert am {{ offer.commissioned_at|date:"d.m.Y" }} um {{ offer.commissioned_at|date:"H:i" }} Uhr<br>
+      <span class="brand">{{ company_settings.company_name }}{% if company_settings.legal_form %} {{ company_settings.legal_form }}{% endif %}</span>
+    </div>
+  </div>
+</body>
+</html>

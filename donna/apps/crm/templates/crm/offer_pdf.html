@@ -218,6 +218,38 @@
       line-height: 1.55;
     }
     .footer-col strong { font-weight: 600; color: #555; }
+
+    /* ── Unterschriftsfeld ────────────────────────────────── */
+    .signature-block {
+      margin-top: 24pt;
+      padding: 14pt 16pt;
+      border: 1pt solid #ccc;
+      border-radius: 3pt;
+      background: #fafafa;
+      page-break-inside: avoid;
+    }
+    .signature-block p {
+      font-size: 9pt;
+      line-height: 1.65;
+      color: #333;
+      margin-bottom: 14pt;
+    }
+    .signature-lines {
+      display: flex;
+      gap: 32pt;
+      margin-top: 10pt;
+    }
+    .sig-field { flex: 1; }
+    .sig-field.wide { flex: 2; }
+    .sig-line {
+      border-bottom: 1pt solid #444;
+      height: 28pt;
+    }
+    .sig-label {
+      font-size: 7.5pt;
+      color: #888;
+      margin-top: 4pt;
+    }
   </style>
 </head>
 <body>
@@ -236,7 +268,7 @@
       <table>
         <tr>
           <td class="lbl">{% if offer.is_order_confirmation %}AB-Nr.:{% else %}Angebotsnr.:{% endif %}</td>
-          <td class="val doc-number">{{ offer.offer_number }}</td>
+          <td class="val doc-number">{{ offer.display_number }}</td>
         </tr>
         {% if offer.project.account %}
         <tr>
@@ -350,6 +382,23 @@
   <!-- Schlusstext / Nachbemerkung -->
   {% if offer.closing_text %}
   <div class="closing-text">{{ offer.closing_text }}</div>
+  {% endif %}
+
+  <!-- Unterschriftsfeld -->
+  {% if show_signature_block %}
+  <div class="signature-block">
+    <p>Hiermit beauftrage ich / beauftragen wir <strong>{{ company_settings.company_name }}{% if company_settings.legal_form %} {{ company_settings.legal_form }}{% endif %}</strong> mit der Ausführung der oben beschriebenen Leistungen gemäß Angebot <strong>{{ offer.offer_number }}</strong> vom {{ offer.offer_date|date:"d.m.Y" }} über <strong>{{ gross_total|floatformat:"2g" }} € (Brutto inkl. {{ offer.tax_rate|floatformat:0 }} % MwSt.)</strong>.</p>
+    <div class="signature-lines">
+      <div class="sig-field">
+        <div class="sig-line"></div>
+        <div class="sig-label">Ort, Datum</div>
+      </div>
+      <div class="sig-field wide">
+        <div class="sig-line"></div>
+        <div class="sig-label">Unterschrift, ggf. Firmenstempel</div>
+      </div>
+    </div>
+  </div>
   {% endif %}
 
   <!-- Fußzeile (3-spaltig, wiederholt auf jeder Seite) -->

@@ -730,6 +730,31 @@ class Offer(models.Model):
     is_order_confirmation = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Gelöscht am"))
 
+    # Beauftragung
+    commission_token = models.UUIDField(
+        default=uuid.uuid4, unique=True, editable=False,
+        verbose_name=_("Bestätigungs-Token"),
+    )
+    commissioned_at = models.DateTimeField(
+        null=True, blank=True, verbose_name=_("Beauftragt am"),
+    )
+    commissioned_method = models.CharField(
+        max_length=20,
+        choices=[("click", "Online-Bestätigung"), ("signature", "Unterschrift-Upload")],
+        blank=True,
+        verbose_name=_("Beauftragungsmethode"),
+    )
+    commissioned_by_ip = models.GenericIPAddressField(
+        null=True, blank=True, verbose_name=_("IP-Adresse"),
+    )
+    commissioned_by_user_agent = models.TextField(
+        blank=True, verbose_name=_("Browser-Info"),
+    )
+    commissioned_signature_pdf = models.FileField(
+        upload_to="commissions/", null=True, blank=True,
+        verbose_name=_("Unterschriebenes Angebot (PDF)"),
+    )
+
     objects     = ActiveManager()
     all_objects = models.Manager()
 
@@ -745,13 +770,13 @@ class Offer(models.Model):
                 last = (
                     Offer.all_objects
                     .select_for_update()
-                    .filter(offer_number__regex=r"^ANG-\d+$")
+                    .filter(offer_number__regex=r"^A-\d+$")
                     .order_by("-offer_number")
                     .values_list("offer_number", flat=True)
                     .first()
                 )
                 num = (int(last.split("-")[1]) + 1) if last else 1
-                self.offer_number = f"ANG-{num:05d}"
+                self.offer_number = f"A-{num:05d}"
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -780,6 +805,13 @@ class Offer(models.Model):
     @property
     def gross_total(self):
         return self.net_total + self.tax_amount
+
+    @property
+    def display_number(self):
+        """AB-00001 für Auftragsbestätigungen, sonst offer_number."""
+        if self.is_order_confirmation and self.offer_number.startswith("A-"):
+            return "AB-" + self.offer_number[2:]
+        return self.offer_number
 
 
 class OfferItem(models.Model):
@@ -882,13 +914,13 @@ class Invoice(models.Model):
         if not self.invoice_number:
             with transaction.atomic():
                 last = Invoice.all_objects.select_for_update().filter(
-                    invoice_number__regex=r"^RGN-\d+$"
+                    invoice_number__regex=r"^R-\d+$"
                 ).order_by("-invoice_number").first()
                 if last:
                     num = int(last.invoice_number.split("-")[1]) + 1
                 else:
                     num = 1
-                self.invoice_number = f"RGN-{num:05d}"
+                self.invoice_number = f"R-{num:05d}"
         if not self.due_date and self.invoice_date:
             from datetime import timedelta
             self.due_date = self.invoice_date + timedelta(days=14)

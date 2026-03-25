@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Angebot {{ offer.offer_number }} bestätigen</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; background: #f1f5f9; color: #1e293b; font-size: 15px; }
+    .topbar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+    .topbar-brand { font-size: 18px; font-weight: 700; color: {{ company_settings.primary_color }}; }
+    .container { max-width: 680px; margin: 40px auto; padding: 0 16px 60px; }
+    .card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 20px; overflow: hidden; }
+    .card-header { padding: 18px 24px 14px; border-bottom: 1px solid #f1f5f9; }
+    .card-header h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; }
+    .card-body { padding: 20px 24px; }
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+    .meta-item dt { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+    .meta-item dd { font-size: 14px; font-weight: 600; color: #1e293b; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead tr { background: #f8fafc; }
+    th { padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; border-bottom: 1px solid #e2e8f0; }
+    th.right { text-align: right; }
+    td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top; color: #334155; }
+    td.right { text-align: right; font-variant-numeric: tabular-nums; }
+    .totals-row td { font-weight: 600; }
+    .totals-gross td { font-size: 16px; font-weight: 700; color: {{ company_settings.primary_color }}; border-top: 2px solid {{ company_settings.primary_color }}; border-bottom: none; }
+    .acceptance-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 18px 20px; margin: 20px 0; }
+    .acceptance-box p { font-size: 14px; line-height: 1.7; color: #166534; }
+    .btn-confirm { display: block; width: 100%; padding: 16px; background: {{ company_settings.primary_color }}; color: #fff; font-size: 16px; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; transition: opacity 0.15s; }
+    .btn-confirm:hover { opacity: 0.88; }
+    .legal-note { font-size: 11px; color: #94a3b8; text-align: center; margin-top: 12px; line-height: 1.6; }
+    .already-done { text-align: center; padding: 40px 20px; }
+    .already-done h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+    .already-done p { color: #64748b; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    {{ company_settings.company_name }}{% if company_settings.legal_form %} {{ company_settings.legal_form }}{% endif %}
+  </div>
+  <div style="font-size:13px; color:#94a3b8;">Angebot {{ offer.offer_number }}</div>
+</div>
+
+<div class="container">
+
+  <div class="card">
+    <div class="card-header"><h2>Angebotsdetails</h2></div>
+    <div class="card-body">
+      <div class="meta-grid">
+        <dl class="meta-item"><dt>Angebotsnummer</dt><dd>{{ offer.offer_number }}</dd></dl>
+        <dl class="meta-item"><dt>Datum</dt><dd>{{ offer.offer_date|date:"d.m.Y" }}</dd></dl>
+        <dl class="meta-item" style="grid-column:1/-1"><dt>Titel</dt><dd>{{ offer.title }}</dd></dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2>Positionen</h2></div>
+    <div class="card-body" style="padding: 0;">
+      <table>
+        <thead>
+          <tr>
+            <th>Beschreibung</th>
+            <th class="right" style="width:80px;">Menge</th>
+            <th style="width:70px;">Einheit</th>
+            <th class="right" style="width:100px;">Gesamt</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td>{{ item.title|default:item.description }}</td>
+            <td class="right">{{ item.quantity|floatformat:2 }}</td>
+            <td>{{ item.unit }}</td>
+            <td class="right">{{ item.net_amount|floatformat:"2g" }} €</td>
+          </tr>
+          {% endfor %}
+          <tr class="totals-row" style="background:#f8fafc;">
+            <td colspan="3">Nettobetrag</td>
+            <td class="right">{{ net_total|floatformat:"2g" }} €</td>
+          </tr>
+          <tr class="totals-row" style="background:#f8fafc;">
+            <td colspan="3">Umsatzsteuer {{ offer.tax_rate|floatformat:0 }} %</td>
+            <td class="right">{{ tax_amount|floatformat:"2g" }} €</td>
+          </tr>
+          <tr class="totals-gross">
+            <td colspan="3">Gesamtbetrag</td>
+            <td class="right">{{ gross_total|floatformat:"2g" }} €</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="acceptance-box">
+      <p>Hiermit beauftrage ich / beauftragen wir <strong>{{ company_settings.company_name }}{% if company_settings.legal_form %} {{ company_settings.legal_form }}{% endif %}</strong> verbindlich mit der Ausführung der oben beschriebenen Leistungen gemäß Angebot <strong>{{ offer.offer_number }}</strong> vom {{ offer.offer_date|date:"d.m.Y" }} über <strong>{{ gross_total|floatformat:"2g" }} €</strong> (Brutto inkl. {{ offer.tax_rate|floatformat:0 }} % MwSt.).</p>
+    </div>
+    <button type="submit" class="btn-confirm">Jetzt verbindlich beauftragen</button>
+    <p class="legal-note">
+      Mit dem Klick auf „Jetzt verbindlich beauftragen" erteilen Sie einen verbindlichen Auftrag.<br>
+      Zur Dokumentation werden Zeitstempel und IP-Adresse dieser Bestätigung gespeichert.<br>
+      Sie erhalten anschließend automatisch eine Auftragsbestätigung per E-Mail.
+    </p>
+  </form>
+
+</div>
+</body>
+</html>

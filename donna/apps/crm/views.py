@@ -1520,6 +1520,7 @@ class OfferPreviewView(LoginRequiredMixin, View):
             "net_total":       offer.net_total,
             "tax_amount":      offer.tax_amount,
             "gross_total":     offer.gross_total,
+            "show_signature_block": True,
             **_company_ctx(),
         })
 
@@ -1540,6 +1541,7 @@ class OfferPDFView(LoginRequiredMixin, View):
 
         items    = list(offer.items.all())
         subtotal = sum((i.net_amount for i in items), __import__('decimal').Decimal("0.00"))
+        show_sig = offer.status in (Offer.Status.DRAFT, Offer.Status.SENT) and not offer.is_order_confirmation
         from django.template.loader import render_to_string
         html_string = render_to_string("crm/offer_pdf.html", {
             "offer":           offer,
@@ -1549,6 +1551,7 @@ class OfferPDFView(LoginRequiredMixin, View):
             "net_total":       offer.net_total,
             "tax_amount":      offer.tax_amount,
             "gross_total":     offer.gross_total,
+            "show_signature_block": show_sig,
             **_company_ctx(),
         }, request=request)
 
@@ -1558,7 +1561,7 @@ class OfferPDFView(LoginRequiredMixin, View):
         return response
 
 
-def _generate_offer_pdf_bytes(offer, request=None):
+def _generate_offer_pdf_bytes(offer, request=None, show_signature_block=False):
     """Shared helper: renders offer PDF and returns bytes. Raises ImportError if WeasyPrint missing."""
     import weasyprint
     from decimal import Decimal
@@ -1573,6 +1576,7 @@ def _generate_offer_pdf_bytes(offer, request=None):
         "net_total":       offer.net_total,
         "tax_amount":      offer.tax_amount,
         "gross_total":     offer.gross_total,
+        "show_signature_block": show_signature_block,
         **_company_ctx(),
     })
     base_url = request.build_absolute_uri("/") if request else "/"
@@ -1588,19 +1592,25 @@ class OfferSendView(AdminOrLeadMixin, View):
             return redirect("crm:offer_detail", pk=offer.pk)
 
         try:
-            pdf_bytes = _generate_offer_pdf_bytes(offer, request)
+            pdf_bytes = _generate_offer_pdf_bytes(offer, request, show_signature_block=True)
         except ImportError:
             messages.error(request, "WeasyPrint ist nicht installiert — PDF-Versand nicht möglich.")
             return redirect("crm:offer_detail", pk=offer.pk)
 
+        commission_url = request.build_absolute_uri(
+            reverse("crm:offer_commission_confirm", kwargs={"token": offer.commission_token})
+        )
         from django.core.mail import EmailMessage
         from django.conf import settings as dj_settings
         msg = EmailMessage(
-            subject=f"Angebot {offer.offer_number} – {offer.project.name}",
+            subject=f"Angebot {offer.offer_number} – {offer.project.name if offer.project else offer.title}",
             body=(
                 f"Sehr geehrte/r {offer.recipient_name or 'Damen und Herren'},\n\n"
-                f"anbei finden Sie unser Angebot.\n\n"
-                f"Mit freundlichen Grüßen\nDonna Business OS"
+                f"anbei finden Sie unser Angebot {offer.offer_number}.\n\n"
+                f"Sie können das Angebot bequem online bestätigen:\n{commission_url}\n\n"
+                f"Alternativ können Sie das beigefügte PDF unterschreiben, "
+                f"mit Ort, Datum und Unterschrift versehen und an uns zurücksenden.\n\n"
+                f"Mit freundlichen Grüßen"
             ),
             from_email=dj_settings.DEFAULT_FROM_EMAIL,
             to=[offer.recipient_email],
@@ -1641,6 +1651,9 @@ class OfferStatusUpdateView(AdminOrLeadMixin, View):
 
         offer.status = new_status
         offer.save(update_fields=["status"])
+        if new_status == Offer.Status.ACCEPTED and offer.project:
+            offer.project.status = Project.Status.ACTIVE
+            offer.project.save(update_fields=["status"])
         label = dict(Offer.Status.choices).get(new_status, new_status)
         messages.success(request, f'Status auf "{label}" gesetzt.')
         return redirect("crm:offer_detail", pk=offer.pk)
@@ -2163,6 +2176,118 @@ class OfferOrderConfirmationView(AdminOrLeadMixin, View):
         offer.is_order_confirmation = True
         offer.save(update_fields=["is_order_confirmation"])
         return redirect("crm:offer_pdf", pk=offer.pk)
+
+
+class OfferPublicConfirmView(View):
+    """Public: Kunde bestätigt Angebot online (kein Login nötig)."""
+
+    def _get_offer(self, token):
+        return get_object_or_404(Offer, commission_token=token)
+
+    def get(self, request, token):
+        offer = self._get_offer(token)
+        if offer.status != Offer.Status.SENT:
+            return render(request, "crm/offer_commission_invalid.html", {
+                "offer": offer, **_company_ctx(),
+            })
+        items = list(offer.items.all())
+        return render(request, "crm/offer_commission_confirm.html", {
+            "offer": offer,
+            "items": items,
+            "net_total": offer.net_total,
+            "tax_amount": offer.tax_amount,
+            "gross_total": offer.gross_total,
+            **_company_ctx(),
+        })
+
+    def post(self, request, token):
+        offer = self._get_offer(token)
+        if offer.status != Offer.Status.SENT:
+            return redirect("crm:offer_commission_confirm", token=token)
+
+        # Legal evidence
+        ip = request.META.get("HTTP_X_FORWARDED_FOR", request.META.get("REMOTE_ADDR", ""))
+        if "," in ip:
+            ip = ip.split(",")[0].strip()
+        ua = request.META.get("HTTP_USER_AGENT", "")[:500]
+
+        offer.commissioned_at = timezone.now()
+        offer.commissioned_method = "click"
+        offer.commissioned_by_ip = ip
+        offer.commissioned_by_user_agent = ua
+        offer.status = Offer.Status.ACCEPTED
+        offer.is_order_confirmation = True
+        offer.save(update_fields=[
+            "commissioned_at", "commissioned_method", "commissioned_by_ip",
+            "commissioned_by_user_agent", "status", "is_order_confirmation",
+        ])
+
+        # Projekt auf Aktiv setzen
+        if offer.project:
+            offer.project.status = Project.Status.ACTIVE
+            offer.project.save(update_fields=["status"])
+
+        # AB-PDF an Kunden senden
+        if offer.recipient_email:
+            try:
+                ab_pdf = _generate_offer_pdf_bytes(offer, request)
+                from django.core.mail import EmailMessage
+                from django.conf import settings as dj_settings
+                msg = EmailMessage(
+                    subject=f"Auftragsbestätigung {offer.display_number} – {offer.title}",
+                    body=(
+                        f"Sehr geehrte/r {offer.recipient_name or 'Damen und Herren'},\n\n"
+                        f"vielen Dank für Ihren Auftrag! Anbei erhalten Sie Ihre "
+                        f"Auftragsbestätigung {offer.display_number}.\n\n"
+                        f"Mit freundlichen Grüßen"
+                    ),
+                    from_email=dj_settings.DEFAULT_FROM_EMAIL,
+                    to=[offer.recipient_email],
+                )
+                msg.attach(f"{offer.display_number}.pdf", ab_pdf, "application/pdf")
+                msg.send()
+            except Exception:
+                pass
+
+        return redirect("crm:offer_commission_success", token=token)
+
+
+class OfferCommissionSuccessView(View):
+    """Public: Bestätigungsseite nach Online-Beauftragung."""
+
+    def get(self, request, token):
+        offer = get_object_or_404(Offer, commission_token=token)
+        return render(request, "crm/offer_commission_success.html", {
+            "offer": offer, **_company_ctx(),
+        })
+
+
+class OfferSignatureUploadView(AdminOrLeadMixin, View):
+    """Intern: Upload des unterschriebenen Angebots → Beauftragung per Unterschrift."""
+
+    def post(self, request, pk):
+        offer = get_object_or_404(Offer, pk=pk)
+        pdf_file = request.FILES.get("signature_pdf")
+        if not pdf_file:
+            messages.error(request, "Bitte eine PDF-Datei hochladen.")
+            return redirect("crm:offer_detail", pk=pk)
+
+        offer.commissioned_signature_pdf = pdf_file
+        offer.commissioned_at = timezone.now()
+        offer.commissioned_method = "signature"
+        offer.status = Offer.Status.ACCEPTED
+        offer.is_order_confirmation = True
+        offer.save(update_fields=[
+            "commissioned_signature_pdf", "commissioned_at", "commissioned_method",
+            "status", "is_order_confirmation",
+        ])
+
+        if offer.project:
+            offer.project.status = Project.Status.ACTIVE
+            offer.project.save(update_fields=["status"])
+
+        messages.success(request, f"Unterschriebenes Angebot hochgeladen. {offer.offer_number} ist beauftragt, Projekt auf Aktiv gesetzt.")
+        return redirect("crm:offer_detail", pk=pk)
 
 
 class ProductCatalogAPIView(LoginRequiredMixin, View):

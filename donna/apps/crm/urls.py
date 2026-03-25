@@ -14,7 +14,8 @@ from .views import (
     RecipientSearchView,
     TextBlockAPIView, TextBlockCreateView, TextBlockDeleteView, TextBlockListView, TextBlockSetDefaultView, TextBlockUpdateView,
     UnitAPIView, UnitCreateView, UnitDeleteView, UnitListView, UnitReorderView, UnitUpdateView,
-    OfferOrderConfirmationView, OfferPDFView, OfferSendView, OfferStatusUpdateView, OfferUpdateView,
+    OfferCommissionSuccessView, OfferOrderConfirmationView, OfferPDFView, OfferPublicConfirmView,
+    OfferSendView, OfferSignatureUploadView, OfferStatusUpdateView, OfferUpdateView,
     ProductCatalogAPIView,
     ProjectActivityCreateView, ProjectActivityDeleteView,
     ProjectArchiveView, ProjectBudgetExtensionCreateView, ProjectBudgetExtensionDeleteView,
@@ -95,6 +96,9 @@ urlpatterns = [
          OfferStatusUpdateView.as_view(), name="offer_status"),
     path("offers/<uuid:pk>/delete/",
          OfferDeleteView.as_view(), name="offer_delete"),
+    path("angebot/<uuid:token>/bestätigen/", OfferPublicConfirmView.as_view(), name="offer_commission_confirm"),
+    path("angebot/<uuid:token>/bestätigt/",  OfferCommissionSuccessView.as_view(), name="offer_commission_success"),
+    path("offers/<uuid:pk>/unterschrift/",   OfferSignatureUploadView.as_view(), name="offer_signature_upload"),
 
     # Invoice URLs
     path("invoices/new/", InvoiceCreateStandaloneView.as_view(), name="invoice_create_standalone"),
