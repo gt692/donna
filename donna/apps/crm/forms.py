@@ -219,7 +219,7 @@ class OfferForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for f in ("valid_until", "intro_text", "closing_text", "payment_terms",
+        for f in ("title", "valid_until", "intro_text", "closing_text", "payment_terms",
                   "recipient_name", "recipient_email", "recipient_address",
                   "discount_percent", "discount_amount_eur"):
             self.fields[f].required = False
