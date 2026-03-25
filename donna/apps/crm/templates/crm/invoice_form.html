@@ -1196,7 +1196,7 @@ fetch('{% url "crm:unit_api" %}')
 </script>
 
 <!-- ── Modal: Neue Einheit ─────────────────────────────────── -->
-<div id="unit-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4">
+<div id="unit-modal" class="fixed inset-0 z-[200] items-center justify-center p-4" style="display:none">
   <div class="absolute inset-0 bg-black/40" id="unit-modal-backdrop"></div>
   <div class="relative bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
     <h3 class="text-sm font-semibold text-slate-800 mb-4">Neue Einheit anlegen</h3>
@@ -1211,7 +1211,7 @@ fetch('{% url "crm:unit_api" %}')
 </div>
 
 <!-- ── Modal: Neuer Textbaustein ──────────────────────────── -->
-<div id="tb-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4">
+<div id="tb-modal" class="fixed inset-0 z-[200] items-center justify-center p-4" style="display:none">
   <div class="absolute inset-0 bg-black/40" id="tb-modal-backdrop"></div>
   <div class="relative bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
     <h3 class="text-sm font-semibold text-slate-800 mb-4">Neuer Textbaustein</h3>
@@ -1252,11 +1252,11 @@ fetch('{% url "crm:unit_api" %}')
   document.addEventListener('click', e => {
     if (e.target.closest('.unit-new-btn')) {
       unitName.value = ''; unitError.classList.add('hidden');
-      unitModal.classList.remove('hidden');
+      unitModal.style.display = 'flex';
       setTimeout(() => unitName.focus(), 50);
     }
   });
-  function closeUnitModal() { unitModal.classList.add('hidden'); }
+  function closeUnitModal() { unitModal.style.display = 'none'; }
   unitCancel.addEventListener('click', closeUnitModal);
   unitBackdrop.addEventListener('click', closeUnitModal);
 
@@ -1298,11 +1298,11 @@ fetch('{% url "crm:unit_api" %}')
       tbCat.value = btn.dataset.category;
       tbScope.value = btn.dataset.scope;
       tbName.value = ''; tbContent.value = ''; tbError.classList.add('hidden');
-      tbModal.classList.remove('hidden');
+      tbModal.style.display = 'flex';
       tbName.focus();
     });
   });
-  function closeTbModal() { tbModal.classList.add('hidden'); }
+  function closeTbModal() { tbModal.style.display = 'none'; }
   tbCancel.addEventListener('click', closeTbModal);
   tbBackdrop.addEventListener('click', closeTbModal);
 
