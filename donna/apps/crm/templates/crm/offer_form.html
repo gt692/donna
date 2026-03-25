@@ -224,7 +224,7 @@
           </div>
           <div class="border-b border-slate-100 relative">
             <div class="field-wrap">
-              <label>Kontakt suchen</label>
+              <label>Empfänger suchen</label>
               <div class="relative">
                 <input type="text" id="recipient-search" placeholder="Name, E-Mail oder Firma …"
                        autocomplete="off"
@@ -1161,7 +1161,7 @@
   const fieldEmail   = document.getElementById('{{ form.recipient_email.id_for_label }}');
   const fieldAddress = document.getElementById('{{ form.recipient_address.id_for_label }}');
   const searchUrl    = "{% url 'crm:recipient_search' %}";
-  const contactCreateUrl = "{% url 'crm:contact_create' %}";
+  const accountCreateUrl = "{% url 'crm:account_create' %}";
 
   if (!searchInput) return;
   let debounceTimer;
@@ -1196,21 +1196,24 @@
           dropdown.innerHTML = '';
           if (data.results.length === 0) {
             dropdown.innerHTML = `<div class="px-4 py-2 text-xs text-slate-400">Kein Treffer —
-              <a href="${contactCreateUrl}" target="_blank"
-                 class="text-[#2F6FB3] hover:underline font-medium">Neuen Kontakt anlegen</a></div>`;
+              <a href="${accountCreateUrl}" target="_blank"
+                 class="text-[#2F6FB3] hover:underline font-medium">Neuen Account anlegen</a></div>`;
           } else {
             data.results.forEach(r => {
               const el = document.createElement('div');
               el.className = 'px-4 py-2.5 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0';
               el.innerHTML = `
-                <div class="text-sm font-medium text-slate-800">${r.label}</div>
-                <div class="text-xs text-slate-400">${r.email || ''}${r.address ? ' · ' + r.address.split('\n')[0] : ''}</div>`;
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-medium text-slate-800">${r.label}</span>
+                  <span class="text-xs text-slate-400 bg-slate-100 rounded px-1.5 py-0.5">${r.type_label}</span>
+                </div>
+                <div class="text-xs text-slate-400">${r.number}${r.email ? ' · ' + r.email : ''}${r.address ? ' · ' + r.address.split('\n')[0] : ''}</div>`;
               el.addEventListener('click', () => selectContact(r));
               dropdown.appendChild(el);
             });
             const newEl = document.createElement('div');
             newEl.className = 'px-4 py-2 text-xs text-slate-400 border-t border-slate-100';
-            newEl.innerHTML = `Nicht dabei? <a href="${contactCreateUrl}" target="_blank" class="text-[#2F6FB3] hover:underline font-medium">Neuen Kontakt anlegen</a>`;
+            newEl.innerHTML = `Nicht dabei? <a href="${accountCreateUrl}" target="_blank" class="text-[#2F6FB3] hover:underline font-medium">Neuen Account anlegen</a>`;
             dropdown.appendChild(newEl);
           }
           dropdown.classList.remove('hidden');

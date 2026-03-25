@@ -397,46 +397,28 @@ class AccountSearchView(CRMMixin, View):
 
 
 class RecipientSearchView(CRMMixin, View):
-    """AJAX: Kontakte + Accounts für Empfänger-Autocomplete in Angebot/Rechnung."""
+    """AJAX: Accounts für Empfänger-Autocomplete in Angebot/Rechnung."""
 
     def get(self, request):
         q = request.GET.get("q", "").strip()
         results = []
 
         if q:
-            # Kontakte
-            contacts = (
-                Contact.objects
-                .filter(
-                    Q(first_name__icontains=q) | Q(last_name__icontains=q) |
-                    Q(company_name__icontains=q) | Q(email__icontains=q)
-                )
-                .order_by("last_name", "first_name")[:8]
-            )
-            for c in contacts:
-                name = f"{c.first_name} {c.last_name}".strip()
-                if c.company_name:
-                    name = f"{name} ({c.company_name})"
-                address_parts = []
-                if c.address_line1:
-                    address_parts.append(c.address_line1)
-                if c.postal_code or c.city:
-                    address_parts.append(f"{c.postal_code} {c.city}".strip())
-                results.append({
-                    "type": "contact",
-                    "label": name,
-                    "name": f"{c.first_name} {c.last_name}".strip(),
-                    "email": c.email,
-                    "address": "\n".join(address_parts),
-                })
-
-            # Accounts
             accounts = (
                 Account.objects
                 .filter(is_active=True)
-                .filter(Q(name__icontains=q) | Q(email__icontains=q))
-                .order_by("name")[:8]
+                .filter(
+                    Q(name__icontains=q) | Q(email__icontains=q) |
+                    Q(billing_email__icontains=q) | Q(account_number__icontains=q)
+                )
+                .order_by("name")[:12]
             )
+            TYPE_LABELS = {
+                "private":  "Privatperson",
+                "company":  "Unternehmen",
+                "estate":   "Erbengemeinschaft",
+                "internal": "Intern",
+            }
             for a in accounts:
                 address_parts = []
                 if a.address_line1:
@@ -446,14 +428,16 @@ class RecipientSearchView(CRMMixin, View):
                 if a.postal_code or a.city:
                     address_parts.append(f"{a.postal_code} {a.city}".strip())
                 results.append({
-                    "type": "account",
-                    "label": f"{a.name} (Account)",
-                    "name": a.name,
-                    "email": a.billing_email or a.email,
-                    "address": "\n".join(address_parts),
+                    "type":         a.account_type,
+                    "type_label":   TYPE_LABELS.get(a.account_type, a.account_type),
+                    "label":        a.name,
+                    "number":       a.account_number,
+                    "name":         a.name,
+                    "email":        a.billing_email or a.email,
+                    "address":      "\n".join(address_parts),
                 })
 
-        return JsonResponse({"results": results[:10]})
+        return JsonResponse({"results": results})
 
 
 class ProjectDetailView(CRMMixin, DetailView):

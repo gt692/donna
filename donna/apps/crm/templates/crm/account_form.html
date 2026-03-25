@@ -25,25 +25,46 @@
         <h3 class="text-sm font-semibold text-slate-700">Stammdaten</h3>
       </div>
       <div class="px-6 py-5 grid grid-cols-2 gap-4">
+
+        <!-- Typ-Toggle: Unternehmen / Privatperson / Erbengemeinschaft -->
         <div class="col-span-2">
-          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.name.label }} <span class="text-red-500">*</span></label>
+          <label class="block text-sm font-medium text-slate-600 mb-2">Typ</label>
+          <div class="flex gap-2 flex-wrap">
+            <button type="button" data-type="company"
+                    class="type-btn px-4 py-2 rounded-lg border text-sm font-medium transition
+                           bg-[#2F6FB3] text-white border-[#2F6FB3]">
+              🏢 Unternehmen
+            </button>
+            <button type="button" data-type="private"
+                    class="type-btn px-4 py-2 rounded-lg border text-sm font-medium transition
+                           bg-white text-slate-600 border-slate-300 hover:border-[#2F6FB3] hover:text-[#2F6FB3]">
+              👤 Privatperson
+            </button>
+            <button type="button" data-type="estate"
+                    class="type-btn px-4 py-2 rounded-lg border text-sm font-medium transition
+                           bg-white text-slate-600 border-slate-300 hover:border-[#2F6FB3] hover:text-[#2F6FB3]">
+              ⚖️ Erbengemeinschaft
+            </button>
+          </div>
+          {# Hidden select drives the actual form value #}
+          <div class="hidden">{{ form.account_type }}</div>
+        </div>
+
+        <div class="col-span-2">
+          <label id="name-label" class="block text-sm font-medium text-slate-600 mb-1">Firmenname <span class="text-red-500">*</span></label>
           {{ form.name }}
           {% if form.name.errors %}<p class="mt-1 text-xs text-red-600">{{ form.name.errors|join:", " }}</p>{% endif %}
         </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.account_type.label }}</label>
-          {{ form.account_type }}
-        </div>
-        <div>
+        <div class="col-span-2">
           <label class="block text-sm font-medium text-slate-600 mb-1">{{ form.account_manager.label }}</label>
           {{ form.account_manager }}
         </div>
 
-        <!-- Zentralkontakt: nur bei Unternehmen -->
+        <!-- Kontaktdaten: E-Mail/Telefon immer, Website nur bei Unternehmen -->
         <div id="section-zentrale" class="col-span-2 grid grid-cols-2 gap-4">
-          <div><label class="block text-sm font-medium text-slate-600 mb-1">{{ form.email.label }}</label>{{ form.email }}</div>
-          <div><label class="block text-sm font-medium text-slate-600 mb-1">{{ form.phone.label }}</label>{{ form.phone }}</div>
-          <div class="col-span-2"><label class="block text-sm font-medium text-slate-600 mb-1">{{ form.website.label }}</label>{{ form.website }}</div>
+          <div><label class="block text-sm font-medium text-slate-600 mb-1" id="email-label">E-Mail (Zentrale)</label>{{ form.email }}</div>
+          <div><label class="block text-sm font-medium text-slate-600 mb-1">Telefon</label>{{ form.phone }}</div>
+          <div id="section-website" class="col-span-2"><label class="block text-sm font-medium text-slate-600 mb-1">{{ form.website.label }}</label>{{ form.website }}</div>
         </div>
 
         <!-- Adresse -->
@@ -93,8 +114,8 @@
       </div>
     </div>
 
-    <!-- Ansprechpartner -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+    <!-- Ansprechpartner: nur bei Unternehmen / Erbengemeinschaft -->
+    <div id="section-contacts" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
       <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
         <h3 class="text-sm font-semibold text-slate-700">Ansprechpartner</h3>
         <div class="flex rounded-lg overflow-hidden border border-slate-200 text-xs font-medium">
@@ -182,20 +203,63 @@
 {{ contact_emails|json_script:"contact-emails-data" }}
 
 <script>
-// ── Account-Typ: Zentralkontakt-Felder ein-/ausblenden ──────────────────────
+// ── Account-Typ Toggle ────────────────────────────────────────────────────────
 (function () {
-  const typeSelect  = document.getElementById('{{ form.account_type.id_for_label }}');
-  const sectionZent = document.getElementById('section-zentrale');
+  const typeSelect      = document.getElementById('{{ form.account_type.id_for_label }}');
+  const typeBtns        = document.querySelectorAll('.type-btn');
+  const nameLabel       = document.getElementById('name-label');
+  const emailLabel      = document.getElementById('email-label');
+  const sectionWebsite  = document.getElementById('section-website');
+  const sectionContacts = document.getElementById('section-contacts');
 
-  function toggleZentrale() {
-    if (typeSelect.value === 'company') {
-      sectionZent.classList.remove('hidden');
-    } else {
-      sectionZent.classList.add('hidden');
-    }
+  const NAME_LABELS = {
+    company:  'Firmenname',
+    private:  'Vor- und Nachname',
+    estate:   'Bezeichnung der Erbengemeinschaft',
+    internal: 'Name',
+  };
+  const EMAIL_LABELS = {
+    company:  'E-Mail (Zentrale)',
+    private:  'E-Mail',
+    estate:   'E-Mail',
+    internal: 'E-Mail',
+  };
+
+  function applyType(val) {
+    // Toggle-Buttons highlighten
+    typeBtns.forEach(btn => {
+      const active = btn.dataset.type === val;
+      btn.classList.toggle('bg-[#2F6FB3]', active);
+      btn.classList.toggle('text-white', active);
+      btn.classList.toggle('border-[#2F6FB3]', active);
+      btn.classList.toggle('bg-white', !active);
+      btn.classList.toggle('text-slate-600', !active);
+      btn.classList.toggle('border-slate-300', !active);
+    });
+
+    // Hidden select aktualisieren
+    typeSelect.value = val;
+
+    // Name-Label
+    if (nameLabel) nameLabel.innerHTML = (NAME_LABELS[val] || 'Name') + ' <span class="text-red-500">*</span>';
+
+    // E-Mail-Label
+    if (emailLabel) emailLabel.textContent = EMAIL_LABELS[val] || 'E-Mail';
+
+    // Website: nur bei Unternehmen
+    if (sectionWebsite) sectionWebsite.classList.toggle('hidden', val !== 'company');
+
+    // Ansprechpartner-Block: nur bei Unternehmen + Erbengemeinschaft
+    if (sectionContacts) sectionContacts.classList.toggle('hidden', val === 'private' || val === 'internal');
   }
-  typeSelect.addEventListener('change', toggleZentrale);
-  toggleZentrale();
+
+  // Klick auf Toggle-Buttons
+  typeBtns.forEach(btn => {
+    btn.addEventListener('click', () => applyType(btn.dataset.type));
+  });
+
+  // Initialen Zustand setzen (beim Bearbeiten eines bestehenden Accounts)
+  applyType(typeSelect.value || 'company');
 })();
 
 // ── Ansprechpartner-Toggle ───────────────────────────────────────────────────
