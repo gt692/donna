@@ -428,6 +428,7 @@ class RecipientSearchView(CRMMixin, View):
                 if a.postal_code or a.city:
                     address_parts.append(f"{a.postal_code} {a.city}".strip())
                 results.append({
+                    "id":           str(a.pk),
                     "type":         a.account_type,
                     "type_label":   TYPE_LABELS.get(a.account_type, a.account_type),
                     "label":        a.name,
@@ -1330,6 +1331,18 @@ class OfferListView(CRMMixin, ListView):
         return ctx
 
 
+def _set_recipient_account(offer, request):
+    """Reads recipient_account UUID from POST and links it to the offer."""
+    account_id = request.POST.get("recipient_account", "").strip()
+    if account_id:
+        try:
+            offer.recipient_account = Account.objects.get(pk=account_id)
+        except (Account.DoesNotExist, Exception):
+            offer.recipient_account = None
+    else:
+        offer.recipient_account = None
+
+
 def _textblock_defaults(scope: str) -> dict:
     """Return initial field values from is_default TextBlocks for the given scope (offer/invoice)."""
     payment_field = "payment_info" if scope == "invoice" else "payment_terms"
@@ -1384,6 +1397,7 @@ class OfferCreateView(AdminOrLeadMixin, View):
             offer = form.save(commit=False)
             offer.project    = project
             offer.created_by = request.user
+            _set_recipient_account(offer, request)
             offer.save()
             formset.instance = offer
             formset.save()
@@ -1421,6 +1435,7 @@ class OfferCreateStandaloneView(AdminOrLeadMixin, View):
             offer            = form.save(commit=False)
             offer.project    = form.cleaned_data.get("project")
             offer.created_by = request.user
+            _set_recipient_account(offer, request)
             offer.save()
             formset.instance = offer
             formset.save()
@@ -1473,7 +1488,9 @@ class OfferUpdateView(AdminOrLeadMixin, View):
         formset = _build_offer_formset(request, offer=offer, extra=1)
 
         if form.is_valid() and formset.is_valid():
-            form.save()
+            updated = form.save(commit=False)
+            _set_recipient_account(updated, request)
+            updated.save()
             formset.save()
             return redirect("crm:offer_preview", pk=offer.pk)
 

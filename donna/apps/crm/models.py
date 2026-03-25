@@ -685,6 +685,14 @@ class Offer(models.Model):
         blank=True,
         verbose_name=_("Projekt"),
     )
+    recipient_account = models.ForeignKey(
+        "Account",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="received_offers",
+        verbose_name=_("Empfänger-Account"),
+    )
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
