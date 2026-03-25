@@ -1364,7 +1364,7 @@ class OfferCreateView(AdminOrLeadMixin, View):
 
     def get(self, request, pk):
         project = self._get_project(pk)
-        initial = {**_textblock_defaults("offer"), "title": f"Angebot – {project.name}"}
+        initial = {**_textblock_defaults("offer")}
         # Pre-fill from GET params (e.g. from LeadInquiryImportView)
         for field in ["recipient_name", "recipient_email", "recipient_address"]:
             if request.GET.get(field):
@@ -1420,7 +1420,7 @@ class OfferCreateStandaloneView(AdminOrLeadMixin, View):
     template_name = "crm/offer_form.html"
 
     def get(self, request):
-        form    = OfferForm(initial={**_textblock_defaults("offer"), "title": "Angebot"})
+        form    = OfferForm(initial={**_textblock_defaults("offer")})
         formset = _build_offer_formset(request, extra=3)
         return render(request, self.template_name, {
             "form": form, "formset": formset, "project": None,
