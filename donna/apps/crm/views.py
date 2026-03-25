@@ -202,6 +202,43 @@ class AccountCreateView(AdminOrLeadMixin, CreateView):
         return ctx
 
 
+class AccountQuickCreateView(AdminOrLeadMixin, View):
+    """Minimal Account-Erstellung via AJAX — gibt JSON zurück für Modal im Angebotsformular."""
+
+    def post(self, request):
+        name         = request.POST.get("name", "").strip()
+        account_type = request.POST.get("account_type", Account.AccountType.COMPANY)
+        email        = request.POST.get("email", "").strip()
+        phone        = request.POST.get("phone", "").strip()
+        address_line1 = request.POST.get("address_line1", "").strip()
+        postal_code  = request.POST.get("postal_code", "").strip()
+        city         = request.POST.get("city", "").strip()
+
+        if not name:
+            return JsonResponse({"error": "Name ist erforderlich."}, status=400)
+
+        account = Account.objects.create(
+            name=name,
+            account_type=account_type,
+            email=email,
+            phone=phone,
+            address_line1=address_line1,
+            postal_code=postal_code,
+            city=city,
+        )
+
+        address_parts = [p for p in [address_line1, f"{postal_code} {city}".strip()] if p]
+        return JsonResponse({
+            "id":      str(account.pk),
+            "name":    account.name,
+            "number":  account.account_number,
+            "email":   account.email or "",
+            "address": "\n".join(address_parts),
+            "type":    account.account_type,
+            "label":   account.name,
+        })
+
+
 class AccountDetailView(CRMMixin, DetailView):
     model         = Account
     template_name = "crm/account_detail.html"

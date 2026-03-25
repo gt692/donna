@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    AccountCreateView, AccountDeleteView, AccountDetailView, AccountListView, AccountSearchView, AccountUpdateView,
+    AccountCreateView, AccountDeleteView, AccountDetailView, AccountListView, AccountQuickCreateView, AccountSearchView, AccountUpdateView,
     ContactCreateView, ContactDetailView, ContactListView, ContactUpdateView,
     ContactVCardExportView, ContactVCardImportView,
     DocumentDeleteView, DocumentServeView, DocumentUploadView,
@@ -29,7 +29,8 @@ urlpatterns = [
     # Accounts
     path("accounts/search/",         AccountSearchView.as_view(), name="account_search"),
     path("accounts/",                AccountListView.as_view(),   name="account_list"),
-    path("accounts/new/",            AccountCreateView.as_view(), name="account_create"),
+    path("accounts/new/",            AccountCreateView.as_view(),      name="account_create"),
+    path("accounts/quick-create/",   AccountQuickCreateView.as_view(), name="account_quick_create"),
     path("accounts/<uuid:pk>/",      AccountDetailView.as_view(), name="account_detail"),
     path("accounts/<uuid:pk>/edit/", AccountUpdateView.as_view(), name="account_edit"),
     path("accounts/<uuid:pk>/delete/", AccountDeleteView.as_view(), name="account_delete"),
