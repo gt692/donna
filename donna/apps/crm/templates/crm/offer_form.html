@@ -1212,6 +1212,15 @@
     searchInput.value = r.label;
     dropdown.classList.add('hidden');
     clearBtn.classList.remove('hidden');
+
+    // Widerrufsbelehrung automatisch je nach Account-Typ setzen
+    const widerrufsBox = document.getElementById('id_include_widerrufsbelehrung');
+    const widerrufsBtn = document.getElementById('toggle-widerrufs');
+    if (widerrufsBox && widerrufsBtn) {
+      const isPrivate = (r.type === 'private' || r.type === 'estate');
+      widerrufsBox.checked = isPrivate;
+      widerrufsBtn.dispatchEvent(new Event('_sync'));
+    }
   }
 
   clearBtn.addEventListener('click', function() {
@@ -1438,6 +1447,7 @@ fetch('{% url "crm:unit_api" %}')
       checkbox.checked = !checkbox.checked;
       sync();
     });
+    btn.addEventListener('_sync', sync);
 
     sync();
   });
