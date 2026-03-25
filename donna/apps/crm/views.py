@@ -71,8 +71,8 @@ def _all_projects_list(exclude_pk=None) -> list:
 
 def _member_rates_data(form, project=None) -> dict:
     """Baut ein Dict {user_pk: {name, role, default_rate, current_rate}} für das Template."""
-    from apps.core.models import Role
-    role_labels = dict(Role.choices)
+    from apps.core.models import UserRole
+    role_labels = dict(UserRole.objects.values_list("slug", "name"))
     data = {}
     for user in form.fields["team_members"].queryset:
         data[str(user.pk)] = {
@@ -2214,7 +2214,6 @@ class QuickLeadCreateView(AdminOrLeadMixin, View):
         project = Project.objects.create(
             name=topic,
             account=account,
-            company=company or "",
             status=Project.Status.LEAD,
             created_by=request.user,
         )
