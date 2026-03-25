@@ -364,13 +364,12 @@
                       {{ item_form.quantity }}
                     </div>
                     <div>
-                      <label class="block text-xs text-slate-400 mb-1">Einheit</label>
-                      <div class="flex items-center gap-1">
-                        {{ item_form.unit }}
-                        <button type="button" class="unit-new-btn flex-none text-slate-300 hover:text-emerald-600 transition" title="Neue Einheit anlegen">
-                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                      <label class="flex items-center gap-1 text-xs text-slate-400 mb-1">Einheit
+                        <button type="button" class="unit-new-btn text-slate-300 hover:text-emerald-600 transition" title="Neue Einheit anlegen">
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                         </button>
-                      </div>
+                      </label>
+                      {{ item_form.unit }}
                     </div>
                     <div>
                       <label class="block text-xs text-slate-400 mb-1">EP (Netto)</label>
@@ -586,15 +585,14 @@
                      class="pos-input item-qty">
             </div>
             <div>
-              <label class="block text-xs text-slate-400 mb-1">Einheit</label>
-              <div class="flex items-center gap-1">
-                <input type="text" name="items-__prefix__-unit" value=""
-                       list="unit-datalist"
-                       class="pos-input">
-                <button type="button" class="unit-new-btn flex-none text-slate-300 hover:text-emerald-600 transition" title="Neue Einheit anlegen">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              <label class="flex items-center gap-1 text-xs text-slate-400 mb-1">Einheit
+                <button type="button" class="unit-new-btn text-slate-300 hover:text-emerald-600 transition" title="Neue Einheit anlegen">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                 </button>
-              </div>
+              </label>
+              <input type="text" name="items-__prefix__-unit" value=""
+                     list="unit-datalist"
+                     class="pos-input">
             </div>
             <div>
               <label class="block text-xs text-slate-400 mb-1">EP (Netto)</label>
