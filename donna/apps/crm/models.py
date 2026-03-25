@@ -727,7 +727,9 @@ class Offer(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    is_order_confirmation = models.BooleanField(default=False)
+    is_order_confirmation      = models.BooleanField(default=False)
+    include_agb                = models.BooleanField(default=True,  verbose_name=_("AGB anhängen"))
+    include_widerrufsbelehrung = models.BooleanField(default=False,  verbose_name=_("Widerrufsbelehrung anhängen"))
     deleted_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Gelöscht am"))
 
     # Beauftragung

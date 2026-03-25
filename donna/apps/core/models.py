@@ -389,6 +389,8 @@ class CompanySettings(models.Model):
     website         = models.URLField(blank=True, verbose_name="Website")
     payment_days    = models.PositiveSmallIntegerField(default=14, verbose_name="Zahlungsziel (Tage)")
     primary_color   = models.CharField(max_length=7, default="#2F6FB3", verbose_name="Primärfarbe (Hex)")
+    agb_text        = models.TextField(blank=True, verbose_name="AGB (Volltext)")
+    widerrufsbelehrung_text = models.TextField(blank=True, verbose_name="Widerrufsbelehrung (Volltext)")
     updated_at      = models.DateTimeField(auto_now=True)
 
     class Meta:

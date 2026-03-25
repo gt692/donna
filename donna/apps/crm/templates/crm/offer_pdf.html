@@ -199,6 +199,26 @@
       white-space: pre-wrap;
     }
 
+    /* ── Rechtliche Anhänge ───────────────────────────────── */
+    .legal-page {
+      page-break-before: always;
+    }
+    .legal-page h2 {
+      font-size: 12pt;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 12pt;
+      padding-bottom: 6pt;
+      border-bottom: 1.5pt solid {{ company_settings.primary_color }};
+    }
+    .legal-page p, .legal-page pre {
+      font-size: 8.5pt;
+      line-height: 1.65;
+      color: #333;
+      white-space: pre-wrap;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+
     /* ── Fußzeile (fixed → wiederholt auf jeder Seite) ───── */
     .footer {
       position: fixed;
@@ -398,6 +418,22 @@
         <div class="sig-label">Unterschrift, ggf. Firmenstempel</div>
       </div>
     </div>
+  </div>
+  {% endif %}
+
+  <!-- AGB-Anhang -->
+  {% if offer.include_agb and company_settings.agb_text %}
+  <div class="legal-page">
+    <h2>Allgemeine Geschäftsbedingungen (AGB)</h2>
+    <pre>{{ company_settings.agb_text }}</pre>
+  </div>
+  {% endif %}
+
+  <!-- Widerrufsbelehrung-Anhang -->
+  {% if offer.include_widerrufsbelehrung and company_settings.widerrufsbelehrung_text %}
+  <div class="legal-page">
+    <h2>Widerrufsbelehrung</h2>
+    <pre>{{ company_settings.widerrufsbelehrung_text }}</pre>
   </div>
   {% endif %}
 
