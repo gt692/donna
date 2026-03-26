@@ -1210,7 +1210,7 @@
 
   const fieldAccountId = document.getElementById('recipient-account-id');
 
-  function selectContact(r) {
+  window.selectContact = function selectContact(r) {
     if (fieldName)      fieldName.value      = r.name;
     if (fieldEmail)     fieldEmail.value     = r.email;
     if (fieldAddress)   fieldAddress.value   = r.address;
