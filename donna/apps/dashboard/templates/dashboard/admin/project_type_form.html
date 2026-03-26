@@ -44,6 +44,9 @@
         <div>
           <label class="block text-sm font-medium text-slate-600 mb-1">Farbe</label>
           <div class="flex items-center gap-3">
+            <input type="color" id="color-picker"
+                   class="w-10 h-10 rounded-lg border border-slate-200 cursor-pointer p-0.5 bg-white"
+                   value="{{ form.color.value|default:'#6366f1' }}">
             {{ form.color }}
             <span class="text-xs text-slate-400">für Badge-Farbe im Kanban &amp; Listen</span>
           </div>
@@ -64,4 +67,14 @@
     </div>
   </form>
 </div>
+
+<script>
+  const picker = document.getElementById('color-picker');
+  const text   = document.getElementById('{{ form.color.id_for_label }}');
+
+  picker.addEventListener('input', () => { text.value = picker.value; });
+  text.addEventListener('input',  () => {
+    if (/^#[0-9a-fA-F]{6}$/.test(text.value)) picker.value = text.value;
+  });
+</script>
 {% endblock %}
