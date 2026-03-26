@@ -132,6 +132,24 @@ class User(AbstractUser):
         help_text=_("Wenn aktiv, erhält dieser Mitarbeiter eine eigene Spalte im Kanban-Board."),
     )
 
+    # ------------------------------------------------------------------
+    # Granulare Berechtigungen (raw storage — Admins erhalten alle via can_* Properties)
+    # ------------------------------------------------------------------
+    perm_edit_leads      = models.BooleanField(default=False, verbose_name=_("Leads anlegen/bearbeiten"))
+    perm_delete_leads    = models.BooleanField(default=False, verbose_name=_("Leads löschen"))
+    perm_edit_projects   = models.BooleanField(default=False, verbose_name=_("Projekte anlegen/bearbeiten"))
+    perm_delete_projects = models.BooleanField(default=False, verbose_name=_("Projekte löschen"))
+    perm_edit_offers     = models.BooleanField(default=False, verbose_name=_("Angebote erstellen/bearbeiten"))
+    perm_delete_offers   = models.BooleanField(default=False, verbose_name=_("Angebote löschen"))
+    perm_send_offers     = models.BooleanField(default=False, verbose_name=_("Angebote versenden"))
+    perm_edit_invoices   = models.BooleanField(default=False, verbose_name=_("Rechnungen erstellen/bearbeiten"))
+    perm_delete_invoices = models.BooleanField(default=False, verbose_name=_("Rechnungen löschen"))
+    perm_send_invoices   = models.BooleanField(default=False, verbose_name=_("Rechnungen versenden"))
+    perm_edit_accounts   = models.BooleanField(default=False, verbose_name=_("Kunden anlegen/bearbeiten"))
+    perm_delete_accounts = models.BooleanField(default=False, verbose_name=_("Kunden löschen"))
+    perm_approve_time    = models.BooleanField(default=False, verbose_name=_("Zeiterfassung genehmigen"))
+    perm_edit_templates  = models.BooleanField(default=False, verbose_name=_("Vorlagen bearbeiten (Textbausteine, Einheiten)"))
+
     # Einladungs-Flow
     invitation_token = models.CharField(
         max_length=64,
@@ -173,9 +191,45 @@ class User(AbstractUser):
     def is_project_assistant(self) -> bool:
         return self.role == Role.PROJECT_ASSISTANT
 
+    # ------------------------------------------------------------------
+    # Effektive Berechtigungen (Admins & Superuser erhalten immer True)
+    # ------------------------------------------------------------------
+
+    def _is_superadmin(self) -> bool:
+        return self.is_superuser or self.role == Role.ADMIN
+
+    @property
+    def can_edit_leads(self) -> bool:      return self._is_superadmin() or self.perm_edit_leads
+    @property
+    def can_delete_leads(self) -> bool:    return self._is_superadmin() or self.perm_delete_leads
+    @property
+    def can_edit_projects(self) -> bool:   return self._is_superadmin() or self.perm_edit_projects
+    @property
+    def can_delete_projects(self) -> bool: return self._is_superadmin() or self.perm_delete_projects
+    @property
+    def can_edit_offers(self) -> bool:     return self._is_superadmin() or self.perm_edit_offers
+    @property
+    def can_delete_offers(self) -> bool:   return self._is_superadmin() or self.perm_delete_offers
+    @property
+    def can_send_offers(self) -> bool:     return self._is_superadmin() or self.perm_send_offers
+    @property
+    def can_edit_invoices(self) -> bool:   return self._is_superadmin() or self.perm_edit_invoices
+    @property
+    def can_delete_invoices(self) -> bool: return self._is_superadmin() or self.perm_delete_invoices
+    @property
+    def can_send_invoices(self) -> bool:   return self._is_superadmin() or self.perm_send_invoices
+    @property
+    def can_edit_accounts(self) -> bool:   return self._is_superadmin() or self.perm_edit_accounts
+    @property
+    def can_delete_accounts(self) -> bool: return self._is_superadmin() or self.perm_delete_accounts
+    @property
+    def can_approve_time(self) -> bool:    return self._is_superadmin() or self.perm_approve_time
+    @property
+    def can_edit_templates(self) -> bool:  return self._is_superadmin() or self.perm_edit_templates
+
     def can_approve_time_entries(self) -> bool:
-        """Projektleiter und Admins dürfen Stundeneinträge freigeben."""
-        return self.role in (Role.ADMIN, Role.PROJECT_MANAGER)
+        """Rückwärtskompatibilität — nutzt neues perm_approve_time Flag."""
+        return self.can_approve_time
 
     @property
     def default_hourly_rate(self):

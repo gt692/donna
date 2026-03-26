@@ -15,7 +15,7 @@
     PDF anzeigen
   </a>
 
-  {% if request.user.can_approve_time_entries %}
+  {% if request.user.can_send_offers %}
     {% if offer.status == "draft" or offer.status == "sent" %}
       <form method="post" action="{% url 'crm:offer_send' offer.pk %}">
         {% csrf_token %}
@@ -31,7 +31,9 @@
         </button>
       </form>
     {% endif %}
+  {% endif %}
 
+  {% if request.user.can_edit_offers %}
     <a href="{% url 'crm:offer_edit' offer.pk %}"
        class="flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50
               text-slate-700 font-medium text-sm px-4 py-2 rounded-lg transition">
@@ -41,7 +43,9 @@
       </svg>
       Bearbeiten
     </a>
+  {% endif %}
 
+  {% if request.user.can_delete_offers %}
     {% if offer.status == "draft" %}
       <form method="post" action="{% url 'crm:offer_delete' offer.pk %}"
             onsubmit="return confirm('Angebot {{ offer.offer_number }} wirklich löschen?')">
@@ -216,7 +220,7 @@
     {% endif %}
 
     <!-- Status-Wechsel -->
-    {% if request.user.can_approve_time_entries %}
+    {% if request.user.can_edit_offers %}
     {% if offer.status == "sent" %}
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
       <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Status aktualisieren</h3>
@@ -257,7 +261,7 @@
     {% endif %}
     {% endif %}
 
-    {% if request.user.can_approve_time_entries %}
+    {% if request.user.can_edit_offers %}
 
     {% if offer.status == "sent" %}
     <!-- Beauftragung durch Unterschrift-Upload -->

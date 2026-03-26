@@ -179,7 +179,7 @@
     {% endif %}
 
     <!-- Einstellungen -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
       <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
         <h3 class="text-sm font-semibold text-slate-700">Einstellungen</h3>
       </div>
@@ -188,6 +188,12 @@
           {{ form.notify_by_email }}
           <label for="{{ form.notify_by_email.id_for_label }}" class="text-sm text-slate-600 cursor-pointer">
             {{ form.notify_by_email.label }}
+          </label>
+        </div>
+        <div class="flex items-center gap-2">
+          {{ form.show_in_kanban }}
+          <label for="{{ form.show_in_kanban.id_for_label }}" class="text-sm text-slate-600 cursor-pointer">
+            {{ form.show_in_kanban.label }}
           </label>
         </div>
         {% if edit_user %}
@@ -200,6 +206,122 @@
         {% endif %}
       </div>
     </div>
+
+    <!-- Berechtigungen -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6" id="perm-section">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-slate-700">Berechtigungen</h3>
+        <span class="text-xs text-slate-400">Admins erhalten automatisch alle Rechte</span>
+      </div>
+
+      <!-- Admin-Hinweis (nur wenn Rolle = admin) -->
+      <div id="perm-admin-note" class="hidden px-6 py-4 bg-[#EFF6FF] border-b border-[#A5F3FC]">
+        <p class="text-sm text-[#2F6FB3]">Dieser Benutzer hat die Rolle <strong>Admin</strong> und erhält automatisch alle Berechtigungen — unabhängig von den Checkboxen unten.</p>
+      </div>
+
+      <div class="px-6 py-5 space-y-5">
+
+        <!-- Leads -->
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Leads</p>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              {{ form.perm_edit_leads }} {{ form.perm_edit_leads.label }}
+            </label>
+            <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              {{ form.perm_delete_leads }} {{ form.perm_delete_leads.label }}
+            </label>
+          </div>
+        </div>
+
+        <!-- Projekte -->
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Projekte</p>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              {{ form.perm_edit_projects }} {{ form.perm_edit_projects.label }}
+            </label>
+            <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              {{ form.perm_delete_projects }} {{ form.perm_delete_projects.label }}
+            </label>
+          </div>
+        </div>
+
+        <!-- Angebote -->
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Angebote</p>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              {{ form.perm_edit_offers }} {{ form.perm_edit_offers.label }}
+            </label>
+            <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              {{ form.perm_delete_offers }} {{ form.perm_delete_offers.label }}
+            </label>
+            <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer col-span-2">
+              {{ form.perm_send_offers }} {{ form.perm_send_offers.label }}
+            </label>
+          </div>
+        </div>
+
+        <!-- Rechnungen -->
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Rechnungen</p>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              {{ form.perm_edit_invoices }} {{ form.perm_edit_invoices.label }}
+            </label>
+            <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              {{ form.perm_delete_invoices }} {{ form.perm_delete_invoices.label }}
+            </label>
+            <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer col-span-2">
+              {{ form.perm_send_invoices }} {{ form.perm_send_invoices.label }}
+            </label>
+          </div>
+        </div>
+
+        <!-- Kunden -->
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Kunden</p>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              {{ form.perm_edit_accounts }} {{ form.perm_edit_accounts.label }}
+            </label>
+            <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              {{ form.perm_delete_accounts }} {{ form.perm_delete_accounts.label }}
+            </label>
+          </div>
+        </div>
+
+        <!-- Sonstiges -->
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Sonstiges</p>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              {{ form.perm_approve_time }} {{ form.perm_approve_time.label }}
+            </label>
+            <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              {{ form.perm_edit_templates }} {{ form.perm_edit_templates.label }}
+            </label>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <script>
+    (function() {
+      const roleSelect = document.getElementById('{{ form.role.id_for_label }}');
+      const adminNote  = document.getElementById('perm-admin-note');
+      function syncAdminNote() {
+        const isAdmin = roleSelect && roleSelect.value === 'admin';
+        adminNote.classList.toggle('hidden', !isAdmin);
+      }
+      if (roleSelect) {
+        roleSelect.addEventListener('change', syncAdminNote);
+        syncAdminNote();
+      }
+    })();
+    </script>
 
     <div class="flex items-center justify-between">
       <a href="{% url 'dashboard:user_list' %}" class="text-sm text-slate-500 hover:text-slate-700 transition">Abbrechen</a>

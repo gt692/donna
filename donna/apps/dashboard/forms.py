@@ -70,7 +70,14 @@ class UserEditForm(forms.ModelForm):
         fields = [
             "first_name", "last_name", "email",
             "role", "reporting_to",
-            "is_active", "notify_by_email",
+            "is_active", "notify_by_email", "show_in_kanban",
+            "perm_edit_leads", "perm_delete_leads",
+            "perm_edit_projects", "perm_delete_projects",
+            "perm_edit_offers", "perm_delete_offers", "perm_send_offers",
+            "perm_edit_invoices", "perm_delete_invoices", "perm_send_invoices",
+            "perm_edit_accounts", "perm_delete_accounts",
+            "perm_approve_time",
+            "perm_edit_templates",
         ]
         widgets = {
             "first_name":   forms.TextInput(attrs={"class": _TW}),

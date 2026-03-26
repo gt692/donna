@@ -24,7 +24,7 @@
     XRechnung
   </a>
 
-  {% if request.user.can_approve_time_entries %}
+  {% if request.user.can_send_invoices %}
     {% if invoice.status == "draft" or invoice.status == "sent" %}
       <form method="post" action="{% url 'crm:invoice_send' invoice.pk %}">
         {% csrf_token %}
@@ -41,6 +41,9 @@
       </form>
     {% endif %}
 
+  {% endif %}
+
+  {% if request.user.can_edit_invoices %}
     {% if invoice.status == "draft" %}
       <a href="{% url 'crm:invoice_edit' invoice.pk %}"
          class="flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50
@@ -51,7 +54,11 @@
         </svg>
         Bearbeiten
       </a>
+    {% endif %}
+  {% endif %}
 
+  {% if request.user.can_delete_invoices %}
+    {% if invoice.status == "draft" %}
       <form method="post" action="{% url 'crm:invoice_delete' invoice.pk %}"
             onsubmit="return confirm('Rechnung {{ invoice.invoice_number }} wirklich löschen?')">
         {% csrf_token %}
@@ -252,7 +259,7 @@
     {% endif %}
 
     <!-- Status-Wechsel -->
-    {% if request.user.can_approve_time_entries %}
+    {% if request.user.can_edit_invoices %}
     {% if invoice.status == "draft" %}
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
       <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Status aktualisieren</h3>

@@ -58,7 +58,7 @@
               </td>
               <td class="px-4 py-3 text-xs text-slate-400">{{ project.updated_at|date:"d.m.Y" }}</td>
               <td class="px-2 py-3">
-                {% if request.user.can_approve_time_entries %}
+                {% if request.user.can_edit_projects %}
                   <a href="{% url 'crm:project_edit' project.pk %}"
                      class="text-slate-400 hover:text-[#2F6FB3] p-1 rounded transition" title="Bearbeiten">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,7 +117,7 @@
               </td>
               <td class="px-4 py-3 text-xs text-slate-400">{{ project.updated_at|date:"d.m.Y" }}</td>
               <td class="px-2 py-3">
-                {% if request.user.can_approve_time_entries %}
+                {% if request.user.can_edit_projects %}
                   <a href="{% url 'crm:project_edit' project.pk %}"
                      class="text-slate-400 hover:text-[#2F6FB3] p-1 rounded transition" title="Bearbeiten">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -176,7 +176,7 @@
               </td>
               <td class="px-4 py-3 text-xs text-slate-400">{{ project.updated_at|date:"d.m.Y" }}</td>
               <td class="px-2 py-3">
-                {% if request.user.can_approve_time_entries %}
+                {% if request.user.can_edit_projects %}
                   <a href="{% url 'crm:project_edit' project.pk %}"
                      class="text-slate-400 hover:text-[#2F6FB3] p-1 rounded transition" title="Bearbeiten">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

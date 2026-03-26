@@ -6,7 +6,7 @@
 {% block page_subheading %}Kunden & interne Einheiten{% endblock %}
 
 {% block topbar_actions %}
-  {% if request.user.can_approve_time_entries %}
+  {% if request.user.can_edit_accounts %}
     <a href="{% url 'crm:account_create' %}"
        class="flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -78,7 +78,7 @@
     {% empty %}
       <div class="col-span-3 py-16 text-center text-slate-400">
         <p class="text-lg mb-2">Noch keine Kunden vorhanden.</p>
-        {% if request.user.can_approve_time_entries %}
+        {% if request.user.can_edit_accounts %}
           <a href="{% url 'crm:account_create' %}" class="text-[#2F6FB3] hover:text-[#1e4d82] font-medium transition">
             Ersten Kunden anlegen →
           </a>

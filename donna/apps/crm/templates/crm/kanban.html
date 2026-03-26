@@ -6,7 +6,7 @@
 {% block page_subheading %}Alle aktiven Projekte nach Mitarbeiter — Kacheln per Drag & Drop verschieben{% endblock %}
 
 {% block topbar_actions %}
-  {% if request.user.can_approve_time_entries %}
+  {% if request.user.can_edit_projects %}
     <a href="{% url 'crm:project_create' %}"
        class="flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white
               font-medium text-sm px-4 py-2 rounded-lg transition">

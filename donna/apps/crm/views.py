@@ -123,9 +123,39 @@ class CRMMixin(LoginRequiredMixin):
 
 
 class AdminOrLeadMixin(CRMMixin, UserPassesTestMixin):
-    """Nur Admins und Teamleiter dürfen CRM-Objekte anlegen/bearbeiten."""
+    """Legacy-Alias — wird schrittweise durch spezifische Mixins ersetzt."""
     def test_func(self):
         return self.request.user.can_approve_time_entries()
+
+
+def _make_perm_mixin(perm_attr: str):
+    """Factory für View-Mixins, die ein einzelnes can_* Property prüfen."""
+    class _Mixin(CRMMixin, UserPassesTestMixin):
+        def test_func(self):
+            return bool(getattr(self.request.user, perm_attr, False))
+        def handle_no_permission(self):
+            if not self.request.user.is_authenticated:
+                return redirect(self.login_url)
+            messages.error(self.request, "Keine Berechtigung für diese Aktion.")
+            return redirect("dashboard:home")
+    _Mixin.__name__ = f"Perm_{perm_attr}"
+    return _Mixin
+
+
+EditLeadsMixin      = _make_perm_mixin("can_edit_leads")
+DeleteLeadsMixin    = _make_perm_mixin("can_delete_leads")
+EditProjectsMixin   = _make_perm_mixin("can_edit_projects")
+DeleteProjectsMixin = _make_perm_mixin("can_delete_projects")
+EditOffersMixin     = _make_perm_mixin("can_edit_offers")
+DeleteOffersMixin   = _make_perm_mixin("can_delete_offers")
+SendOffersMixin     = _make_perm_mixin("can_send_offers")
+EditInvoicesMixin   = _make_perm_mixin("can_edit_invoices")
+DeleteInvoicesMixin = _make_perm_mixin("can_delete_invoices")
+SendInvoicesMixin   = _make_perm_mixin("can_send_invoices")
+EditAccountsMixin   = _make_perm_mixin("can_edit_accounts")
+DeleteAccountsMixin = _make_perm_mixin("can_delete_accounts")
+ApproveTimeMixin    = _make_perm_mixin("can_approve_time")
+EditTemplatesMixin  = _make_perm_mixin("can_edit_templates")
 
 
 # ---------------------------------------------------------------------------
@@ -181,7 +211,7 @@ class AccountListView(CRMMixin, ListView):
         return ctx
 
 
-class AccountCreateView(AdminOrLeadMixin, CreateView):
+class AccountCreateView(EditAccountsMixin, CreateView):
     model         = Account
     form_class    = AccountForm
     template_name = "crm/account_form.html"
@@ -202,7 +232,7 @@ class AccountCreateView(AdminOrLeadMixin, CreateView):
         return ctx
 
 
-class AccountQuickCreateView(AdminOrLeadMixin, View):
+class AccountQuickCreateView(EditAccountsMixin, View):
     """Minimal Account-Erstellung via AJAX — gibt JSON zurück für Modal im Angebotsformular."""
 
     def post(self, request):
@@ -253,7 +283,7 @@ class AccountDetailView(CRMMixin, DetailView):
         return ctx
 
 
-class AccountUpdateView(AdminOrLeadMixin, UpdateView):
+class AccountUpdateView(EditAccountsMixin, UpdateView):
     model         = Account
     form_class    = AccountForm
     template_name = "crm/account_form.html"
@@ -274,7 +304,7 @@ class AccountUpdateView(AdminOrLeadMixin, UpdateView):
         return ctx
 
 
-class AccountDeleteView(AdminOrLeadMixin, View):
+class AccountDeleteView(DeleteAccountsMixin, View):
     """Confirmation + soft-delete for Account."""
 
     def _context(self, account):
@@ -372,7 +402,7 @@ class ProjectArchiveView(CRMMixin, TemplateView):
         return ctx
 
 
-class ProjectCreateView(AdminOrLeadMixin, CreateView):
+class ProjectCreateView(EditProjectsMixin, CreateView):
     model         = Project
     form_class    = ProjectForm
     template_name = "crm/project_form.html"
@@ -582,7 +612,7 @@ class ProjectDetailView(CRMMixin, DetailView):
         return ctx
 
 
-class ProjectUpdateView(AdminOrLeadMixin, UpdateView):
+class ProjectUpdateView(EditProjectsMixin, UpdateView):
     model         = Project
     form_class    = ProjectForm
     template_name = "crm/project_form.html"
@@ -613,7 +643,7 @@ class ProjectUpdateView(AdminOrLeadMixin, UpdateView):
         return ctx
 
 
-class ProjectDeleteView(AdminOrLeadMixin, View):
+class ProjectDeleteView(DeleteProjectsMixin, View):
     """Confirmation + soft-delete for Project (cascades to open offers/invoices)."""
 
     def get(self, request, pk):
@@ -639,7 +669,7 @@ class ProjectDeleteView(AdminOrLeadMixin, View):
 # Budget-Erweiterung hinzufügen (POST-only)
 # ---------------------------------------------------------------------------
 
-class ProjectBudgetExtensionCreateView(AdminOrLeadMixin, View):
+class ProjectBudgetExtensionCreateView(EditProjectsMixin, View):
     def post(self, request, pk):
         project = get_object_or_404(Project, pk=pk)
         amount_raw = request.POST.get("amount", "").strip()
@@ -657,7 +687,7 @@ class ProjectBudgetExtensionCreateView(AdminOrLeadMixin, View):
         return redirect("crm:project_detail", pk=pk)
 
 
-class ProjectBudgetExtensionDeleteView(AdminOrLeadMixin, View):
+class ProjectBudgetExtensionDeleteView(EditProjectsMixin, View):
     def post(self, request, pk, ext_pk):
         ext = get_object_or_404(ProjectBudgetExtension, pk=ext_pk, project_id=pk)
         ext.delete()
@@ -812,7 +842,7 @@ class ProjectKanbanMoveView(CRMMixin, View):
 # Dokument-Upload / Viewer / Löschen
 # ---------------------------------------------------------------------------
 
-class DocumentUploadView(AdminOrLeadMixin, View):
+class DocumentUploadView(EditProjectsMixin, View):
     """PDF-Upload für ein Projekt-Dokument."""
 
     # Automatische Status-Übergänge beim Hochladen eines Dokuments
@@ -870,7 +900,7 @@ class DocumentUploadView(AdminOrLeadMixin, View):
         return redirect("crm:project_detail", pk=pk)
 
 
-class ProjectInvoiceCreateView(AdminOrLeadMixin, View):
+class ProjectInvoiceCreateView(EditInvoicesMixin, View):
     """
     Rechnung stellen: Erstellt ein Rechnungsdokument, trägt den Nettobetrag ein
     und setzt das Projekt auf 'Abgeschlossen'.
@@ -1019,7 +1049,7 @@ class ProjectInvoiceCreateView(AdminOrLeadMixin, View):
         }
 
 
-class DocumentDeleteView(AdminOrLeadMixin, View):
+class DocumentDeleteView(EditProjectsMixin, View):
     """Löscht ein Dokument und seine Datei."""
 
     def post(self, request, pk, doc_pk):
@@ -1387,7 +1417,7 @@ def _textblock_defaults(scope: str) -> dict:
     return initial
 
 
-class OfferCreateView(AdminOrLeadMixin, View):
+class OfferCreateView(EditOffersMixin, View):
     template_name = "crm/offer_form.html"
 
     def _get_project(self, pk):
@@ -1446,7 +1476,7 @@ class OfferCreateView(AdminOrLeadMixin, View):
     # get_test_func via UserPassesTestMixin which calls test_func on dispatch.
 
 
-class OfferCreateStandaloneView(AdminOrLeadMixin, View):
+class OfferCreateStandaloneView(EditOffersMixin, View):
     """Angebot direkt aus der Angebotsliste erstellen — ohne Projekt-PK in der URL."""
     template_name = "crm/offer_form.html"
 
@@ -1494,7 +1524,7 @@ class OfferDetailView(LoginRequiredMixin, DetailView):
         return ctx
 
 
-class OfferUpdateView(AdminOrLeadMixin, View):
+class OfferUpdateView(EditOffersMixin, View):
     template_name = "crm/offer_form.html"
 
     def _get_offer(self, pk):
@@ -1615,7 +1645,7 @@ def _generate_offer_pdf_bytes(offer, request=None, show_signature_block=False):
     return weasyprint.HTML(string=html_string, base_url=base_url).write_pdf()
 
 
-class OfferSendView(AdminOrLeadMixin, View):
+class OfferSendView(SendOffersMixin, View):
     def post(self, request, pk):
         offer = get_object_or_404(Offer, pk=pk)
 
@@ -1667,7 +1697,7 @@ class OfferSendView(AdminOrLeadMixin, View):
         return redirect("crm:offer_detail", pk=offer.pk)
 
 
-class OfferStatusUpdateView(AdminOrLeadMixin, View):
+class OfferStatusUpdateView(EditOffersMixin, View):
     ALLOWED_TRANSITIONS = {
         Offer.Status.DRAFT:    {Offer.Status.SENT},
         Offer.Status.SENT:     {Offer.Status.ACCEPTED, Offer.Status.REJECTED},
@@ -1692,7 +1722,7 @@ class OfferStatusUpdateView(AdminOrLeadMixin, View):
         return redirect("crm:offer_detail", pk=offer.pk)
 
 
-class OfferDeleteView(AdminOrLeadMixin, View):
+class OfferDeleteView(DeleteOffersMixin, View):
     def post(self, request, pk):
         offer = get_object_or_404(Offer, pk=pk)
         if offer.status != Offer.Status.DRAFT:
@@ -1917,7 +1947,7 @@ class InvoiceListView(CRMMixin, ListView):
         return ctx
 
 
-class InvoiceCreateView(AdminOrLeadMixin, View):
+class InvoiceCreateView(EditInvoicesMixin, View):
     def get(self, request, pk):
         project = get_object_or_404(Project, pk=pk)
         initial = {**_textblock_defaults("invoice"), "title": f"Rechnung – {project.name}"}
@@ -1955,7 +1985,7 @@ class InvoiceCreateView(AdminOrLeadMixin, View):
         })
 
 
-class InvoiceCreateStandaloneView(AdminOrLeadMixin, View):
+class InvoiceCreateStandaloneView(EditInvoicesMixin, View):
     """Rechnung direkt aus der Rechnungsliste erstellen — ohne Projekt-PK in der URL."""
 
     def get(self, request):
@@ -1988,7 +2018,7 @@ class InvoiceCreateStandaloneView(AdminOrLeadMixin, View):
         })
 
 
-class InvoiceFromOfferView(AdminOrLeadMixin, View):
+class InvoiceFromOfferView(EditInvoicesMixin, View):
     def get(self, request, pk):
         offer = get_object_or_404(Offer, pk=pk)
         if offer.status != Offer.Status.ACCEPTED:
@@ -2059,7 +2089,7 @@ class InvoiceDetailView(LoginRequiredMixin, DetailView):
         return ctx
 
 
-class InvoiceUpdateView(AdminOrLeadMixin, View):
+class InvoiceUpdateView(EditInvoicesMixin, View):
     def get(self, request, pk):
         invoice = get_object_or_404(Invoice, pk=pk)
         if invoice.status != Invoice.Status.DRAFT:
@@ -2111,7 +2141,7 @@ class InvoicePDFView(LoginRequiredMixin, View):
         return response
 
 
-class InvoiceSendView(AdminOrLeadMixin, View):
+class InvoiceSendView(SendInvoicesMixin, View):
     def post(self, request, pk):
         invoice = get_object_or_404(Invoice, pk=pk)
         if not invoice.recipient_email:
@@ -2151,7 +2181,7 @@ class InvoiceSendView(AdminOrLeadMixin, View):
         return redirect("crm:invoice_detail", pk=invoice.pk)
 
 
-class InvoiceStatusUpdateView(AdminOrLeadMixin, View):
+class InvoiceStatusUpdateView(EditInvoicesMixin, View):
     ALLOWED_TRANSITIONS = {
         Invoice.Status.DRAFT:  {Invoice.Status.SENT, Invoice.Status.CANCELLED},
         Invoice.Status.SENT:   {Invoice.Status.PAID, Invoice.Status.CANCELLED},
@@ -2175,7 +2205,7 @@ class InvoiceStatusUpdateView(AdminOrLeadMixin, View):
         return redirect("crm:invoice_detail", pk=invoice.pk)
 
 
-class InvoiceDeleteView(AdminOrLeadMixin, View):
+class InvoiceDeleteView(DeleteInvoicesMixin, View):
     def post(self, request, pk):
         invoice = get_object_or_404(Invoice, pk=pk)
         if invoice.status != Invoice.Status.DRAFT:
@@ -2207,7 +2237,7 @@ class InvoiceXRechnungView(LoginRequiredMixin, View):
         return response
 
 
-class OfferOrderConfirmationView(AdminOrLeadMixin, View):
+class OfferOrderConfirmationView(SendOffersMixin, View):
     def post(self, request, pk):
         offer = get_object_or_404(Offer, pk=pk)
         offer.is_order_confirmation = True
@@ -2299,7 +2329,7 @@ class OfferCommissionSuccessView(View):
         })
 
 
-class OfferSignatureUploadView(AdminOrLeadMixin, View):
+class OfferSignatureUploadView(EditOffersMixin, View):
     """Intern: Upload des unterschriebenen Angebots → Beauftragung per Unterschrift."""
 
     def post(self, request, pk):
@@ -2353,7 +2383,7 @@ class ProductCatalogAPIView(LoginRequiredMixin, View):
 # Quick Lead — Schnell-Lead anlegen
 # ---------------------------------------------------------------------------
 
-class QuickLeadCreateView(AdminOrLeadMixin, View):
+class QuickLeadCreateView(EditLeadsMixin, View):
     """Creates Account + Project from minimal data, optionally sends inquiry email."""
 
     def post(self, request):
@@ -2503,7 +2533,7 @@ class LeadInquiryPublicView(View):
         return inquiry
 
 
-class LeadInquiryImportView(AdminOrLeadMixin, View):
+class LeadInquiryImportView(EditOffersMixin, View):
     """Imports inquiry data into the offer creation form (pre-fills and redirects)."""
 
     def post(self, request, pk):
@@ -2581,7 +2611,7 @@ class LeadListView(AdminOrLeadMixin, ListView):
         return ctx
 
 
-class LeadCommissionView(AdminOrLeadMixin, View):
+class LeadCommissionView(SendOffersMixin, View):
     """
     GET:  Bestätigungsseite — zeigt Projekt + Angebote, optional Datei-Upload.
     POST: Setzt Projektstatus auf 'active', Angebot auf 'accepted', speichert Dokument.
@@ -2653,7 +2683,7 @@ class TextBlockListView(AdminOrLeadMixin, ListView):
         return TextBlock.objects.all()
 
 
-class TextBlockCreateView(AdminOrLeadMixin, View):
+class TextBlockCreateView(EditTemplatesMixin, View):
     def get(self, request):
         form = TextBlockForm()
         return render(request, "crm/textblock_form.html", {"form": form, "page_title": "Neuer Textbaustein"})
@@ -2667,7 +2697,7 @@ class TextBlockCreateView(AdminOrLeadMixin, View):
         return render(request, "crm/textblock_form.html", {"form": form, "page_title": "Neuer Textbaustein"})
 
 
-class TextBlockUpdateView(AdminOrLeadMixin, View):
+class TextBlockUpdateView(EditTemplatesMixin, View):
     def get(self, request, pk):
         tb = get_object_or_404(TextBlock, pk=pk)
         form = TextBlockForm(instance=tb)
@@ -2683,14 +2713,14 @@ class TextBlockUpdateView(AdminOrLeadMixin, View):
         return render(request, "crm/textblock_form.html", {"form": form, "page_title": "Textbaustein bearbeiten", "tb": tb})
 
 
-class TextBlockDeleteView(AdminOrLeadMixin, View):
+class TextBlockDeleteView(EditTemplatesMixin, View):
     def post(self, request, pk):
         get_object_or_404(TextBlock, pk=pk).delete()
         messages.success(request, "Textbaustein gelöscht.")
         return redirect("crm:textblock_list")
 
 
-class TextBlockSetDefaultView(AdminOrLeadMixin, View):
+class TextBlockSetDefaultView(EditTemplatesMixin, View):
     """Toggle: setzt diesen Baustein als Standard seiner Kategorie (oder hebt ihn auf)."""
     def post(self, request, pk):
         tb = get_object_or_404(TextBlock, pk=pk)
@@ -2743,7 +2773,7 @@ class UnitListView(AdminOrLeadMixin, ListView):
     context_object_name = "units"
 
 
-class UnitCreateView(AdminOrLeadMixin, View):
+class UnitCreateView(EditTemplatesMixin, View):
     def get(self, request):
         return render(request, "crm/unit_form.html", {
             "form": UnitForm(), "page_title": "Neue Einheit"
@@ -2760,7 +2790,7 @@ class UnitCreateView(AdminOrLeadMixin, View):
         })
 
 
-class UnitUpdateView(AdminOrLeadMixin, View):
+class UnitUpdateView(EditTemplatesMixin, View):
     def get(self, request, pk):
         unit = get_object_or_404(Unit, pk=pk)
         return render(request, "crm/unit_form.html", {
@@ -2779,14 +2809,14 @@ class UnitUpdateView(AdminOrLeadMixin, View):
         })
 
 
-class UnitDeleteView(AdminOrLeadMixin, View):
+class UnitDeleteView(EditTemplatesMixin, View):
     def post(self, request, pk):
         get_object_or_404(Unit, pk=pk).delete()
         messages.success(request, "Einheit gelöscht.")
         return redirect("crm:unit_list")
 
 
-class UnitReorderView(AdminOrLeadMixin, View):
+class UnitReorderView(EditTemplatesMixin, View):
     """AJAX POST: Reihenfolge der Einheiten via Drag-and-Drop speichern."""
     def post(self, request):
         import json

@@ -6,7 +6,7 @@
 {% block page_subheading %}{{ account.get_account_type_display }}{% endblock %}
 
 {% block topbar_actions %}
-  {% if request.user.can_approve_time_entries %}
+  {% if request.user.can_delete_accounts %}
     <a href="{% url 'crm:account_delete' account.pk %}"
        class="flex items-center gap-2 border border-red-200 bg-white hover:bg-red-50 text-red-600 font-medium text-sm px-4 py-2 rounded-lg transition">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -15,6 +15,8 @@
       </svg>
       Löschen
     </a>
+  {% endif %}
+  {% if request.user.can_edit_accounts %}
     <a href="{% url 'crm:account_edit' account.pk %}"
        class="flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-sm px-4 py-2 rounded-lg transition">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -23,6 +25,8 @@
       </svg>
       Bearbeiten
     </a>
+  {% endif %}
+  {% if request.user.can_edit_projects %}
     <a href="{% url 'crm:project_create' %}?account={{ account.pk }}"
        class="flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
