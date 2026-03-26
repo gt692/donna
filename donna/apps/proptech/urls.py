@@ -13,6 +13,7 @@ urlpatterns = [
     path("<uuid:pk>/delete/", views.PropertyReportDeleteView.as_view(), name="report_delete"),
     path("<uuid:pk>/generate/", views.PropertyReportGenerateView.as_view(), name="report_generate"),
     path("<uuid:pk>/save-text/", views.PropertyReportSaveTextView.as_view(), name="report_save_text"),
+    path("<uuid:pk>/refine/", views.PropertyReportRefineView.as_view(), name="report_refine"),
     # Dateien
     path("<uuid:pk>/files/upload/", views.PropertyReportFileUploadView.as_view(), name="file_upload"),
     path("<uuid:pk>/files/<uuid:fid>/delete/", views.PropertyReportFileDeleteView.as_view(), name="file_delete"),

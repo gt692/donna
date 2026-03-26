@@ -126,6 +126,55 @@ class PropertyReportSaveTextView(PropTechMixin, View):
         return redirect("proptech:report_detail", pk=pk)
 
 
+class PropertyReportRefineView(PropTechMixin, View):
+    """Überarbeitet den generierten Text anhand von Nutzer-Feedback via Claude."""
+    def post(self, request, pk):
+        import json
+        from django.http import JsonResponse
+        report = get_object_or_404(PropertyReport, pk=pk)
+        feedback = request.POST.get("feedback", "").strip()
+        current_text = request.POST.get("current_text", report.generated_text).strip()
+
+        if not feedback:
+            return JsonResponse({"error": "Kein Feedback angegeben."}, status=400)
+        if not current_text:
+            return JsonResponse({"error": "Noch kein generierter Text vorhanden."}, status=400)
+
+        from django.conf import settings as dj_settings
+        if not getattr(dj_settings, "ANTHROPIC_API_KEY", ""):
+            return JsonResponse({"error": "Kein Anthropic API-Key konfiguriert."}, status=500)
+
+        try:
+            import anthropic
+            client = anthropic.Anthropic(api_key=dj_settings.ANTHROPIC_API_KEY)
+            response = client.messages.create(
+                model="claude-opus-4-6",
+                max_tokens=4096,
+                system=(
+                    "Du bist ein erfahrener Immobilien-Texter. Du erhältst eine bestehende "
+                    "Objektbeschreibung und konkrete Überarbeitungshinweise. "
+                    "Überarbeite den Text präzise gemäß dem Feedback. "
+                    "Behalte alles bei was nicht kritisiert wird. "
+                    "Gib nur den überarbeiteten Text zurück, keine Erklärungen."
+                ),
+                messages=[{
+                    "role": "user",
+                    "content": (
+                        f"## Bestehende Beschreibung:\n\n{current_text}\n\n"
+                        f"## Mein Feedback / was überarbeitet werden soll:\n\n{feedback}\n\n"
+                        "Bitte überarbeite die Beschreibung entsprechend."
+                    ),
+                }],
+            )
+            refined_text = response.content[0].text
+            report.generated_text = refined_text
+            report.save(update_fields=["generated_text"])
+            return JsonResponse({"text": refined_text})
+        except Exception as exc:
+            logger.exception("Überarbeitung fehlgeschlagen für %s", pk)
+            return JsonResponse({"error": str(exc)}, status=500)
+
+
 # ── Dateien ────────────────────────────────────────────────────────────────────
 
 class PropertyReportFileUploadView(PropTechMixin, View):
