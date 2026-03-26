@@ -31,8 +31,10 @@
   <div style="background: {{ company_settings.primary_color|default:'#2F6FB3' }};" class="w-full px-4 py-5">
     <div class="max-w-lg mx-auto flex items-center gap-4">
       {% if company_logo_uri %}
-        <img src="{{ company_logo_uri }}" alt="{{ company_settings.company_name }}"
-             class="h-10 w-auto object-contain" style="filter: brightness(0) invert(1);">
+        <div style="background:#fff;border-radius:6px;padding:6px 10px;display:inline-block;">
+          <img src="{{ company_logo_uri }}" alt="{{ company_settings.company_name }}"
+               class="h-9 w-auto object-contain block">
+        </div>
       {% else %}
         <span class="text-white text-xl font-bold">{{ company_settings.company_name }}</span>
       {% endif %}

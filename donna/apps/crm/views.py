@@ -83,7 +83,11 @@ def _build_email(subject: str, text_body: str, to: list[str]) -> EmailMessage:
                 raw = f.read()
             mime = mimetypes.guess_type(cs.logo.name)[0] or "image/png"
             logo_data_uri = f"data:{mime};base64,{base64.b64encode(raw).decode()}"
-            logo_html = f'<img src="{logo_data_uri}" alt="{cs.company_name}" style="max-height:50px;max-width:180px;object-fit:contain;margin-bottom:16px;">'
+            logo_html = (
+                f'<div style="display:inline-block;background:#ffffff;border-radius:6px;padding:8px 12px;">'
+                f'<img src="{logo_data_uri}" alt="{cs.company_name}" style="max-height:40px;max-width:160px;object-fit:contain;display:block;">'
+                f'</div>'
+            )
         except (OSError, ValueError):
             pass
 
