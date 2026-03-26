@@ -137,11 +137,10 @@
 </div>
 
 {% if google_maps_api_key %}
-<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&loading=async" async defer></script>
 <script>
-window.addEventListener('load', function() {
-  if (typeof google === 'undefined' || !google.maps || !google.maps.places) return;
+function initDonnaAutocomplete() {
   const input = document.getElementById('id_street');
+  if (!input) return;
   const ac = new google.maps.places.Autocomplete(input, {
     types: ['address'],
     componentRestrictions: { country: ['de', 'at', 'ch'] },
@@ -161,7 +160,8 @@ window.addEventListener('load', function() {
     document.getElementById('id_postal_code').value = postal;
     document.getElementById('id_city').value        = city;
   });
-});
+}
 </script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initDonnaAutocomplete" async defer></script>
 {% endif %}
 {% endblock %}
