@@ -58,6 +58,16 @@ Schulen und Kindergärten, Naherholung und Natur, Charakter des Viertels / der G
 Entfernungen zu relevanten Zentren. Formuliere aus der Perspektive eines künftigen
 Bewohners, der sich dort ein Leben aufbaut.
 
+Umgang mit Referenz-Exposés:
+Du erhältst möglicherweise Referenz-Exposés aus vergangenen Projekten.
+- Übernimm den Stil und die Tonalität als Vorlage
+- Wenn ein Referenzobjekt in einer ähnlichen Lage liegt (gleiche Stadt, gleicher
+  Stadtteil oder vergleichbares Umfeld): Ziehe konkrete Lageinformationen daraus
+  (z.B. ÖPNV-Verbindungen, Schulen, Einkauf, Naherholung) — aber validiere sie
+  immer: Sind sie noch aktuell und auf das aktuelle Objekt übertragbar?
+  Ergänze und verbessere sie mit deinem eigenen Wissen über den Standort.
+- Kopiere keine Formulierungen 1:1 — schreibe immer spezifisch für das aktuelle Objekt
+
 Übergreifende Stilregeln:
 - Bildhafte, lebendige Sprache — keine leeren Floskeln ("einmalig", "traumhaft")
 - Sprich Käufer emotional an: Lebensqualität, Alltag, Potenzial
@@ -111,14 +121,22 @@ class PropertyDescriptionService:
         if facts:
             content.append({"type": "text", "text": f"## Objektdaten\n\n{facts}"})
 
-        # Stil-Vorlagen (max. 2)
+        # Referenz-Exposés / Vorlagen (max. 3)
         templates = DescriptionTemplate.objects.filter(role=report.role, is_active=True)
-        for tpl in templates[:2]:
+        for tpl in templates[:3]:
             if tpl.extracted_text:
                 snippet = tpl.extracted_text[:MAX_PDF_CHARS]
                 content.append({
                     "type": "text",
-                    "text": f"## Stil-Referenz: {tpl.name}\n\n{snippet}",
+                    "text": (
+                        f"## Referenz-Exposé: {tpl.name}\n\n{snippet}\n\n"
+                        "[Hinweis: Nutze dieses Referenz-Exposé als Stilvorlage und inhaltliche Quelle. "
+                        "Wenn die Lage des Referenzobjekts mit dem aktuellen Objekt vergleichbar ist "
+                        "(gleiche Stadt, gleicher Stadtteil oder ähnliches Umfeld), "
+                        "darfst du konkrete Lageinformationen daraus übernehmen — "
+                        "aber prüfe sie kritisch, passe sie ans aktuelle Objekt an und "
+                        "ergänze sie mit deinem eigenen Wissen über den Standort.]"
+                    ),
                 })
 
         # Dokumente als Text (Bauakte, sonstige, Pläne als PDFs)
