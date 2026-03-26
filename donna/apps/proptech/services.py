@@ -38,16 +38,32 @@ lasse diese Punkte weg. Strukturiere den Text in klare Absätze je Gebäudeteil.
 SYSTEM_PROMPT_MAKLER = """Du bist ein erfahrener Immobilienmakler und Texter für Immobilienexposés.
 Erstelle eine ansprechende, verkaufsfördernde Objektbeschreibung für ein Exposé.
 
-Dein Ziel:
-- Hebe die Highlights und Stärken der Immobilie hervor
-- Verwende positive, bildhafte und lebendige Sprache
-- Sprich potenzielle Käufer emotional an (Lebensqualität, Wohngefühl, Potenzial)
-- Verzichte auf übermäßig technische Details — fokussiere auf das Erleben
-- Strukturiere in 3–5 Absätze mit natürlichem Lesefluss
-- Der Ton ist einladend und professionell, nicht reißerisch
+Gliedere den Text immer in genau diese drei Abschnitte mit den folgenden Überschriften:
 
-Beginne mit einem einleitenden Satz, der die Immobilie auf den Punkt bringt. \
-Vermeide Floskeln wie "Einzigartig" oder "einmalige Gelegenheit"."""
+**Immobilie**
+Beschreibe das Objekt als Ganzes: Art, Charakter, Baujahr, Zustand, Besonderheiten,
+was das Haus oder die Wohnung auf den ersten Blick ausmacht. Beginne mit einem
+einleitenden Satz, der das Objekt auf den Punkt bringt. Ton: einladend und professionell.
+
+**Ausstattung**
+Beschreibe die Ausstattungsmerkmale konkret und ansprechend: Böden, Bäder, Küche,
+Heizung, Fenster, Einbauschränke, Keller, Garage, Terrasse, Garten — was immer
+aus den Unterlagen und Fotos erkennbar ist. Fokus auf Qualität und Wohngefühl,
+nicht auf reine technische Fakten.
+
+**Lage**
+Beschreibe die Lage basierend auf deinem Wissen über den angegebenen Ort und Stadtteil.
+Gehe ein auf: Infrastruktur (ÖPNV, Autobahnanbindung), Einkaufsmöglichkeiten,
+Schulen und Kindergärten, Naherholung und Natur, Charakter des Viertels / der Gemeinde,
+Entfernungen zu relevanten Zentren. Formuliere aus der Perspektive eines künftigen
+Bewohners, der sich dort ein Leben aufbaut.
+
+Übergreifende Stilregeln:
+- Bildhafte, lebendige Sprache — keine leeren Floskeln ("einmalig", "traumhaft")
+- Sprich Käufer emotional an: Lebensqualität, Alltag, Potenzial
+- Keine rein technischen Aufzählungen — Fließtext mit natürlichem Lesefluss
+- Jeder Abschnitt 2–4 Sätze bis zu einem kurzen Absatz
+- Schreibe auf Deutsch, Duzen vermeiden (neutral formulieren)"""
 
 MAX_IMAGES = 10
 MAX_PDF_CHARS = 8_000
@@ -139,18 +155,26 @@ class PropertyDescriptionService:
                     logger.warning("Bild konnte nicht geladen werden (%s): %s", f.filename, exc)
 
         # Abschluss-Prompt
-        role_label = (
-            "Gutachter-Baubeschreibung (Verkehrswertgutachten)"
-            if report.role == "gutachter"
-            else "Makler-Objektbeschreibung (Exposé)"
-        )
-        content.append({
-            "type": "text",
-            "text": (
-                f"Bitte erstelle jetzt die {role_label} für dieses Objekt auf Basis "
-                "aller oben bereitgestellten Informationen und Unterlagen."
-            ),
-        })
+        if report.role == "gutachter":
+            closing = (
+                "Bitte erstelle jetzt die Gutachter-Baubeschreibung (Verkehrswertgutachten) "
+                "für dieses Objekt auf Basis aller oben bereitgestellten Informationen und Unterlagen."
+            )
+        else:
+            addr_parts = filter(None, [report.street, report.postal_code, report.city])
+            addr = " ".join(addr_parts)
+            closing = (
+                "Bitte erstelle jetzt die Makler-Objektbeschreibung (Exposé) "
+                "für dieses Objekt auf Basis aller oben bereitgestellten Informationen und Unterlagen. "
+                "Strukturiere den Text in die drei Abschnitte: Immobilie, Ausstattung, Lage. "
+            )
+            if addr:
+                closing += (
+                    f"Für den Abschnitt 'Lage' nutze dein Wissen über den Standort ({addr}) — "
+                    "beschreibe Infrastruktur, ÖPNV, Schulen, Einkauf, Naherholung und Charakter "
+                    "des Viertels/der Gemeinde so konkret wie möglich."
+                )
+        content.append({"type": "text", "text": closing})
 
         response = client.messages.create(
             model="claude-opus-4-6",
