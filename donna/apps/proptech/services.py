@@ -59,14 +59,18 @@ Entfernungen zu relevanten Zentren. Formuliere aus der Perspektive eines künfti
 Bewohners, der sich dort ein Leben aufbaut.
 
 Umgang mit Referenz-Exposés:
-Du erhältst möglicherweise Referenz-Exposés aus vergangenen Projekten.
-- Übernimm den Stil und die Tonalität als Vorlage
-- Wenn ein Referenzobjekt in einer ähnlichen Lage liegt (gleiche Stadt, gleicher
-  Stadtteil oder vergleichbares Umfeld): Ziehe konkrete Lageinformationen daraus
-  (z.B. ÖPNV-Verbindungen, Schulen, Einkauf, Naherholung) — aber validiere sie
-  immer: Sind sie noch aktuell und auf das aktuelle Objekt übertragbar?
-  Ergänze und verbessere sie mit deinem eigenen Wissen über den Standort.
-- Kopiere keine Formulierungen 1:1 — schreibe immer spezifisch für das aktuelle Objekt
+Du erhältst möglicherweise fertige Exposés aus vergangenen Projekten unserer Experten.
+Diese sind keine bloßen Stilvorlagen — sie sind Beispiele dafür, wie erfahrene
+Immobilienprofis konkrete Objekte mit Fotos und Dokumenten bewertet und in Texte
+übersetzt haben. Lerne daraus:
+- BEWERTUNGSLOGIK: Was haben die Experten als wichtig erachtet, was weggelassen?
+  Wende dieselbe Prioritätensetzung auf das aktuelle Objekt an.
+- AUSSTATTUNG: Wie wurden ähnliche Merkmale (Böden, Bäder, Küche, Garten etc.)
+  bewertet und formuliert? Übertrage diese Bewertungen auf vergleichbare Merkmale.
+- LAGE: Bei ähnlichem Standort: konkrete Infrastrukturinfos übernehmen, validieren,
+  ans aktuelle Objekt anpassen und mit eigenem Wissen anreichern.
+- STIL: Ton, Satzbau und Abstraktionsgrad als Muster übernehmen.
+Alles Übernommene kritisch prüfen, anpassen und verbessern — nie 1:1 kopieren.
 
 Übergreifende Stilregeln:
 - Bildhafte, lebendige Sprache — keine leeren Floskeln ("einmalig", "traumhaft")
@@ -129,13 +133,21 @@ class PropertyDescriptionService:
                 content.append({
                     "type": "text",
                     "text": (
-                        f"## Referenz-Exposé: {tpl.name}\n\n{snippet}\n\n"
-                        "[Hinweis: Nutze dieses Referenz-Exposé als Stilvorlage und inhaltliche Quelle. "
-                        "Wenn die Lage des Referenzobjekts mit dem aktuellen Objekt vergleichbar ist "
-                        "(gleiche Stadt, gleicher Stadtteil oder ähnliches Umfeld), "
-                        "darfst du konkrete Lageinformationen daraus übernehmen — "
-                        "aber prüfe sie kritisch, passe sie ans aktuelle Objekt an und "
-                        "ergänze sie mit deinem eigenen Wissen über den Standort.]"
+                        f"## Referenz-Exposé aus vergangenen Projekten: {tpl.name}\n\n"
+                        f"{snippet}\n\n"
+                        "[Analysiere dieses Referenz-Exposé als Beispiel dafür, wie unsere Experten "
+                        "ein Objekt bewertet und beschrieben haben:\n"
+                        "1. BEWERTUNGSLOGIK: Welche Merkmale haben die Experten als Stärken "
+                        "hervorgehoben? Was wurde weggelassen? Welche Prioritäten sind erkennbar?\n"
+                        "2. AUSSTATTUNG: Welche Ausstattungsmerkmale wurden wie bewertet und formuliert? "
+                        "Übernimm diese Bewertungslogik für ähnliche Merkmale beim aktuellen Objekt.\n"
+                        "3. LAGE: Wenn das Referenzobjekt in einer vergleichbaren Lage liegt "
+                        "(gleiche Stadt, Stadtteil oder ähnliches Umfeld), übernimm konkrete "
+                        "Lageinformationen als Ausgangsbasis.\n"
+                        "4. STIL & SPRACHE: Übernimm den Ton, die Satzkonstruktionen und den "
+                        "Abstraktionsgrad als Stilvorlage.\n"
+                        "Wichtig: Validiere alle übernommenen Inhalte — passe sie präzise ans aktuelle "
+                        "Objekt an, verbessere und ergänze sie. Kopiere keine Formulierungen 1:1.]"
                     ),
                 })
 
