@@ -2555,6 +2555,7 @@ class LeadInquiryPublicView(View):
             "inquiry": inquiry,
             "project": inquiry.project,
             "google_maps_api_key": dj_settings.GOOGLE_MAPS_API_KEY,
+            **_company_ctx(),
         })
 
     def post(self, request, token):
