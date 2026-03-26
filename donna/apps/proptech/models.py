@@ -86,6 +86,7 @@ class PropertyReportFile(models.Model):
     file_type = models.CharField(max_length=20, choices=TYPE_CHOICES, verbose_name=_("Dateityp"))
     file = models.FileField(upload_to="property_reports/%Y/%m/", verbose_name=_("Datei"))
     label = models.CharField(max_length=255, blank=True, verbose_name=_("Bezeichnung"))
+    markdown_content = models.TextField(blank=True, verbose_name=_("Markdown-Inhalt (KI-aufbereitet)"))
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

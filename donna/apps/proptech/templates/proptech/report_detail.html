@@ -201,7 +201,14 @@
             {% endif %}
             <div class="min-w-0">
               <p class="text-xs font-medium text-slate-700 truncate">{{ f.label|default:f.filename }}</p>
-              <p class="text-xs text-slate-400">{{ f.get_file_type_display }}</p>
+              <p class="text-xs text-slate-400">
+                {{ f.get_file_type_display }}
+                {% if f.markdown_content %}
+                  <span class="ml-1 text-emerald-500" title="Markdown aufbereitet">✓ KI-bereit</span>
+                {% else %}
+                  <span class="ml-1 text-amber-400" title="Noch nicht aufbereitet">⏳</span>
+                {% endif %}
+              </p>
             </div>
           </div>
           <form method="post" action="{% url 'proptech:file_delete' report.pk f.pk %}"

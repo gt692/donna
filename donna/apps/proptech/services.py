@@ -2,6 +2,8 @@
 proptech/services.py
 
 KI-Service zur Generierung von Baubeschreibungen via Claude API.
+Jede hochgeladene Datei wird sofort beim Upload in Markdown konvertiert
+und als wiederverwendbarer Wissenspool gespeichert.
 """
 import base64
 import logging
@@ -79,8 +81,8 @@ Alles Übernommene kritisch prüfen, anpassen und verbessern — nie 1:1 kopiere
 - Jeder Abschnitt 2–4 Sätze bis zu einem kurzen Absatz
 - Schreibe auf Deutsch, Duzen vermeiden (neutral formulieren)"""
 
-MAX_IMAGES = 10
-MAX_PDF_CHARS = 8_000
+MAX_TEMPLATE_CHARS = 8_000
+MAX_FILE_MARKDOWN_CHARS = 6_000
 
 
 def _extract_pdf_text(file_field) -> str:
@@ -110,6 +112,100 @@ def _image_to_base64(file_field) -> tuple:
         return base64.standard_b64encode(f.read()).decode(), media_type
 
 
+def convert_file_to_markdown(file_record) -> str:
+    """
+    Konvertiert eine hochgeladene Datei sofort beim Upload in Markdown.
+    PDFs werden per pypdf extrahiert, Bilder via Claude Vision beschrieben.
+    Das Ergebnis wird in file_record.markdown_content gespeichert.
+    Gibt den generierten Markdown-Text zurück.
+    """
+    label = file_record.label or os.path.basename(file_record.file.name)
+    file_type_label = file_record.get_file_type_display()
+
+    if file_record.is_pdf:
+        text = _extract_pdf_text(file_record.file)
+        if not text:
+            return ""
+        markdown = (
+            f"# {file_type_label}: {label}\n\n"
+            f"{text}"
+        )
+    elif file_record.is_image:
+        markdown = _image_to_markdown_via_claude(file_record, file_type_label, label)
+    else:
+        return ""
+
+    if markdown:
+        file_record.markdown_content = markdown
+        file_record.save(update_fields=["markdown_content"])
+
+    return markdown
+
+
+def _image_to_markdown_via_claude(file_record, file_type_label: str, label: str) -> str:
+    """
+    Sendet ein Bild an Claude (Haiku — kostengünstig für Upload-Verarbeitung)
+    und erhält eine detaillierte Markdown-Beschreibung zurück.
+    """
+    api_key = getattr(settings, "ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return ""
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+        b64, media_type = _image_to_base64(file_record.file)
+
+        if file_record.file_type == "photo":
+            instruction = (
+                "Beschreibe dieses Immobilienfoto detailliert für eine KI-gestützte "
+                "Objektbeschreibung. Analysiere:\n"
+                "- Welcher Raum / Bereich ist zu sehen?\n"
+                "- Ausstattungsmerkmale: Böden, Wände, Decken, Fenster, Einbauten\n"
+                "- Qualität und Zustand der sichtbaren Elemente\n"
+                "- Besonderheiten, Highlights oder Mängel\n"
+                "- Stimmung und Wirkung des Raums\n"
+                "Schreibe präzise und sachlich. Strukturiere als Markdown mit kurzen Absätzen."
+            )
+        elif file_record.file_type == "plan":
+            instruction = (
+                "Beschreibe diesen Grundriss / Plan detailliert für eine KI-gestützte "
+                "Objektbeschreibung. Analysiere:\n"
+                "- Raumaufteilung und Anzahl der Zimmer\n"
+                "- Erschließung und Wegführung\n"
+                "- Lage von Bad, Küche, Wohnbereich\n"
+                "- Besonderheiten wie Terrasse, Keller, Dachschrägen\n"
+                "- Gesamteindruck der Grundrissqualität\n"
+                "Schreibe präzise. Strukturiere als Markdown."
+            )
+        else:
+            instruction = (
+                "Beschreibe dieses Dokument / Bild detailliert für eine KI-gestützte "
+                "Immobilienbeschreibung. Extrahiere alle relevanten Informationen "
+                "über das Objekt (Zustand, Ausstattung, Besonderheiten). "
+                "Strukturiere als Markdown."
+            )
+
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1024,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {"type": "base64", "media_type": media_type, "data": b64},
+                    },
+                    {"type": "text", "text": instruction},
+                ],
+            }],
+        )
+        description = response.content[0].text
+        return f"# {file_type_label}: {label}\n\n{description}"
+    except Exception as exc:
+        logger.warning("Bild-zu-Markdown fehlgeschlagen (%s): %s", label, exc)
+        return ""
+
+
 class PropertyDescriptionService:
     def generate(self, report) -> str:
         import anthropic
@@ -128,8 +224,9 @@ class PropertyDescriptionService:
         # Referenz-Exposés / Vorlagen (max. 3)
         templates = DescriptionTemplate.objects.filter(role=report.role, is_active=True)
         for tpl in templates[:3]:
-            if tpl.extracted_text:
-                snippet = tpl.extracted_text[:MAX_PDF_CHARS]
+            tpl_text = tpl.extracted_text
+            if tpl_text:
+                snippet = tpl_text[:MAX_TEMPLATE_CHARS]
                 content.append({
                     "type": "text",
                     "text": (
@@ -151,51 +248,37 @@ class PropertyDescriptionService:
                     ),
                 })
 
-        # Dokumente als Text (Bauakte, sonstige, Pläne als PDFs)
-        doc_files = report.files.filter(file_type__in=["bauakte", "misc", "plan"])
-        pdf_texts = []
-        for f in doc_files:
-            if f.is_pdf:
-                text = _extract_pdf_text(f.file)
-                if text:
-                    pdf_texts.append(
-                        f"### {f.get_file_type_display()}: {f.label or f.filename}\n\n{text[:MAX_PDF_CHARS]}"
-                    )
-        if pdf_texts:
+        # Hochgeladene Dateien als Markdown-Pool
+        file_sections = []
+        for f in report.files.all().order_by("file_type", "uploaded_at"):
+            md = f.markdown_content
+            if md:
+                file_sections.append(md[:MAX_FILE_MARKDOWN_CHARS])
+
+        if file_sections:
             content.append({
                 "type": "text",
-                "text": "## Hochgeladene Dokumente\n\n" + "\n\n---\n\n".join(pdf_texts),
+                "text": (
+                    "## Hochgeladene Unterlagen (KI-aufbereitetes Markdown)\n\n"
+                    "Die folgenden Beschreibungen wurden automatisch aus den hochgeladenen "
+                    "Fotos, Grundrissen und Dokumenten generiert. Nutze sie als primäre "
+                    "Informationsquelle für Ausstattung und Zustand des Objekts.\n\n"
+                    + "\n\n---\n\n".join(file_sections)
+                ),
             })
-
-        # Bilder (Fotos + Pläne als Bilder)
-        image_files = list(report.files.filter(file_type__in=["photo", "plan"]))
-        image_count = 0
-        for f in image_files:
-            if image_count >= MAX_IMAGES:
-                break
-            if f.is_image:
-                try:
-                    b64, media_type = _image_to_base64(f.file)
-                    content.append({
-                        "type": "image",
-                        "source": {"type": "base64", "media_type": media_type, "data": b64},
-                    })
-                    image_count += 1
-                except Exception as exc:
-                    logger.warning("Bild konnte nicht geladen werden (%s): %s", f.filename, exc)
 
         # Abschluss-Prompt
         if report.role == "gutachter":
             closing = (
                 "Bitte erstelle jetzt die Gutachter-Baubeschreibung (Verkehrswertgutachten) "
-                "für dieses Objekt auf Basis aller oben bereitgestellten Informationen und Unterlagen."
+                "für dieses Objekt auf Basis aller oben bereitgestellten Informationen."
             )
         else:
-            addr_parts = filter(None, [report.street, report.postal_code, report.city])
+            addr_parts = list(filter(None, [report.street, report.postal_code, report.city]))
             addr = " ".join(addr_parts)
             closing = (
                 "Bitte erstelle jetzt die Makler-Objektbeschreibung (Exposé) "
-                "für dieses Objekt auf Basis aller oben bereitgestellten Informationen und Unterlagen. "
+                "für dieses Objekt auf Basis aller oben bereitgestellten Informationen. "
                 "Strukturiere den Text in die drei Abschnitte: Immobilie, Ausstattung, Lage. "
             )
             if addr:

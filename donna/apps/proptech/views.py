@@ -131,13 +131,24 @@ class PropertyReportSaveTextView(PropTechMixin, View):
 class PropertyReportFileUploadView(PropTechMixin, View):
     def post(self, request, pk):
         report = get_object_or_404(PropertyReport, pk=pk)
-        form = PropertyReportFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            f = form.save(commit=False)
-            f.report = report
-            f.save()
-        else:
-            messages.error(request, "Fehler beim Hochladen. Bitte Datei und Typ prüfen.")
+        file_type = request.POST.get("file_type", "")
+        label = request.POST.get("label", "")
+        files = request.FILES.getlist("file")
+        if not files or not file_type:
+            messages.error(request, "Bitte Dateityp wählen und mindestens eine Datei auswählen.")
+            return redirect("proptech:report_detail", pk=pk)
+        from .services import convert_file_to_markdown
+        for uploaded in files:
+            file_record = PropertyReportFile.objects.create(
+                report=report,
+                file_type=file_type,
+                file=uploaded,
+                label=label,
+            )
+            try:
+                convert_file_to_markdown(file_record)
+            except Exception:
+                logger.exception("Markdown-Konvertierung fehlgeschlagen für %s", file_record.pk)
         return redirect("proptech:report_detail", pk=pk)
 
 
@@ -171,12 +182,22 @@ class DescriptionTemplateCreateView(PropTechMixin, CreateView):
         obj = self.object
         if obj.file:
             import os
-            if os.path.splitext(obj.file.name)[1].lower() == ".pdf":
-                from .services import _extract_pdf_text
+            from .services import _extract_pdf_text
+            ext = os.path.splitext(obj.file.name)[1].lower()
+            if ext == ".pdf":
                 text = _extract_pdf_text(obj.file)
                 if text:
-                    obj.extracted_text = text
+                    obj.extracted_text = f"# Vorlage: {obj.name}\n\n{text}"
                     obj.save(update_fields=["extracted_text"])
+            elif ext in (".txt", ".md"):
+                try:
+                    with obj.file.open("r") as f:
+                        text = f.read()
+                    if text:
+                        obj.extracted_text = f"# Vorlage: {obj.name}\n\n{text}"
+                        obj.save(update_fields=["extracted_text"])
+                except Exception:
+                    pass
         messages.success(self.request, f'Vorlage "{obj.name}" hochgeladen.')
         return response
 
