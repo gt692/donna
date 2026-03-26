@@ -1496,6 +1496,21 @@ def _set_recipient_account(offer, request):
         offer.recipient_account = None
 
 
+def _account_address(acc) -> str:
+    """Build a multi-line address string from an Account's address fields."""
+    parts = []
+    if acc.address_line1:
+        parts.append(acc.address_line1)
+    if acc.address_line2:
+        parts.append(acc.address_line2)
+    city_line = " ".join(filter(None, [acc.postal_code, acc.city]))
+    if city_line:
+        parts.append(city_line)
+    if acc.country and acc.country != "Deutschland":
+        parts.append(acc.country)
+    return "\n".join(parts)
+
+
 def _textblock_defaults(scope: str) -> dict:
     """Return initial field values from is_default TextBlocks for the given scope (offer/invoice)."""
     payment_field = "payment_info" if scope == "invoice" else "payment_terms"
@@ -1527,8 +1542,10 @@ class OfferCreateView(EditOffersMixin, View):
             initial["intro_text"] = request.GET["description"]
         # Also try from account if not pre-filled
         if project.account and not initial.get("recipient_name"):
-            initial["recipient_name"] = project.account.name
-            initial["recipient_email"] = project.account.billing_email or project.account.email
+            acc = project.account
+            initial["recipient_name"]    = acc.name
+            initial["recipient_email"]   = acc.billing_email or acc.email
+            initial["recipient_address"] = _account_address(acc)
         from django.conf import settings as dj_settings
         form    = OfferForm(initial=initial)
         formset = _build_offer_formset(request, extra=3)
@@ -2041,9 +2058,10 @@ class InvoiceCreateView(EditInvoicesMixin, View):
         project = get_object_or_404(Project, pk=pk)
         initial = {**_textblock_defaults("invoice"), "title": f"Rechnung – {project.name}"}
         if project.account:
-            initial["recipient_name"] = project.account.name
-            initial["recipient_email"] = project.account.billing_email or project.account.email
-            initial["recipient_address"] = project.account.address_line1 or ""
+            acc = project.account
+            initial["recipient_name"]    = acc.name
+            initial["recipient_email"]   = acc.billing_email or acc.email
+            initial["recipient_address"] = _account_address(acc)
         form = InvoiceForm(initial=initial)
         formset = _build_invoice_formset(request, extra=3)
         return render(request, "crm/invoice_form.html", {
