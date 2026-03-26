@@ -274,6 +274,19 @@
         </div>
       </div>
 
+      {% if pending_files_count %}
+      <div class="px-6 py-3 bg-amber-50 border-b border-amber-100 text-xs text-amber-700 flex items-start gap-2">
+        <svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span>
+          <strong>{{ pending_files_count }} Datei{{ pending_files_count|pluralize:"en" }}</strong> noch nicht KI-aufbereitet —
+          werden beim Generieren automatisch verarbeitet
+          {% if pending_files_count > 10 %}(ca. {{ pending_files_count|add:1 }} Min.){% elif pending_files_count > 3 %}(ca. 1–2 Min.){% endif %}.
+          Folge-Generierungen sind schneller.
+        </span>
+      </div>
+      {% endif %}
       {% if report.hints %}
       <div class="px-6 py-3 bg-amber-50 border-b border-amber-100 text-xs text-amber-700">
         {{ report.hints }}

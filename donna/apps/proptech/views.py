@@ -67,6 +67,7 @@ class PropertyReportDetailView(PropTechMixin, DetailView):
             "misc":    report.files.filter(file_type="misc"),
         }
         ctx["upload_form"] = PropertyReportFileForm()
+        ctx["pending_files_count"] = report.files.filter(markdown_content="").count()
         return ctx
 
 
