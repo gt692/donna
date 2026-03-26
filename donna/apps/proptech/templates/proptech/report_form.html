@@ -60,15 +60,25 @@
       <div class="px-6 py-5 grid grid-cols-2 gap-4">
         <div class="col-span-2">
           <label class="block text-sm font-medium text-slate-600 mb-1">Straße + Hausnummer</label>
-          {{ form.street }}
+          <input type="text" id="id_street" name="street"
+                 value="{{ form.street.value|default:'' }}"
+                 placeholder="Musterstraße 1"
+                 autocomplete="off"
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] transition">
         </div>
         <div>
           <label class="block text-sm font-medium text-slate-600 mb-1">PLZ</label>
-          {{ form.postal_code }}
+          <input type="text" id="id_postal_code" name="postal_code"
+                 value="{{ form.postal_code.value|default:'' }}"
+                 placeholder="12345"
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] transition">
         </div>
         <div>
           <label class="block text-sm font-medium text-slate-600 mb-1">Ort</label>
-          {{ form.city }}
+          <input type="text" id="id_city" name="city"
+                 value="{{ form.city.value|default:'' }}"
+                 placeholder="Berlin"
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] transition">
         </div>
       </div>
     </div>
@@ -125,4 +135,33 @@
     </div>
   </form>
 </div>
+
+{% if google_maps_api_key %}
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&loading=async" async defer></script>
+<script>
+window.addEventListener('load', function() {
+  if (typeof google === 'undefined' || !google.maps || !google.maps.places) return;
+  const input = document.getElementById('id_street');
+  const ac = new google.maps.places.Autocomplete(input, {
+    types: ['address'],
+    componentRestrictions: { country: ['de', 'at', 'ch'] },
+    fields: ['address_components'],
+  });
+  ac.addListener('place_changed', function() {
+    const place = ac.getPlace();
+    if (!place.address_components) return;
+    let street = '', number = '', postal = '', city = '';
+    place.address_components.forEach(c => {
+      if (c.types.includes('route'))         street = c.long_name;
+      if (c.types.includes('street_number')) number = c.long_name;
+      if (c.types.includes('postal_code'))   postal = c.long_name;
+      if (c.types.includes('locality'))      city   = c.long_name;
+    });
+    input.value = number ? `${street} ${number}` : street;
+    document.getElementById('id_postal_code').value = postal;
+    document.getElementById('id_city').value        = city;
+  });
+});
+</script>
+{% endif %}
 {% endblock %}

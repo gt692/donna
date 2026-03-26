@@ -37,9 +37,11 @@ class PropertyReportCreateView(PropTechMixin, CreateView):
     template_name = "proptech/report_form.html"
 
     def get_context_data(self, **kwargs):
+        from django.conf import settings as dj_settings
         ctx = super().get_context_data(**kwargs)
         ctx["page_title"] = "Neue Baubeschreibung"
         ctx["submit_label"] = "Erstellen"
+        ctx["google_maps_api_key"] = dj_settings.GOOGLE_MAPS_API_KEY
         return ctx
 
     def form_valid(self, form):
@@ -74,9 +76,11 @@ class PropertyReportUpdateView(PropTechMixin, UpdateView):
     template_name = "proptech/report_form.html"
 
     def get_context_data(self, **kwargs):
+        from django.conf import settings as dj_settings
         ctx = super().get_context_data(**kwargs)
         ctx["page_title"] = "Baubeschreibung bearbeiten"
         ctx["submit_label"] = "Speichern"
+        ctx["google_maps_api_key"] = dj_settings.GOOGLE_MAPS_API_KEY
         return ctx
 
     def get_success_url(self):
