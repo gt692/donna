@@ -5,6 +5,17 @@ from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+BUILDING_TYPE_CHOICES = [
+    ("efh", "Einfamilienhaus"),
+    ("zfh", "Zweifamilienhaus"),
+    ("dh", "Doppelhaushälfte / Reihenhaus"),
+    ("mfh", "Mehrfamilienhaus"),
+    ("etw", "Eigentumswohnung"),
+    ("bauplatz", "Bauplatz / Grundstück"),
+    ("gewerbe", "Gewerbeimmobilie"),
+    ("sonstige", "Sonstige"),
+]
+
 
 class PropertyReport(models.Model):
     ROLE_GUTACHTER = "gutachter"
@@ -32,7 +43,7 @@ class PropertyReport(models.Model):
     city = models.CharField(max_length=100, blank=True, verbose_name=_("Ort"))
 
     # Hardfacts
-    building_type = models.CharField(max_length=100, blank=True, verbose_name=_("Gebäudeart"))
+    building_type = models.CharField(max_length=20, blank=True, choices=BUILDING_TYPE_CHOICES, verbose_name=_("Gebäudeart"))
     year_of_construction = models.PositiveIntegerField(null=True, blank=True, verbose_name=_("Baujahr"))
     living_area = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, verbose_name=_("Wohnfläche (m²)"))
     plot_area = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, verbose_name=_("Grundstücksfläche (m²)"))
@@ -110,17 +121,6 @@ class PropertyReportFile(models.Model):
 
 class DescriptionTemplate(models.Model):
     ROLE_CHOICES = PropertyReport.ROLE_CHOICES
-
-    BUILDING_TYPE_CHOICES = [
-        ("efh", "Einfamilienhaus"),
-        ("zfh", "Zweifamilienhaus"),
-        ("dh", "Doppelhaushälfte / Reihenhaus"),
-        ("mfh", "Mehrfamilienhaus"),
-        ("etw", "Eigentumswohnung"),
-        ("bauplatz", "Bauplatz / Grundstück"),
-        ("gewerbe", "Gewerbeimmobilie"),
-        ("sonstige", "Sonstige"),
-    ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255, verbose_name=_("Name"))

@@ -30,7 +30,7 @@ class PropertyReportForm(forms.ModelForm):
             "street": forms.TextInput(attrs={"class": _TW, "placeholder": "Musterstraße 1"}),
             "postal_code": forms.TextInput(attrs={"class": _TW, "placeholder": "12345"}),
             "city": forms.TextInput(attrs={"class": _TW, "placeholder": "Berlin"}),
-            "building_type": forms.TextInput(attrs={"class": _TW, "placeholder": "z.B. Einfamilienhaus, Mehrfamilienhaus, Gewerbe…"}),
+            "building_type": forms.Select(attrs={"class": _TW_SELECT}),
             "year_of_construction": forms.NumberInput(attrs={"class": _TW, "placeholder": "z.B. 1985"}),
             "living_area": forms.NumberInput(attrs={"class": _TW, "step": "0.01", "placeholder": "m²"}),
             "plot_area": forms.NumberInput(attrs={"class": _TW, "step": "0.01", "placeholder": "m²"}),

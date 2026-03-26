@@ -224,7 +224,7 @@ class PropertyDescriptionService:
         # Referenz-Exposés / Vorlagen (max. 3)
         # Passende Gebäudetyp-Vorlagen zuerst, dann allgemeine
         from django.db.models import Case, When, IntegerField
-        building_type_key = self._map_building_type(report.building_type)
+        building_type_key = report.building_type or ""
         templates = (
             DescriptionTemplate.objects
             .filter(role=report.role, is_active=True)
@@ -312,27 +312,6 @@ class PropertyDescriptionService:
         )
         return response.content[0].text
 
-    def _map_building_type(self, building_type: str) -> str:
-        """Mapped freien Text-Gebäudetyp auf DescriptionTemplate.BUILDING_TYPE_CHOICES key."""
-        if not building_type:
-            return ""
-        bt = building_type.lower()
-        if any(k in bt for k in ("einfamilienhaus", "efh", "villa", "bungalow")):
-            return "efh"
-        if any(k in bt for k in ("zweifamilienhaus", "zfh")):
-            return "zfh"
-        if any(k in bt for k in ("doppelhaus", "reihenhaus", "dh")):
-            return "dh"
-        if any(k in bt for k in ("mehrfamilienhaus", "mfh", "mehrfamilien")):
-            return "mfh"
-        if any(k in bt for k in ("wohnung", "etw", "apartment")):
-            return "etw"
-        if any(k in bt for k in ("bauplatz", "grundstück", "bauland", "baugrundstück")):
-            return "bauplatz"
-        if any(k in bt for k in ("gewerbe", "büro", "laden", "halle")):
-            return "gewerbe"
-        return "sonstige"
-
     def _build_hardfacts(self, report) -> str:
         lines = []
         addr_parts = filter(None, [report.street, report.postal_code, report.city])
@@ -340,7 +319,7 @@ class PropertyDescriptionService:
         if addr:
             lines.append(f"Adresse: {addr}")
         if report.building_type:
-            lines.append(f"Gebäudeart: {report.building_type}")
+            lines.append(f"Gebäudeart: {report.get_building_type_display()}")
         if report.year_of_construction:
             lines.append(f"Baujahr: {report.year_of_construction}")
         if report.living_area:
