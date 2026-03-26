@@ -137,18 +137,13 @@ class PropertyReportFileUploadView(PropTechMixin, View):
         if not files or not file_type:
             messages.error(request, "Bitte Dateityp wählen und mindestens eine Datei auswählen.")
             return redirect("proptech:report_detail", pk=pk)
-        from .services import convert_file_to_markdown
         for uploaded in files:
-            file_record = PropertyReportFile.objects.create(
+            PropertyReportFile.objects.create(
                 report=report,
                 file_type=file_type,
                 file=uploaded,
                 label=label,
             )
-            try:
-                convert_file_to_markdown(file_record)
-            except Exception:
-                logger.exception("Markdown-Konvertierung fehlgeschlagen für %s", file_record.pk)
         return redirect("proptech:report_detail", pk=pk)
 
 

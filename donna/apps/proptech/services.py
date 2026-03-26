@@ -265,6 +265,14 @@ class PropertyDescriptionService:
                 })
 
         # Hochgeladene Dateien als Markdown-Pool
+        # Noch nicht konvertierte Dateien jetzt aufbereiten (lazy conversion)
+        pending = report.files.filter(markdown_content="").order_by("file_type", "uploaded_at")
+        for f in pending:
+            try:
+                convert_file_to_markdown(f)
+            except Exception as exc:
+                logger.warning("Markdown-Konvertierung übersprungen (%s): %s", f.filename, exc)
+
         file_sections = []
         for f in report.files.all().order_by("file_type", "uploaded_at"):
             md = f.markdown_content
