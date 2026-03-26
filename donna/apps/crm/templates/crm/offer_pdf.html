@@ -11,7 +11,7 @@
       font-size: 9.5pt;
       color: #1a1a2e;
       background: #fff;
-      padding-bottom: 40pt; /* Freiraum für den fixed Footer auf jeder Seite */
+      padding-bottom: 52pt; /* Freiraum für den fixed Footer auf jeder Seite */
     }
 
     @page {
@@ -203,6 +203,7 @@
     /* ── Rechtliche Anhänge ───────────────────────────────── */
     .legal-page {
       page-break-before: always;
+      padding-bottom: 52pt; /* Freiraum für Footer auch auf AGB/WB-Seiten */
     }
     .legal-page h2 {
       font-size: 12pt;
@@ -416,7 +417,11 @@
         <div class="sig-line"></div>
         <div class="sig-label">Ort, Datum</div>
       </div>
-      <div class="sig-field wide">
+      <div class="sig-field">
+        <div class="sig-line"></div>
+        <div class="sig-label">Name in Druckschrift</div>
+      </div>
+      <div class="sig-field">
         <div class="sig-line"></div>
         <div class="sig-label">Unterschrift, ggf. Firmenstempel</div>
       </div>

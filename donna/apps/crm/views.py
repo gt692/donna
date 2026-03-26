@@ -1546,6 +1546,16 @@ class OfferCreateView(EditOffersMixin, View):
             initial["recipient_name"]    = acc.name
             initial["recipient_email"]   = acc.billing_email or acc.email
             initial["recipient_address"] = _account_address(acc)
+        # Widerrufsbelehrung: bei Privatpersonen standardmäßig anhaken
+        if project.account:
+            from apps.crm.models import Account
+            is_private = project.account.account_type == Account.AccountType.PRIVATE
+            initial.setdefault("include_widerrufsbelehrung", is_private)
+        # Lead-Import: customer_type aus GET-Param auswerten (überschreibt Account-Default)
+        if request.GET.get("customer_type") == "private":
+            initial["include_widerrufsbelehrung"] = True
+        elif request.GET.get("customer_type") == "company":
+            initial["include_widerrufsbelehrung"] = False
         from django.conf import settings as dj_settings
         form    = OfferForm(initial=initial)
         formset = _build_offer_formset(request, extra=3)
