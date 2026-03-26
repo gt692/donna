@@ -5,7 +5,7 @@ from django import forms
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from .models import TimeEntry
+from .models import Absence, TimeEntry, WorkdayLog
 
 _INPUT = (
     "w-full px-3 py-2 rounded-lg border border-slate-200 bg-white "
@@ -107,6 +107,64 @@ class TimeEntryForm(forms.ModelForm):
                 _("Bitte entweder Von/Bis-Zeiten oder die Dauer in Stunden angeben."),
                 code="missing_duration",
             )
+        return cleaned
+
+
+class WorkdayLogForm(forms.ModelForm):
+    """Stempeluhr-Formular für einen Tag."""
+
+    class Meta:
+        model = WorkdayLog
+        fields = ["start_time", "end_time", "break_mins", "note"]
+        widgets = {
+            "start_time": forms.TimeInput(
+                attrs={"class": _INPUT, "type": "time"}, format="%H:%M"
+            ),
+            "end_time": forms.TimeInput(
+                attrs={"class": _INPUT, "type": "time"}, format="%H:%M"
+            ),
+            "break_mins": forms.NumberInput(
+                attrs={"class": _INPUT, "min": "0", "max": "480", "placeholder": "30"}
+            ),
+            "note": forms.TextInput(
+                attrs={"class": _INPUT, "placeholder": "Notiz (optional)"}
+            ),
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        start = cleaned.get("start_time")
+        end = cleaned.get("end_time")
+        if start and end and end <= start:
+            raise forms.ValidationError(_("Arbeitsende muss nach Arbeitsbeginn liegen."))
+        return cleaned
+
+
+class AbsenceForm(forms.ModelForm):
+    """Abwesenheits-Formular für Mitarbeiter."""
+
+    class Meta:
+        model = Absence
+        fields = ["absence_type", "start_date", "end_date", "note"]
+        widgets = {
+            "absence_type": forms.Select(attrs={"class": _SELECT}),
+            "start_date": forms.DateInput(
+                attrs={"class": _INPUT, "type": "date"}, format="%Y-%m-%d"
+            ),
+            "end_date": forms.DateInput(
+                attrs={"class": _INPUT, "type": "date"}, format="%Y-%m-%d"
+            ),
+            "note": forms.Textarea(
+                attrs={"class": _INPUT, "rows": 2, "placeholder": "Notiz (optional)"}
+            ),
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        start = cleaned.get("start_date")
+        end = cleaned.get("end_date")
+        if start and end and end < start:
+            raise forms.ValidationError(_("Das Enddatum muss nach dem Startdatum liegen."))
         return cleaned
 
 

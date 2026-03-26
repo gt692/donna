@@ -12,20 +12,36 @@
   <!-- Woche navigieren -->
   <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
     <a href="?week={{ prev_offset }}"
-       class="px-3 py-1.5 rounded-md text-sm text-slate-600 hover:bg-white hover:shadow-sm transition">
-      ‹
-    </a>
+       class="px-3 py-1.5 rounded-md text-sm text-slate-600 hover:bg-white hover:shadow-sm transition">‹</a>
     {% if not is_current_week %}
       <a href="?week=0"
-         class="px-3 py-1.5 rounded-md text-xs text-slate-500 hover:bg-white hover:shadow-sm transition">
-        Heute
-      </a>
+         class="px-3 py-1.5 rounded-md text-xs text-slate-500 hover:bg-white hover:shadow-sm transition">Heute</a>
     {% endif %}
     <a href="?week={{ next_offset }}"
-       class="px-3 py-1.5 rounded-md text-sm text-slate-600 hover:bg-white hover:shadow-sm transition">
-      ›
-    </a>
+       class="px-3 py-1.5 rounded-md text-sm text-slate-600 hover:bg-white hover:shadow-sm transition">›</a>
   </div>
+
+  <!-- Team-Kalender -->
+  <a href="{% url 'worktrack:team_calendar' %}"
+     class="flex items-center gap-2 bg-white border border-slate-200 hover:border-[#2F6FB3] text-slate-600 hover:text-[#2F6FB3]
+            font-medium text-sm px-3 py-2 rounded-lg transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/>
+    </svg>
+    Team
+  </a>
+
+  <!-- Abwesenheit -->
+  <a href="{% url 'worktrack:absence_create' %}"
+     class="flex items-center gap-2 bg-white border border-slate-200 hover:border-emerald-400 text-slate-600 hover:text-emerald-600
+            font-medium text-sm px-3 py-2 rounded-lg transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+    </svg>
+    Abwesenheit
+  </a>
 
   <a href="{% url 'worktrack:create' %}"
      class="flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white
@@ -39,142 +55,357 @@
 
 {% block content %}
 
-  <!-- Wochen-KPIs -->
-  <div class="grid grid-cols-3 gap-4 mb-6">
-    <div class="bg-white rounded-xl border border-slate-200 p-4">
-      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Gesamt diese Woche</p>
-      <p class="text-2xl font-bold text-slate-800">{{ week_total|floatformat:2 }} h</p>
-    </div>
-    <div class="bg-white rounded-xl border border-slate-200 p-4">
-      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Freigegeben</p>
-      <p class="text-2xl font-bold text-green-600">{{ approved_h|floatformat:2 }} h</p>
-    </div>
-    <div class="bg-white rounded-xl border border-slate-200 p-4">
-      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Ausstehend</p>
-      <p class="text-2xl font-bold text-amber-600">{{ pending_h|floatformat:2 }} h</p>
-    </div>
+<!-- KPI-Leiste -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+  <div class="bg-white rounded-xl border border-slate-200 p-4">
+    <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Erfasst</p>
+    <p class="text-2xl font-bold text-slate-800">{{ week_total|floatformat:2 }} h</p>
+    {% if week_target %}
+      <p class="text-xs text-slate-400 mt-0.5">Soll: {{ week_target|floatformat:1 }} h</p>
+    {% endif %}
   </div>
+  <div class="bg-white rounded-xl border border-slate-200 p-4">
+    <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Freigegeben</p>
+    <p class="text-2xl font-bold text-green-600">{{ approved_h|floatformat:2 }} h</p>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 p-4">
+    <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Ausstehend</p>
+    <p class="text-2xl font-bold text-amber-600">{{ pending_h|floatformat:2 }} h</p>
+  </div>
+  {% if overtime is not None %}
+    <div class="bg-white rounded-xl border border-slate-200 p-4">
+      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Überstunden</p>
+      <p class="text-2xl font-bold {% if overtime >= 0 %}text-[#2F6FB3]{% else %}text-red-500{% endif %}">
+        {% if overtime >= 0 %}+{% endif %}{{ overtime|floatformat:2 }} h
+      </p>
+    </div>
+  {% elif vacation_remaining is not None %}
+    <div class="bg-white rounded-xl border border-slate-200 p-4">
+      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Urlaub verbleibend</p>
+      <p class="text-2xl font-bold text-emerald-600">{{ vacation_remaining }} Tage</p>
+      <p class="text-xs text-slate-400 mt-0.5">von {{ vacation_total }} Tagen</p>
+    </div>
+  {% endif %}
+</div>
 
-  <!-- Tages-Kacheln -->
-  <div class="space-y-3">
+<!-- Wochen-Grid: Mo–Fr immer sichtbar, Sa+So aufklappbar -->
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+
+  <!-- Spalten-Header -->
+  <div id="week-grid" class="grid grid-cols-5" style="min-width:0">
     {% for day in days %}
-      <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      {% if not day.is_weekend %}
+        <div class="border-r border-slate-100 last:border-r-0
+                    {% if day.is_today %}bg-[#EFF6FF]{% endif %}
+                    {% if day.absence and day.absence.status == 'approved' %}bg-emerald-50{% elif day.absence and day.absence.status == 'pending' %}bg-yellow-50{% endif %}">
 
-        <!-- Tages-Header -->
-        <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100
-                    {% if day.date == today %}bg-[#EFF6FF]{% endif %}">
-          <div class="flex items-center gap-3">
-            <div class="text-center w-10">
-              <p class="text-xs text-slate-400">{{ day.date|date:"D" }}</p>
-              <p class="text-lg font-bold {% if day.date == today %}text-[#2F6FB3]{% else %}text-slate-700{% endif %}">
-                {{ day.date|date:"j" }}
-              </p>
+          <!-- Tages-Header -->
+          <div class="px-3 pt-3 pb-2 border-b border-slate-100">
+            <div class="flex items-start justify-between gap-1">
+              <div>
+                <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">{{ day.date|date:"D" }}</p>
+                <p class="text-xl font-bold {% if day.is_today %}text-[#2F6FB3]{% else %}text-slate-700{% endif %} leading-none mt-0.5">
+                  {{ day.date|date:"j" }}
+                </p>
+                <p class="text-xs text-slate-400 mt-0.5">{{ day.date|date:"M" }}</p>
+              </div>
+              <div class="flex flex-col items-end gap-1 mt-0.5">
+                {% if day.is_today %}
+                  <span class="text-xs bg-[#2F6FB3] text-white px-1.5 py-0.5 rounded font-medium">Heute</span>
+                {% endif %}
+                {% if day.total > 0 %}
+                  <span class="text-xs font-bold text-slate-600">{{ day.total|floatformat:1 }}h</span>
+                {% endif %}
+              </div>
             </div>
-            <span class="text-sm text-slate-400">{{ day.date|date:"F Y" }}</span>
-            {% if day.date == today %}
-              <span class="text-xs bg-[#CFFAFE] text-[#265e99] font-semibold px-2 py-0.5 rounded-full">Heute</span>
-            {% endif %}
-          </div>
-          <div class="flex items-center gap-3">
-            {% if day.total > 0 %}
-              <span class="text-sm font-semibold text-slate-600">{{ day.total|floatformat:2 }} h</span>
-            {% endif %}
-            <a href="{% url 'worktrack:create' %}?date={{ day.date|date:'Y-m-d' }}"
-               class="text-slate-400 hover:text-[#2F6FB3] transition p-1 rounded">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-              </svg>
-            </a>
-          </div>
-        </div>
 
-        <!-- Einträge -->
-        {% if day.entries %}
-          <div class="divide-y divide-slate-50">
-            {% for entry in day.entries %}
-              <div class="flex items-center gap-4 px-5 py-3 hover:bg-slate-50 transition group">
+            <!-- Abwesenheits-Badge -->
+            {% if day.absence %}
+              <div class="mt-2 rounded-md px-2 py-1 text-xs font-medium
+                          {% if day.absence.status == 'approved' %}bg-emerald-100 text-emerald-700
+                          {% elif day.absence.status == 'pending' %}bg-yellow-100 text-yellow-700
+                          {% else %}bg-red-100 text-red-700{% endif %}">
+                {{ day.absence.get_absence_type_display }}
+                {% if day.absence.status == 'pending' %} (beantragt){% endif %}
+              </div>
+            {% endif %}
 
-                <!-- Projekt-Info -->
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2">
-                    <p class="text-sm font-medium text-slate-700 truncate">{{ entry.project.name }}</p>
-                    <span class="text-xs text-slate-400 truncate hidden sm:block">· {{ entry.project.account.name }}</span>
+            <!-- Stempeluhr -->
+            {% if not day.absence %}
+              <div class="mt-2">
+                {% if day.log and day.log.start_time %}
+                  <div class="flex items-center gap-1 text-xs text-slate-500">
+                    <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>{{ day.log.start_time|time:"H:i" }}
+                    {% if day.log.end_time %}– {{ day.log.end_time|time:"H:i" }}{% endif %}</span>
                   </div>
-                  <p class="text-xs text-slate-400 truncate mt-0.5">{{ entry.description|truncatechars:80 }}</p>
-                </div>
-
-                <!-- Fakturierbar -->
-                {% if not entry.is_billable %}
-                  <span class="flex-shrink-0 text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded">intern</span>
+                  {% if day.log.break_mins %}
+                    <p class="text-xs text-slate-400 mt-0.5 pl-4">Pause: {{ day.log.break_mins }} min</p>
+                  {% endif %}
+                  <button onclick="toggleStempeluhr('{{ day.date|date:'Y-m-d' }}')"
+                          class="text-xs text-slate-400 hover:text-[#2F6FB3] mt-0.5 transition">bearbeiten</button>
+                {% else %}
+                  <button onclick="toggleStempeluhr('{{ day.date|date:'Y-m-d' }}')"
+                          class="text-xs text-slate-400 hover:text-[#2F6FB3] transition flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Stempeluhr
+                  </button>
                 {% endif %}
 
-                <!-- Dauer -->
-                <span class="flex-shrink-0 text-sm font-semibold text-slate-700 w-14 text-right">
-                  {{ entry.duration_hours }} h
-                </span>
-
-                <!-- Status-Badge -->
-                <div class="flex-shrink-0 w-24 text-right">
-                  {% if entry.status == 'draft' %}
-                    <span class="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium">Entwurf</span>
-                  {% elif entry.status == 'submitted' %}
-                    <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">Eingereicht</span>
-                  {% elif entry.status == 'approved' %}
-                    <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Freigegeben</span>
-                  {% elif entry.status == 'rejected' %}
-                    <span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium" title="{{ entry.review_note }}">Abgelehnt</span>
-                  {% endif %}
+                <!-- Stempeluhr-Formular (versteckt) -->
+                <div id="stempeluhr-{{ day.date|date:'Y-m-d' }}" class="hidden mt-2">
+                  <form method="post" action="{% url 'worktrack:log_save' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="date" value="{{ day.date|date:'Y-m-d' }}">
+                    <input type="hidden" name="week_offset" value="{{ week_offset }}">
+                    <div class="space-y-1.5">
+                      <div class="flex gap-1">
+                        <input type="time" name="start_time"
+                               value="{% if day.log %}{{ day.log.start_time|time:'H:i' }}{% endif %}"
+                               class="flex-1 text-xs px-2 py-1 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#2F6FB3]"
+                               placeholder="von">
+                        <input type="time" name="end_time"
+                               value="{% if day.log %}{{ day.log.end_time|time:'H:i' }}{% endif %}"
+                               class="flex-1 text-xs px-2 py-1 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#2F6FB3]"
+                               placeholder="bis">
+                      </div>
+                      <input type="number" name="break_mins"
+                             value="{% if day.log %}{{ day.log.break_mins }}{% else %}0{% endif %}"
+                             min="0" max="480"
+                             class="w-full text-xs px-2 py-1 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#2F6FB3]"
+                             placeholder="Pause (min)">
+                      <button type="submit"
+                              class="w-full text-xs bg-[#2F6FB3] hover:bg-[#265e99] text-white px-2 py-1 rounded-lg transition">
+                        Speichern
+                      </button>
+                    </div>
+                  </form>
                 </div>
+              </div>
+            {% endif %}
 
-                <!-- Aktionen (nur für Entwurf) -->
-                <div class="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
-                  {% if entry.status == 'draft' %}
+            <!-- + Buchung Button -->
+            <div class="mt-2">
+              <a href="{% url 'worktrack:create' %}?date={{ day.date|date:'Y-m-d' }}"
+                 class="flex items-center gap-1 text-xs text-slate-400 hover:text-[#2F6FB3] transition">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Buchung
+              </a>
+            </div>
+          </div>
+
+          <!-- Einträge für diesen Tag -->
+          <div class="divide-y divide-slate-50 min-h-[60px]">
+            {% for entry in day.entries %}
+              <div class="px-3 py-2 hover:bg-slate-50 transition group">
+                <div class="flex items-start justify-between gap-1">
+                  <div class="min-w-0">
+                    <p class="text-xs font-medium text-slate-700 truncate leading-tight">
+                      {{ entry.project.name }}
+                    </p>
+                    <p class="text-xs text-slate-400 truncate mt-0.5 leading-tight">
+                      {{ entry.description|truncatechars:60 }}
+                    </p>
+                  </div>
+                  <div class="flex-shrink-0 flex flex-col items-end gap-0.5">
+                    <span class="text-xs font-bold text-slate-600">{{ entry.duration_hours }}h</span>
+                    {% if entry.status == 'draft' %}
+                      <span class="text-xs bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded-full">Entw.</span>
+                    {% elif entry.status == 'submitted' %}
+                      <span class="text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full">Eingr.</span>
+                    {% elif entry.status == 'approved' %}
+                      <span class="text-xs bg-green-100 text-green-600 px-1.5 py-0.5 rounded-full">✓</span>
+                    {% elif entry.status == 'rejected' %}
+                      <span class="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">Abgel.</span>
+                    {% endif %}
+                  </div>
+                </div>
+                <!-- Aktionen -->
+                <div class="flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition">
+                  {% if entry.status == 'draft' or entry.status == 'rejected' %}
                     <a href="{% url 'worktrack:edit' entry.pk %}"
-                       class="p-1.5 text-slate-400 hover:text-[#2F6FB3] hover:bg-[#EFF6FF] rounded transition"
+                       class="p-1 text-slate-400 hover:text-[#2F6FB3] hover:bg-[#EFF6FF] rounded transition"
                        title="Bearbeiten">
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                       </svg>
                     </a>
+                  {% endif %}
+                  {% if entry.status == 'draft' %}
                     <form method="post" action="{% url 'worktrack:submit' entry.pk %}" class="inline">
                       {% csrf_token %}
                       <button type="submit"
-                              class="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition"
+                              class="p-1 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition"
                               title="Einreichen">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M5 13l4 4L19 7"/>
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
                       </button>
                     </form>
                     <form method="post" action="{% url 'worktrack:delete' entry.pk %}" class="inline"
-                          onsubmit="return confirm('Buchung wirklich löschen?')">
+                          onsubmit="return confirm('Buchung löschen?')">
                       {% csrf_token %}
                       <button type="submit"
-                              class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"
+                              class="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"
                               title="Löschen">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                         </svg>
                       </button>
                     </form>
-                  {% elif entry.status == 'rejected' %}
-                    <a href="{% url 'worktrack:edit' entry.pk %}"
-                       class="text-xs text-red-600 hover:text-red-800 px-2 py-1 hover:bg-red-50 rounded transition">
-                      Korrigieren
-                    </a>
                   {% endif %}
                 </div>
               </div>
+            {% empty %}
+              {% if not day.absence %}
+                <div class="px-3 py-3 text-xs text-slate-300 italic">Keine Buchungen</div>
+              {% endif %}
             {% endfor %}
           </div>
-        {% else %}
-          <div class="px-5 py-4 text-sm text-slate-300 italic">Keine Buchungen</div>
-        {% endif %}
-      </div>
+
+        </div>
+      {% endif %}
     {% endfor %}
   </div>
+
+  <!-- Sa/So Toggle -->
+  <div class="border-t border-slate-100">
+    <button id="weekend-toggle"
+            onclick="toggleWeekend()"
+            class="w-full flex items-center justify-center gap-2 py-2 text-xs text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition">
+      <svg id="weekend-chevron" class="w-3.5 h-3.5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+      </svg>
+      <span id="weekend-label">Wochenende anzeigen</span>
+    </button>
+
+    <!-- Wochenende Spalten -->
+    <div id="weekend-grid" class="hidden grid grid-cols-2 border-t border-slate-100">
+      {% for day in days %}
+        {% if day.is_weekend %}
+          <div class="border-r border-slate-100 last:border-r-0
+                      {% if day.absence and day.absence.status == 'approved' %}bg-emerald-50{% endif %}">
+
+            <!-- Header -->
+            <div class="px-3 pt-3 pb-2 border-b border-slate-100">
+              <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">{{ day.date|date:"D" }}</p>
+              <p class="text-xl font-bold text-slate-500 leading-none mt-0.5">{{ day.date|date:"j" }}</p>
+              {% if day.absence %}
+                <div class="mt-1 rounded-md px-2 py-0.5 text-xs font-medium
+                            {% if day.absence.status == 'approved' %}bg-emerald-100 text-emerald-700
+                            {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                  {{ day.absence.get_absence_type_display }}
+                </div>
+              {% endif %}
+              {% if day.total > 0 %}
+                <p class="text-xs font-bold text-slate-500 mt-1">{{ day.total|floatformat:1 }}h</p>
+              {% endif %}
+              <a href="{% url 'worktrack:create' %}?date={{ day.date|date:'Y-m-d' }}"
+                 class="flex items-center gap-1 text-xs text-slate-400 hover:text-[#2F6FB3] transition mt-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Buchung
+              </a>
+            </div>
+
+            <!-- Einträge -->
+            <div class="divide-y divide-slate-50">
+              {% for entry in day.entries %}
+                <div class="px-3 py-2 hover:bg-slate-50 transition group">
+                  <p class="text-xs font-medium text-slate-700 truncate">{{ entry.project.name }}</p>
+                  <div class="flex items-center justify-between mt-0.5">
+                    <span class="text-xs text-slate-400">{{ entry.duration_hours }}h</span>
+                    {% if entry.status == 'draft' %}
+                      <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                        <a href="{% url 'worktrack:edit' entry.pk %}"
+                           class="p-0.5 text-slate-400 hover:text-[#2F6FB3] rounded">
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                          </svg>
+                        </a>
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+              {% empty %}
+                <div class="px-3 py-3 text-xs text-slate-300 italic">—</div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Urlaubs-Info wenn vorhanden -->
+{% if vacation_remaining is not None %}
+  <div class="mt-4 bg-white rounded-xl border border-slate-200 p-4">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-slate-700">Urlaubskonto {{ today.year }}</p>
+          <p class="text-xs text-slate-400">{{ vacation_used }} Tage genommen · {{ vacation_remaining }} Tage verbleibend</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="w-40 bg-slate-100 rounded-full h-2">
+          <div class="bg-emerald-500 h-2 rounded-full transition-all"
+               style="width: {% widthratio vacation_used vacation_total 100 %}%"></div>
+        </div>
+        <span class="text-sm font-bold text-emerald-600">{{ vacation_remaining }} / {{ vacation_total }}</span>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+<script>
+function toggleStempeluhr(dateStr) {
+  const el = document.getElementById('stempeluhr-' + dateStr);
+  el.classList.toggle('hidden');
+}
+
+let weekendVisible = false;
+function toggleWeekend() {
+  weekendVisible = !weekendVisible;
+  const grid    = document.getElementById('weekend-grid');
+  const chevron = document.getElementById('weekend-chevron');
+  const label   = document.getElementById('weekend-label');
+
+  if (weekendVisible) {
+    grid.classList.remove('hidden');
+    grid.classList.add('grid');
+    chevron.style.transform = 'rotate(180deg)';
+    label.textContent = 'Wochenende ausblenden';
+  } else {
+    grid.classList.add('hidden');
+    grid.classList.remove('grid');
+    chevron.style.transform = '';
+    label.textContent = 'Wochenende anzeigen';
+  }
+}
+
+// Wochenende auto-aufklappen wenn Einträge oder Abwesenheiten vorhanden
+(function() {
+  const hasWeekendData = {% for day in days %}{% if day.is_weekend %}{% if day.entries or day.absence %}true{% endif %}{% endif %}{% endfor %} || false;
+  if (hasWeekendData) toggleWeekend();
+})();
+</script>
 
 {% endblock %}

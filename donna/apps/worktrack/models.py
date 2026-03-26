@@ -205,6 +205,230 @@ class ActivityType(models.Model):
 
 
 # ---------------------------------------------------------------------------
+# WorkSchedule — Arbeitszeitmodell pro Mitarbeiter
+# ---------------------------------------------------------------------------
+
+class WorkSchedule(models.Model):
+    """Wöchentliche Soll-Arbeitszeit eines Mitarbeiters."""
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="work_schedule",
+        verbose_name=_("Mitarbeiter"),
+    )
+    hours_per_week = models.DecimalField(
+        max_digits=4,
+        decimal_places=1,
+        default=Decimal("40.0"),
+        verbose_name=_("Soll-Stunden / Woche"),
+    )
+    days_per_week = models.PositiveSmallIntegerField(
+        default=5,
+        verbose_name=_("Arbeitstage / Woche"),
+    )
+    vacation_days_per_year = models.PositiveSmallIntegerField(
+        default=30,
+        verbose_name=_("Urlaubstage / Jahr"),
+    )
+
+    class Meta:
+        verbose_name = _("Arbeitszeitmodell")
+        verbose_name_plural = _("Arbeitszeitmodelle")
+
+    def __str__(self) -> str:
+        return f"{self.user} — {self.hours_per_week} h/Woche"
+
+    def hours_per_day(self) -> Decimal:
+        if self.days_per_week:
+            return (self.hours_per_week / self.days_per_week).quantize(Decimal("0.01"))
+        return Decimal("0")
+
+
+# ---------------------------------------------------------------------------
+# WorkdayLog — Stempeluhr (Kommen / Gehen / Pause)
+# ---------------------------------------------------------------------------
+
+class WorkdayLog(models.Model):
+    """Stempeluhr-Eintrag: wann hat ein Mitarbeiter angefangen/aufgehört."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="workday_logs",
+        verbose_name=_("Mitarbeiter"),
+    )
+    date = models.DateField(verbose_name=_("Datum"))
+    start_time = models.TimeField(null=True, blank=True, verbose_name=_("Arbeitsbeginn"))
+    end_time = models.TimeField(null=True, blank=True, verbose_name=_("Arbeitsende"))
+    break_mins = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name=_("Pause (Minuten)"),
+    )
+    note = models.CharField(max_length=255, blank=True, verbose_name=_("Notiz"))
+
+    class Meta:
+        verbose_name = _("Stempeluhr-Eintrag")
+        verbose_name_plural = _("Stempeluhr-Einträge")
+        unique_together = [("user", "date")]
+        ordering = ["-date"]
+
+    def __str__(self) -> str:
+        return f"{self.user} | {self.date}"
+
+    @property
+    def net_hours(self) -> Decimal:
+        """Nettoarbeitszeit in Stunden (ohne Pause)."""
+        if self.start_time and self.end_time:
+            import datetime as dt
+            delta = dt.datetime.combine(dt.date.today(), self.end_time) \
+                  - dt.datetime.combine(dt.date.today(), self.start_time)
+            gross = Decimal(str(delta.seconds / 3600))
+            pause = Decimal(str(self.break_mins / 60))
+            return max(Decimal("0"), gross - pause).quantize(Decimal("0.01"))
+        return Decimal("0")
+
+
+# ---------------------------------------------------------------------------
+# Absence — Abwesenheiten (Urlaub, Krankheit, Sonstiges)
+# ---------------------------------------------------------------------------
+
+class Absence(models.Model):
+    """Eine Abwesenheit eines Mitarbeiters (Urlaub, Krankheit, …)."""
+
+    class AbsenceType(models.TextChoices):
+        VACATION   = "vacation",   _("Urlaub")
+        SICK       = "sick",       _("Krankmeldung")
+        SPECIAL    = "special",    _("Sonderurlaub")
+        OTHER      = "other",      _("Sonstiges")
+
+    class Status(models.TextChoices):
+        PENDING  = "pending",  _("Beantragt")
+        APPROVED = "approved", _("Genehmigt")
+        REJECTED = "rejected", _("Abgelehnt")
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="absences",
+        verbose_name=_("Mitarbeiter"),
+    )
+    absence_type = models.CharField(
+        max_length=20,
+        choices=AbsenceType.choices,
+        default=AbsenceType.VACATION,
+        verbose_name=_("Art"),
+    )
+    start_date = models.DateField(verbose_name=_("Von"))
+    end_date = models.DateField(verbose_name=_("Bis"))
+    note = models.TextField(blank=True, verbose_name=_("Notiz"))
+
+    status = models.CharField(
+        max_length=15,
+        choices=Status.choices,
+        default=Status.PENDING,
+        verbose_name=_("Status"),
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="approved_absences",
+        verbose_name=_("Genehmigt von"),
+    )
+    approved_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Genehmigt am"))
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Abwesenheit")
+        verbose_name_plural = _("Abwesenheiten")
+        ordering = ["-start_date"]
+        indexes = [
+            models.Index(fields=["user", "start_date", "end_date"]),
+            models.Index(fields=["status"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user} | {self.get_absence_type_display()} {self.start_date}–{self.end_date}"
+
+    @property
+    def working_days(self) -> int:
+        """Anzahl Werktage (Mo–Fr) im Zeitraum."""
+        import datetime as dt
+        days = 0
+        current = self.start_date
+        while current <= self.end_date:
+            if current.weekday() < 5:  # Mo=0 … Fr=4
+                days += 1
+            current += dt.timedelta(days=1)
+        return days
+
+    def approve(self, approver) -> None:
+        self.status = self.Status.APPROVED
+        self.approved_by = approver
+        self.approved_at = timezone.now()
+        self.save(update_fields=["status", "approved_by", "approved_at"])
+
+    def reject(self, approver) -> None:
+        self.status = self.Status.REJECTED
+        self.approved_by = approver
+        self.approved_at = timezone.now()
+        self.save(update_fields=["status", "approved_by", "approved_at"])
+
+
+# ---------------------------------------------------------------------------
+# VacationAllowance — Urlaubskonto pro Jahr
+# ---------------------------------------------------------------------------
+
+class VacationAllowance(models.Model):
+    """Urlaubsanspruch und -verbrauch pro Mitarbeiter und Jahr."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="vacation_allowances",
+        verbose_name=_("Mitarbeiter"),
+    )
+    year = models.PositiveSmallIntegerField(verbose_name=_("Jahr"))
+    total_days = models.PositiveSmallIntegerField(
+        default=30,
+        verbose_name=_("Urlaubstage gesamt"),
+    )
+    carry_over_days = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name=_("Übertrag aus Vorjahr"),
+    )
+
+    class Meta:
+        verbose_name = _("Urlaubskonto")
+        verbose_name_plural = _("Urlaubskonten")
+        unique_together = [("user", "year")]
+        ordering = ["-year", "user__last_name"]
+
+    def __str__(self) -> str:
+        return f"{self.user} — {self.year}: {self.total_days} Tage"
+
+    @property
+    def available_days(self) -> int:
+        return self.total_days + self.carry_over_days
+
+    def used_days(self) -> int:
+        """Genehmigte Urlaubstage im Jahr."""
+        return sum(
+            a.working_days
+            for a in self.user.absences.filter(
+                absence_type=Absence.AbsenceType.VACATION,
+                status=Absence.Status.APPROVED,
+                start_date__year=self.year,
+            )
+        )
+
+    def remaining_days(self) -> int:
+        return self.available_days - self.used_days()
+
+
+# ---------------------------------------------------------------------------
 # TimeEntryBulkApproval — Batch-Freigabe durch Teamleiter
 # ---------------------------------------------------------------------------
 

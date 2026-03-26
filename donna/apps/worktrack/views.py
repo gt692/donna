@@ -22,8 +22,8 @@ from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
 from django.views.generic import CreateView, ListView, TemplateView, UpdateView, View
 
-from .forms import ApprovalRejectForm, TimeEntryForm
-from .models import TimeEntry
+from .forms import AbsenceForm, ApprovalRejectForm, TimeEntryForm, WorkdayLogForm
+from .models import Absence, TimeEntry, VacationAllowance, WorkdayLog, WorkSchedule
 
 
 # ---------------------------------------------------------------------------
@@ -53,6 +53,7 @@ class TimeEntryListView(WorktrackMixin, TemplateView):
         user   = self.request.user
         offset = int(self.request.GET.get("week", 0))
         monday, sunday = self.get_week_bounds(offset)
+        today  = timezone.now().date()
 
         entries = (
             TimeEntry.objects
@@ -61,17 +62,70 @@ class TimeEntryListView(WorktrackMixin, TemplateView):
             .order_by("date", "start_time")
         )
 
+        # WorkdayLogs für die Woche
+        workday_logs = {
+            log.date: log
+            for log in WorkdayLog.objects.filter(user=user, date__range=(monday, sunday))
+        }
+
+        # Abwesenheiten für die Woche (eigene)
+        absences = Absence.objects.filter(
+            user=user,
+            start_date__lte=sunday,
+            end_date__gte=monday,
+        )
+        absence_dates: dict = {}
+        for absence in absences:
+            current = max(absence.start_date, monday)
+            end = min(absence.end_date, sunday)
+            while current <= end:
+                absence_dates[current] = absence
+                current += datetime.timedelta(days=1)
+
+        # Urlaubskonto aktuelles Jahr
+        try:
+            allowance = VacationAllowance.objects.get(user=user, year=today.year)
+            vacation_used = allowance.used_days()
+            vacation_remaining = allowance.remaining_days()
+            vacation_total = allowance.available_days
+        except VacationAllowance.DoesNotExist:
+            vacation_used = 0
+            vacation_remaining = None
+            vacation_total = None
+
+        # WorkSchedule für Überstunden-Berechnung
+        try:
+            schedule = user.work_schedule
+        except WorkSchedule.DoesNotExist:
+            schedule = None
+
         # Stunden pro Tag gruppieren
         days = []
         for i in range(7):
-            day     = monday + datetime.timedelta(days=i)
+            day         = monday + datetime.timedelta(days=i)
             day_entries = [e for e in entries if e.date == day]
             day_total   = sum(float(e.duration_hours) for e in day_entries)
-            days.append({"date": day, "entries": day_entries, "total": day_total})
+            days.append({
+                "date":     day,
+                "entries":  day_entries,
+                "total":    day_total,
+                "log":      workday_logs.get(day),
+                "absence":  absence_dates.get(day),
+                "is_today": day == today,
+                "is_weekend": day.weekday() >= 5,
+            })
 
         week_total = sum(float(e.duration_hours) for e in entries)
         approved   = sum(float(e.duration_hours) for e in entries if e.status == TimeEntry.Status.APPROVED)
         pending    = sum(float(e.duration_hours) for e in entries if e.status == TimeEntry.Status.SUBMITTED)
+
+        # Überstunden
+        if schedule:
+            week_target = float(schedule.hours_per_week)
+            overtime    = week_total - week_target
+        else:
+            week_target = None
+            overtime    = None
 
         ctx.update({
             "days":        days,
@@ -84,6 +138,13 @@ class TimeEntryListView(WorktrackMixin, TemplateView):
             "prev_offset": offset - 1,
             "next_offset": offset + 1,
             "is_current_week": offset == 0,
+            "today":       today,
+            "week_target": week_target,
+            "overtime":    overtime,
+            "vacation_used": vacation_used,
+            "vacation_remaining": vacation_remaining,
+            "vacation_total": vacation_total,
+            "schedule":    schedule,
         })
         return ctx
 
@@ -290,6 +351,224 @@ class ApprovalBatchView(WorktrackMixin, UserPassesTestMixin, View):
         if approved_count:
             messages.success(request, f"{approved_count} Buchung(en) freigegeben.")
         return redirect("worktrack:approval_list")
+
+
+# ---------------------------------------------------------------------------
+# Stempeluhr (WorkdayLog) — Speichern/Aktualisieren per Tag
+# ---------------------------------------------------------------------------
+
+class WorkdayLogSaveView(WorktrackMixin, View):
+    """POST: Erstellt oder aktualisiert den WorkdayLog für einen Tag."""
+
+    def post(self, request):
+        date_str = request.POST.get("date")
+        try:
+            log_date = datetime.date.fromisoformat(date_str)
+        except (ValueError, TypeError):
+            messages.error(request, "Ungültiges Datum.")
+            return redirect("worktrack:list")
+
+        obj, _ = WorkdayLog.objects.get_or_create(user=request.user, date=log_date)
+        form = WorkdayLogForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Arbeitszeit für {log_date:%d.%m.%Y} gespeichert.")
+        else:
+            for field, errors in form.errors.items():
+                for e in errors:
+                    messages.error(request, e)
+        from django.urls import reverse
+        offset = request.POST.get("week_offset", 0)
+        return redirect(f"{reverse('worktrack:list')}?week={offset}")
+
+    def get(self, request):
+        return redirect("worktrack:list")
+
+
+# ---------------------------------------------------------------------------
+# Abwesenheiten — CRUD
+# ---------------------------------------------------------------------------
+
+class AbsenceCreateView(WorktrackMixin, CreateView):
+    template_name = "worktrack/absence_form.html"
+    form_class    = AbsenceForm
+
+    def form_valid(self, form):
+        absence = form.save(commit=False)
+        absence.user = self.request.user
+        # Krankmeldungen und Sonstiges auto-approve (kein Genehmigungsprozess)
+        if absence.absence_type in (
+            Absence.AbsenceType.SICK, Absence.AbsenceType.OTHER
+        ):
+            absence.status = Absence.Status.APPROVED
+        absence.save()
+        messages.success(self.request, "Abwesenheit eingetragen.")
+        return redirect("worktrack:list")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"] = "Abwesenheit eintragen"
+        date_str = self.request.GET.get("date")
+        if date_str:
+            ctx["form"].initial["start_date"] = date_str
+            ctx["form"].initial["end_date"] = date_str
+        return ctx
+
+
+class AbsenceUpdateView(WorktrackMixin, UpdateView):
+    template_name = "worktrack/absence_form.html"
+    form_class    = AbsenceForm
+
+    def get_queryset(self):
+        return Absence.objects.filter(
+            user=self.request.user,
+            status=Absence.Status.PENDING,
+        )
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(self.request, "Abwesenheit aktualisiert.")
+        return redirect("worktrack:list")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["page_title"] = "Abwesenheit bearbeiten"
+        return ctx
+
+
+class AbsenceDeleteView(WorktrackMixin, View):
+    def post(self, request, pk):
+        absence = get_object_or_404(
+            Absence, pk=pk, user=request.user, status=Absence.Status.PENDING
+        )
+        absence.delete()
+        messages.success(request, "Abwesenheit gelöscht.")
+        return redirect("worktrack:list")
+
+
+# ---------------------------------------------------------------------------
+# Abwesenheits-Genehmigung (Manager / Admin)
+# ---------------------------------------------------------------------------
+
+class AbsenceApprovalListView(WorktrackMixin, UserPassesTestMixin, TemplateView):
+    template_name = "worktrack/absence_approval.html"
+
+    def test_func(self):
+        return self.request.user.can_approve_time_entries()
+
+    def get_context_data(self, **kwargs):
+        ctx  = super().get_context_data(**kwargs)
+        user = self.request.user
+        approvable_users = user.get_approvable_users()
+
+        pending = (
+            Absence.objects
+            .filter(status=Absence.Status.PENDING, user__in=approvable_users)
+            .select_related("user")
+            .order_by("start_date", "user__last_name")
+        )
+        ctx["pending_absences"] = pending
+        ctx["pending_count"]    = pending.count()
+        return ctx
+
+
+class AbsenceApprovalActionView(WorktrackMixin, UserPassesTestMixin, View):
+    def test_func(self):
+        return self.request.user.can_approve_time_entries()
+
+    def post(self, request, pk):
+        absence = get_object_or_404(Absence, pk=pk)
+        approvable = request.user.get_approvable_users()
+
+        if absence.user not in approvable and not request.user.is_admin:
+            return HttpResponseForbidden()
+
+        action = request.POST.get("action")
+        if action == "approve":
+            absence.approve(approver=request.user)
+            messages.success(
+                request,
+                f"Urlaub von {absence.user.get_full_name()} ({absence.start_date} – {absence.end_date}) genehmigt."
+            )
+        elif action == "reject":
+            absence.reject(approver=request.user)
+            messages.warning(
+                request,
+                f"Urlaub von {absence.user.get_full_name()} abgelehnt."
+            )
+        return redirect("worktrack:absence_approval_list")
+
+
+# ---------------------------------------------------------------------------
+# Team-Kalender
+# ---------------------------------------------------------------------------
+
+class TeamCalendarView(WorktrackMixin, TemplateView):
+    template_name = "worktrack/team_calendar.html"
+
+    def get_context_data(self, **kwargs):
+        ctx    = super().get_context_data(**kwargs)
+        user   = self.request.user
+        offset = int(self.request.GET.get("week", 0))
+        monday, sunday = self.get_week_bounds(offset)
+        today  = timezone.now().date()
+
+        # Alle sichtbaren User (Admins sehen alle, normale User sehen direct_reports + sich selbst)
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        if user.is_admin:
+            team_users = User.objects.filter(is_active=True).order_by("last_name", "first_name")
+        else:
+            team_users = User.objects.filter(
+                id__in=list(user.get_approvable_users().values_list("id", flat=True)) + [user.id]
+            ).order_by("last_name", "first_name")
+
+        # Alle Abwesenheiten der Woche
+        absences = Absence.objects.filter(
+            user__in=team_users,
+            start_date__lte=sunday,
+            end_date__gte=monday,
+            status__in=[Absence.Status.APPROVED, Absence.Status.PENDING],
+        ).select_related("user")
+
+        # Für jede Kombination user × tag eine Abwesenheit finden
+        absence_map: dict = {}  # (user_id, date) → absence
+        for absence in absences:
+            current = max(absence.start_date, monday)
+            end_d   = min(absence.end_date, sunday)
+            while current <= end_d:
+                absence_map[(absence.user_id, current)] = absence
+                current += datetime.timedelta(days=1)
+
+        # Wochentage
+        days = [monday + datetime.timedelta(days=i) for i in range(7)]
+
+        # Team-Zeilen
+        team_rows = []
+        for u in team_users:
+            row_days = []
+            for day in days:
+                absence = absence_map.get((u.id, day))
+                row_days.append({
+                    "date": day,
+                    "absence": absence,
+                    "is_weekend": day.weekday() >= 5,
+                    "is_today": day == today,
+                })
+            team_rows.append({"user": u, "days": row_days})
+
+        ctx.update({
+            "team_rows":   team_rows,
+            "days":        days,
+            "week_offset": offset,
+            "monday":      monday,
+            "sunday":      sunday,
+            "prev_offset": offset - 1,
+            "next_offset": offset + 1,
+            "is_current_week": offset == 0,
+            "today":       today,
+        })
+        return ctx
 
 
 # ---------------------------------------------------------------------------

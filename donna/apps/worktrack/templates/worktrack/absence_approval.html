@@ -1,0 +1,114 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}Urlaubsanträge{% endblock %}
+{% block page_heading %}Urlaubsanträge{% endblock %}
+{% block page_subheading %}{{ pending_count }} offene Anfrage{{ pending_count|pluralize:"n" }}{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'worktrack:team_calendar' %}"
+     class="flex items-center gap-2 bg-white border border-slate-200 hover:border-[#2F6FB3] text-slate-600 hover:text-[#2F6FB3]
+            font-medium text-sm px-3 py-2 rounded-lg transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/>
+    </svg>
+    Team-Kalender
+  </a>
+{% endblock %}
+
+{% block content %}
+
+{% if pending_absences %}
+  <div class="space-y-3">
+    {% for absence in pending_absences %}
+      <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div class="flex items-start justify-between px-5 py-4 gap-4">
+
+          <!-- Mitarbeiter-Info -->
+          <div class="flex items-start gap-3 min-w-0">
+            <div class="w-9 h-9 rounded-full bg-[#EFF6FF] flex items-center justify-center flex-shrink-0">
+              <span class="text-sm font-bold text-[#2F6FB3]">
+                {{ absence.user.first_name|first|upper }}{{ absence.user.last_name|first|upper }}
+              </span>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-slate-800">{{ absence.user.get_full_name }}</p>
+              <div class="flex items-center gap-2 mt-1 flex-wrap">
+                <span class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full
+                             {% if absence.absence_type == 'vacation' %}bg-emerald-100 text-emerald-700
+                             {% elif absence.absence_type == 'sick' %}bg-blue-100 text-blue-600
+                             {% elif absence.absence_type == 'special' %}bg-purple-100 text-purple-600
+                             {% else %}bg-slate-100 text-slate-500{% endif %}">
+                  {{ absence.get_absence_type_display }}
+                </span>
+                <span class="text-xs text-slate-500">
+                  {{ absence.start_date|date:"j. M Y" }}
+                  {% if absence.end_date != absence.start_date %}
+                    – {{ absence.end_date|date:"j. M Y" }}
+                  {% endif %}
+                </span>
+                <span class="text-xs text-slate-400">
+                  ({{ absence.working_days }} Werktag{{ absence.working_days|pluralize:"e" }})
+                </span>
+              </div>
+              {% if absence.note %}
+                <p class="text-xs text-slate-400 mt-1 italic">„{{ absence.note }}"</p>
+              {% endif %}
+              <p class="text-xs text-slate-300 mt-1">
+                Beantragt am {{ absence.created_at|date:"j. M Y, H:i" }} Uhr
+              </p>
+            </div>
+          </div>
+
+          <!-- Aktions-Buttons -->
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <form method="post" action="{% url 'worktrack:absence_approval_action' absence.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="reject">
+              <button type="submit"
+                      class="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-500
+                             hover:text-red-600 hover:bg-red-50 border border-slate-200 hover:border-red-200
+                             rounded-lg transition"
+                      onclick="return confirm('Urlaubsantrag von {{ absence.user.get_full_name }} ablehnen?')">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                Ablehnen
+              </button>
+            </form>
+            <form method="post" action="{% url 'worktrack:absence_approval_action' absence.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="approve">
+              <button type="submit"
+                      class="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white
+                             bg-emerald-600 hover:bg-emerald-700 rounded-lg transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Genehmigen
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+{% else %}
+  <div class="bg-white rounded-xl border border-slate-200 px-8 py-12 text-center">
+    <div class="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-3">
+      <svg class="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      </svg>
+    </div>
+    <p class="text-sm font-semibold text-slate-600 mb-1">Alles erledigt</p>
+    <p class="text-sm text-slate-400">Keine offenen Urlaubsanträge.</p>
+    <a href="{% url 'worktrack:team_calendar' %}"
+       class="inline-flex items-center gap-2 mt-4 text-sm text-[#2F6FB3] hover:text-[#265e99] transition">
+      Team-Kalender öffnen →
+    </a>
+  </div>
+{% endif %}
+
+{% endblock %}
