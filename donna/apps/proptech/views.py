@@ -208,6 +208,22 @@ class PropertyReportFileDeleteView(PropTechMixin, View):
         return redirect("proptech:report_detail", pk=pk)
 
 
+class PropertyReportFileBulkDeleteView(PropTechMixin, View):
+    def post(self, request, pk):
+        file_ids = request.POST.getlist("file_ids")
+        if file_ids:
+            files = PropertyReportFile.objects.filter(pk__in=file_ids, report__pk=pk)
+            for f in files:
+                try:
+                    f.file.delete(save=False)
+                except Exception:
+                    pass
+            deleted_count = files.count()
+            files.delete()
+            messages.success(request, f"{deleted_count} Datei(en) gelöscht.")
+        return redirect("proptech:report_detail", pk=pk)
+
+
 # ── Vorlagen ───────────────────────────────────────────────────────────────────
 
 class DescriptionTemplateListView(PropTechMixin, ListView):

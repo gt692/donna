@@ -175,55 +175,63 @@
 
     <!-- Hochgeladene Dateien -->
     {% if report.files.all %}
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div class="px-5 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-slate-700">Hochgeladene Dateien</h3>
-        <span class="text-xs text-slate-400">{{ report.files.count }} Datei{{ report.files.count|pluralize:"en" }}</span>
-      </div>
-      <div class="divide-y divide-slate-100">
-        {% for f in report.files.all %}
-        <div class="px-5 py-3 flex items-center justify-between gap-3">
-          <div class="flex items-center gap-2 min-w-0">
-            {% if f.is_image %}
-              <svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-              </svg>
-            {% elif f.is_pdf %}
-              <svg class="w-4 h-4 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-              </svg>
-            {% else %}
-              <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
-              </svg>
-            {% endif %}
-            <div class="min-w-0">
-              <p class="text-xs font-medium text-slate-700 truncate">{{ f.label|default:f.filename }}</p>
-              <p class="text-xs text-slate-400">
-                {{ f.get_file_type_display }}
-                {% if f.markdown_content and not f.markdown_content|slice:":1" == "[" %}
-                  <span class="ml-1 text-emerald-500" title="Markdown aufbereitet">✓ KI-bereit</span>
-                {% elif f.markdown_content %}
-                  <span class="ml-1 text-amber-500" title="{{ f.markdown_content }}">⚠ nicht verarbeitbar</span>
-                {% else %}
-                  <span class="ml-1 text-slate-400" title="Noch nicht aufbereitet">⏳ ausstehend</span>
-                {% endif %}
-              </p>
+    <form id="bulk-delete-form" method="post" action="{% url 'proptech:file_bulk_delete' report.pk %}">
+      {% csrf_token %}
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <input type="checkbox" id="select-all-files" onchange="toggleAllFiles(this)"
+                   class="rounded border-slate-300 text-[#2F6FB3] cursor-pointer">
+            <h3 class="text-sm font-semibold text-slate-700">Hochgeladene Dateien</h3>
+            <span class="text-xs text-slate-400">{{ report.files.count }}</span>
+          </div>
+          <button type="button" id="bulk-delete-btn" onclick="confirmBulkDelete()"
+                  class="hidden items-center gap-1 text-xs text-red-500 hover:text-red-700 font-medium transition px-2 py-1 rounded hover:bg-red-50">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+            <span id="bulk-delete-label">Auswahl löschen</span>
+          </button>
+        </div>
+        <div class="divide-y divide-slate-100">
+          {% for f in report.files.all %}
+          <div class="px-5 py-3 flex items-center gap-3">
+            <input type="checkbox" name="file_ids" value="{{ f.pk }}"
+                   class="file-checkbox rounded border-slate-300 text-[#2F6FB3] flex-shrink-0 cursor-pointer"
+                   onchange="updateBulkDeleteBtn()">
+            <div class="flex items-center gap-2 min-w-0 flex-1">
+              {% if f.is_image %}
+                <svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+              {% elif f.is_pdf %}
+                <svg class="w-4 h-4 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+              {% else %}
+                <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                </svg>
+              {% endif %}
+              <div class="min-w-0">
+                <p class="text-xs font-medium text-slate-700 truncate">{{ f.label|default:f.filename }}</p>
+                <p class="text-xs text-slate-400">
+                  {{ f.get_file_type_display }}
+                  {% if f.markdown_content and not f.markdown_content|slice:":1" == "[" %}
+                    <span class="ml-1 text-emerald-500" title="Markdown aufbereitet">✓ KI-bereit</span>
+                  {% elif f.markdown_content %}
+                    <span class="ml-1 text-amber-500" title="{{ f.markdown_content }}">⚠ nicht verarbeitbar</span>
+                  {% else %}
+                    <span class="ml-1 text-slate-400" title="Noch nicht aufbereitet">⏳ ausstehend</span>
+                  {% endif %}
+                </p>
+              </div>
             </div>
           </div>
-          <form method="post" action="{% url 'proptech:file_delete' report.pk f.pk %}"
-                onsubmit="return confirm('Datei löschen?')">
-            {% csrf_token %}
-            <button type="submit" class="text-slate-300 hover:text-red-500 transition flex-shrink-0">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-              </svg>
-            </button>
-          </form>
+          {% endfor %}
         </div>
-        {% endfor %}
       </div>
-    </div>
+    </form>
     {% endif %}
 
     <!-- Löschen -->
@@ -512,6 +520,37 @@ function refineText() {
       btn.classList.remove('opacity-50', 'cursor-not-allowed');
       loading.classList.add('hidden');
     });
+}
+
+function updateBulkDeleteBtn() {
+  const checked = document.querySelectorAll('.file-checkbox:checked').length;
+  const btn = document.getElementById('bulk-delete-btn');
+  if (!btn) return;
+  if (checked > 0) {
+    btn.classList.remove('hidden');
+    btn.classList.add('flex');
+    document.getElementById('bulk-delete-label').textContent = checked + ' löschen';
+  } else {
+    btn.classList.add('hidden');
+    btn.classList.remove('flex');
+  }
+  const total = document.querySelectorAll('.file-checkbox').length;
+  const selectAll = document.getElementById('select-all-files');
+  if (selectAll) selectAll.indeterminate = checked > 0 && checked < total;
+  if (selectAll) selectAll.checked = checked === total;
+}
+
+function toggleAllFiles(cb) {
+  document.querySelectorAll('.file-checkbox').forEach(function(c) { c.checked = cb.checked; });
+  updateBulkDeleteBtn();
+}
+
+function confirmBulkDelete() {
+  const count = document.querySelectorAll('.file-checkbox:checked').length;
+  if (count === 0) return;
+  if (confirm(count + ' Datei' + (count !== 1 ? 'en' : '') + ' wirklich löschen?')) {
+    document.getElementById('bulk-delete-form').submit();
+  }
 }
 
 document.getElementById('refine-input') && document.getElementById('refine-input').addEventListener('keydown', function(e) {
