@@ -40,11 +40,17 @@
           <label class="block text-sm font-medium text-slate-600 mb-1">Name <span class="text-red-500">*</span></label>
           {{ form.name }}
         </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-600 mb-1">Rolle <span class="text-red-500">*</span></label>
-          {{ form.role }}
-          <p class="mt-1 text-xs text-slate-400">Für welche Beschreibungsart soll diese Vorlage verwendet werden?</p>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Rolle <span class="text-red-500">*</span></label>
+            {{ form.role }}
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Gebäudetyp</label>
+            {{ form.building_type }}
+          </div>
         </div>
+        <p class="text-xs text-slate-400 -mt-2">Gebäudetyp hilft der KI, passende Vorlagen zu priorisieren</p>
         <div>
           <label class="block text-sm font-medium text-slate-600 mb-1">Datei (PDF oder TXT) <span class="text-red-500">*</span></label>
           {{ form.file }}

@@ -66,8 +66,9 @@ class PropertyReportFileForm(forms.ModelForm):
 class DescriptionTemplateForm(forms.ModelForm):
     class Meta:
         model = DescriptionTemplate
-        fields = ["name", "role", "file", "is_active"]
+        fields = ["name", "role", "building_type", "file", "is_active"]
         widgets = {
-            "name": forms.TextInput(attrs={"class": _TW, "placeholder": "z.B. Gutachten EFH Mustertext"}),
+            "name": forms.TextInput(attrs={"class": _TW, "placeholder": "z.B. Exposé EFH München Schwabing"}),
             "role": forms.Select(attrs={"class": _TW_SELECT}),
+            "building_type": forms.Select(attrs={"class": _TW_SELECT}),
         }

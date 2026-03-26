@@ -222,7 +222,20 @@ class PropertyDescriptionService:
             content.append({"type": "text", "text": f"## Objektdaten\n\n{facts}"})
 
         # Referenz-Exposés / Vorlagen (max. 3)
-        templates = DescriptionTemplate.objects.filter(role=report.role, is_active=True)
+        # Passende Gebäudetyp-Vorlagen zuerst, dann allgemeine
+        from django.db.models import Case, When, IntegerField
+        building_type_key = self._map_building_type(report.building_type)
+        templates = (
+            DescriptionTemplate.objects
+            .filter(role=report.role, is_active=True)
+            .annotate(match=Case(
+                When(building_type=building_type_key, then=0),
+                When(building_type="", then=1),
+                default=2,
+                output_field=IntegerField(),
+            ))
+            .order_by("match", "uploaded_at")
+        )
         for tpl in templates[:3]:
             tpl_text = tpl.extracted_text
             if tpl_text:
@@ -230,7 +243,9 @@ class PropertyDescriptionService:
                 content.append({
                     "type": "text",
                     "text": (
-                        f"## Referenz-Exposé aus vergangenen Projekten: {tpl.name}\n\n"
+                        f"## Referenz-Exposé aus vergangenen Projekten: {tpl.name}"
+                        + (f" [{tpl.get_building_type_display()}]" if tpl.building_type else "")
+                        + "\n\n"
                         f"{snippet}\n\n"
                         "[Analysiere dieses Referenz-Exposé als Beispiel dafür, wie unsere Experten "
                         "ein Objekt bewertet und beschrieben haben:\n"
@@ -296,6 +311,23 @@ class PropertyDescriptionService:
             messages=[{"role": "user", "content": content}],
         )
         return response.content[0].text
+
+    def _map_building_type(self, building_type: str) -> str:
+        """Mapped freien Text-Gebäudetyp auf DescriptionTemplate.BUILDING_TYPE_CHOICES key."""
+        if not building_type:
+            return ""
+        bt = building_type.lower()
+        if any(k in bt for k in ("einfamilienhaus", "efh", "villa", "bungalow")):
+            return "efh"
+        if any(k in bt for k in ("doppelhaus", "reihenhaus", "dh")):
+            return "dh"
+        if any(k in bt for k in ("mehrfamilienhaus", "mfh", "mehrfamilien")):
+            return "mfh"
+        if any(k in bt for k in ("wohnung", "etw", "apartment")):
+            return "etw"
+        if any(k in bt for k in ("gewerbe", "büro", "laden", "halle")):
+            return "gewerbe"
+        return "sonstige"
 
     def _build_hardfacts(self, report) -> str:
         lines = []

@@ -111,9 +111,22 @@ class PropertyReportFile(models.Model):
 class DescriptionTemplate(models.Model):
     ROLE_CHOICES = PropertyReport.ROLE_CHOICES
 
+    BUILDING_TYPE_CHOICES = [
+        ("efh", "Einfamilienhaus"),
+        ("dh", "Doppelhaushälfte / Reihenhaus"),
+        ("mfh", "Mehrfamilienhaus"),
+        ("etw", "Eigentumswohnung"),
+        ("gewerbe", "Gewerbeimmobilie"),
+        ("sonstige", "Sonstige"),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, verbose_name=_("Rolle"))
+    building_type = models.CharField(
+        max_length=20, choices=BUILDING_TYPE_CHOICES, blank=True,
+        verbose_name=_("Gebäudetyp"),
+    )
     file = models.FileField(upload_to="description_templates/", verbose_name=_("Datei (PDF oder TXT)"))
     extracted_text = models.TextField(blank=True, verbose_name=_("Extrahierter Text"))
     is_active = models.BooleanField(default=True, verbose_name=_("Aktiv"))
