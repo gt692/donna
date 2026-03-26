@@ -96,10 +96,11 @@ def _build_email(subject: str, text_body: str, to: list[str]) -> EmailMessage:
         sig_parts.append(" · ".join(addr_parts))
     if cs.phone:
         sig_parts.append(f"Tel.: {cs.phone}")
+    primary = cs.primary_color or "#2F6FB3"
     if cs.email:
-        sig_parts.append(f'<a href="mailto:{cs.email}" style="color:#2F6FB3;text-decoration:none;">{cs.email}</a>')
+        sig_parts.append(f'<a href="mailto:{cs.email}" style="color:{primary};text-decoration:none;">{cs.email}</a>')
     if cs.website:
-        sig_parts.append(f'<a href="{cs.website}" style="color:#2F6FB3;text-decoration:none;">{cs.website}</a>')
+        sig_parts.append(f'<a href="{cs.website}" style="color:{primary};text-decoration:none;">{cs.website}</a>')
 
     sig_html = "<br>".join(sig_parts)
 
@@ -109,6 +110,8 @@ def _build_email(subject: str, text_body: str, to: list[str]) -> EmailMessage:
         for line in text_body.split("\n\n") if line.strip()
     )
 
+    primary = cs.primary_color or "#2F6FB3"
+
     html = f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:0;background:#f8fafc;font-family:Arial,Helvetica,sans-serif;">
@@ -116,7 +119,7 @@ def _build_email(subject: str, text_body: str, to: list[str]) -> EmailMessage:
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08);">
         <!-- Header -->
-        <tr><td style="background:#2F6FB3;padding:24px 32px;">
+        <tr><td style="background:{primary};padding:24px 32px;">
           {logo_html if logo_html else f'<span style="color:#fff;font-size:18px;font-weight:700;">{cs.company_name}</span>'}
         </td></tr>
         <!-- Body -->
