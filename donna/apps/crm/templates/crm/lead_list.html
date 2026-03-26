@@ -5,17 +5,7 @@
 {% block page_heading %}Lead-Pipeline{% endblock %}
 {% block page_subheading %}{{ total_count }} Lead{{ total_count|pluralize:",s" }} gesamt{% endblock %}
 
-{% block topbar_actions %}
-  {% if request.user.can_approve_time_entries %}
-    <a href="{% url 'crm:quick_lead_create' %}"
-       class="flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-      </svg>
-      Neuer Lead
-    </a>
-  {% endif %}
-{% endblock %}
+{% block topbar_actions %}{% endblock %}
 
 {% block content %}
 
