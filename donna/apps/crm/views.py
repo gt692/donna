@@ -624,6 +624,7 @@ class ProjectDeleteView(AdminOrLeadMixin, View):
             "project": project,
             "offer_count": offer_count,
             "invoice_count": invoice_count,
+            "cancel_url": request.GET.get("next") or reverse("crm:project_detail", kwargs={"pk": pk}),
         })
 
     def post(self, request, pk):
