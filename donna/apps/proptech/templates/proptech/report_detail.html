@@ -179,11 +179,16 @@
       {% csrf_token %}
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="px-5 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <input type="checkbox" id="select-all-files" onchange="toggleAllFiles(this)"
                    class="rounded border-slate-300 text-[#2F6FB3] cursor-pointer">
             <h3 class="text-sm font-semibold text-slate-700">Hochgeladene Dateien</h3>
             <span class="text-xs text-slate-400">{{ report.files.count }}</span>
+            <span class="text-slate-200">|</span>
+            <button type="button" onclick="selectByType('photo')" class="text-xs text-[#2F6FB3] hover:text-[#265e99] transition">Fotos</button>
+            <button type="button" onclick="selectByType('plan')" class="text-xs text-[#2F6FB3] hover:text-[#265e99] transition">Pläne</button>
+            <button type="button" onclick="selectByType('bauakte')" class="text-xs text-[#2F6FB3] hover:text-[#265e99] transition">Bauakte</button>
+            <button type="button" onclick="selectByType('misc')" class="text-xs text-[#2F6FB3] hover:text-[#265e99] transition">Sonstige</button>
           </div>
           <button type="button" id="bulk-delete-btn" onclick="confirmBulkDelete()"
                   class="hidden items-center gap-1 text-xs text-red-500 hover:text-red-700 font-medium transition px-2 py-1 rounded hover:bg-red-50">
@@ -196,7 +201,7 @@
         <div class="divide-y divide-slate-100">
           {% for f in report.files.all %}
           <div class="px-5 py-3 flex items-center gap-3">
-            <input type="checkbox" name="file_ids" value="{{ f.pk }}"
+            <input type="checkbox" name="file_ids" value="{{ f.pk }}" data-file-type="{{ f.file_type }}"
                    class="file-checkbox rounded border-slate-300 text-[#2F6FB3] flex-shrink-0 cursor-pointer"
                    onchange="updateBulkDeleteBtn()">
             <div class="flex items-center gap-2 min-w-0 flex-1">
@@ -542,6 +547,13 @@ function updateBulkDeleteBtn() {
 
 function toggleAllFiles(cb) {
   document.querySelectorAll('.file-checkbox').forEach(function(c) { c.checked = cb.checked; });
+  updateBulkDeleteBtn();
+}
+
+function selectByType(type) {
+  document.querySelectorAll('.file-checkbox').forEach(function(c) {
+    c.checked = c.dataset.fileType === type;
+  });
   updateBulkDeleteBtn();
 }
 
