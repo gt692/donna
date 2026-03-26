@@ -1,4 +1,5 @@
 import logging
+import os
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -178,6 +179,9 @@ class PropertyReportRefineView(PropTechMixin, View):
 
 # ── Dateien ────────────────────────────────────────────────────────────────────
 
+BLOCKED_EXTENSIONS = {".heic", ".heif", ".tiff", ".tif", ".bmp"}
+
+
 class PropertyReportFileUploadView(PropTechMixin, View):
     def post(self, request, pk):
         report = get_object_or_404(PropertyReport, pk=pk)
@@ -187,12 +191,23 @@ class PropertyReportFileUploadView(PropTechMixin, View):
         if not files or not file_type:
             messages.error(request, "Bitte Dateityp wählen und mindestens eine Datei auswählen.")
             return redirect("proptech:report_detail", pk=pk)
+        skipped = []
         for uploaded in files:
+            ext = os.path.splitext(uploaded.name)[1].lower()
+            if ext in BLOCKED_EXTENSIONS:
+                skipped.append(uploaded.name)
+                continue
             PropertyReportFile.objects.create(
                 report=report,
                 file_type=file_type,
                 file=uploaded,
                 label=label,
+            )
+        if skipped:
+            messages.warning(
+                request,
+                f"{len(skipped)} Datei(en) übersprungen (HEIC/TIFF nicht unterstützt — bitte als JPG/PNG exportieren): "
+                + ", ".join(skipped[:5]) + ("…" if len(skipped) > 5 else ""),
             )
         return redirect("proptech:report_detail", pk=pk)
 
