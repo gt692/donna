@@ -421,7 +421,8 @@ function toggleWeekend() {
 
 // Wochenende auto-aufklappen wenn Einträge oder Abwesenheiten vorhanden
 (function() {
-  const hasWeekendData = {% for day in days %}{% if day.is_weekend %}{% if day.entries or day.absence %}true{% endif %}{% endif %}{% endfor %} || false;
+  let hasWeekendData = false;
+  {% for day in days %}{% if day.is_weekend %}{% if day.entries or day.absence %}hasWeekendData = true;{% endif %}{% endif %}{% endfor %}
   if (hasWeekendData) toggleWeekend();
 })();
 </script>
