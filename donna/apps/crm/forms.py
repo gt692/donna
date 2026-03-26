@@ -201,6 +201,7 @@ class OfferForm(forms.ModelForm):
             "discount_percent", "discount_amount_eur",
             "intro_text", "closing_text", "payment_terms",
             "recipient_name", "recipient_email", "recipient_address",
+            "include_agb", "include_widerrufsbelehrung",
         ]
         widgets = {
             "title":              forms.TextInput(attrs={"class": _INPUT, "placeholder": "Angebotstitel"}),
@@ -215,6 +216,8 @@ class OfferForm(forms.ModelForm):
             "recipient_name":     forms.TextInput(attrs={"class": _INPUT, "placeholder": "Empfänger Name"}),
             "recipient_email":    forms.EmailInput(attrs={"class": _INPUT, "placeholder": "empfaenger@beispiel.de"}),
             "recipient_address":  forms.Textarea(attrs={"class": _INPUT, "rows": 3, "placeholder": "Straße, Nr.\nPLZ Ort"}),
+            "include_agb":                 forms.CheckboxInput(),
+            "include_widerrufsbelehrung":  forms.CheckboxInput(),
         }
 
     def __init__(self, *args, **kwargs):
