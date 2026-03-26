@@ -113,9 +113,11 @@ class DescriptionTemplate(models.Model):
 
     BUILDING_TYPE_CHOICES = [
         ("efh", "Einfamilienhaus"),
+        ("zfh", "Zweifamilienhaus"),
         ("dh", "Doppelhaushälfte / Reihenhaus"),
         ("mfh", "Mehrfamilienhaus"),
         ("etw", "Eigentumswohnung"),
+        ("bauplatz", "Bauplatz / Grundstück"),
         ("gewerbe", "Gewerbeimmobilie"),
         ("sonstige", "Sonstige"),
     ]

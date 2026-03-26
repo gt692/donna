@@ -319,12 +319,16 @@ class PropertyDescriptionService:
         bt = building_type.lower()
         if any(k in bt for k in ("einfamilienhaus", "efh", "villa", "bungalow")):
             return "efh"
+        if any(k in bt for k in ("zweifamilienhaus", "zfh")):
+            return "zfh"
         if any(k in bt for k in ("doppelhaus", "reihenhaus", "dh")):
             return "dh"
         if any(k in bt for k in ("mehrfamilienhaus", "mfh", "mehrfamilien")):
             return "mfh"
         if any(k in bt for k in ("wohnung", "etw", "apartment")):
             return "etw"
+        if any(k in bt for k in ("bauplatz", "grundstück", "bauland", "baugrundstück")):
+            return "bauplatz"
         if any(k in bt for k in ("gewerbe", "büro", "laden", "halle")):
             return "gewerbe"
         return "sonstige"
