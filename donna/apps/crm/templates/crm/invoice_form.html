@@ -1361,19 +1361,44 @@ fetch('{% url "crm:unit_api" %}')
                placeholder="Mustermann GmbH">
       </div>
       <!-- Name Privatperson -->
-      <div id="aqm-private-name-row" class="hidden grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-xs text-slate-500 mb-1">Vorname *</label>
-          <input type="text" name="first_name" id="aqm-first-name"
-                 class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500"
-                 placeholder="Max">
+      <div id="aqm-private-name-row" class="hidden space-y-2">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs text-slate-500 mb-1">Vorname *</label>
+            <input type="text" name="first_name" id="aqm-first-name"
+                   class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500"
+                   placeholder="Max">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-500 mb-1">Nachname *</label>
+            <input type="text" name="last_name" id="aqm-last-name"
+                   class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500"
+                   placeholder="Mustermann">
+          </div>
         </div>
-        <div>
-          <label class="block text-xs text-slate-500 mb-1">Nachname *</label>
-          <input type="text" name="last_name" id="aqm-last-name"
-                 class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500"
-                 placeholder="Mustermann">
+        <!-- Zweite Person -->
+        <div id="aqm-person2-row" class="hidden grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs text-slate-500 mb-1">Vorname 2</label>
+            <input type="text" name="first_name2" id="aqm-first-name2"
+                   class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500"
+                   placeholder="Maria">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-500 mb-1">Nachname 2</label>
+            <input type="text" name="last_name2" id="aqm-last-name2"
+                   class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500"
+                   placeholder="Mustermann">
+          </div>
         </div>
+        <button type="button" id="aqm-add-person2"
+                class="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 transition"
+                onclick="aqmTogglePerson2()">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          Zweite Person hinzufügen
+        </button>
       </div>
       <!-- E-Mail -->
       <div>
@@ -1423,6 +1448,8 @@ function closeAccountQuickModal() {
   modal.classList.add('hidden'); modal.classList.remove('flex');
   document.getElementById('account-quick-form').reset();
   aqmSetType('company');
+  document.getElementById('aqm-person2-row').classList.add('hidden');
+  document.getElementById('aqm-add-person2').classList.remove('hidden');
   document.getElementById('aqm-error').classList.add('hidden');
 }
 function aqmSetType(type) {
@@ -1435,6 +1462,11 @@ function aqmSetType(type) {
   document.getElementById('aqm-name').required = isCompany;
   document.getElementById('aqm-first-name').required = !isCompany;
   document.getElementById('aqm-last-name').required = !isCompany;
+}
+function aqmTogglePerson2() {
+  document.getElementById('aqm-person2-row').classList.remove('hidden');
+  document.getElementById('aqm-add-person2').classList.add('hidden');
+  document.getElementById('aqm-first-name2').focus();
 }
 document.getElementById('account-quick-form').addEventListener('submit', async function(e) {
   e.preventDefault();

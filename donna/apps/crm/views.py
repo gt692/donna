@@ -245,9 +245,13 @@ class AccountQuickCreateView(EditAccountsMixin, View):
 
         is_private = account_type == Account.AccountType.PRIVATE
         if is_private:
-            first_name = request.POST.get("first_name", "").strip()
-            last_name  = request.POST.get("last_name", "").strip()
-            name = f"{first_name} {last_name}".strip()
+            first_name  = request.POST.get("first_name", "").strip()
+            last_name   = request.POST.get("last_name", "").strip()
+            first_name2 = request.POST.get("first_name2", "").strip()
+            last_name2  = request.POST.get("last_name2", "").strip()
+            person1 = f"{first_name} {last_name}".strip()
+            person2 = f"{first_name2} {last_name2}".strip()
+            name = f"{person1} & {person2}" if person2 else person1
         else:
             name = request.POST.get("name", "").strip()
 
