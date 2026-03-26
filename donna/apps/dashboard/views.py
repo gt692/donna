@@ -18,7 +18,7 @@ from decimal import Decimal
 
 from apps.core.models import CompanySettings, Role, User, UserRole
 from apps.crm.models import Account, ProductCatalog, Project, RevenueTarget
-from apps.worktrack.models import TimeEntry
+from apps.worktrack.models import PublicHoliday, TimeEntry
 
 from .forms import CompanySettingsForm, UserCreateForm, UserEditForm
 
@@ -742,3 +742,81 @@ class ProductCatalogReorderView(AdminRequiredMixin, View):
         for i, pk in enumerate(data.get("order", [])):
             ProductCatalog.objects.filter(pk=pk).update(sort_order=i)
         return JsonResponse({"ok": True})
+
+
+# ---------------------------------------------------------------------------
+# Feiertage (PublicHoliday)
+# ---------------------------------------------------------------------------
+
+class PublicHolidayListView(AdminRequiredMixin, TemplateView):
+    template_name = "dashboard/admin/holiday_list.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        year = int(self.request.GET.get("year", timezone.now().year))
+        ctx["holidays"] = PublicHoliday.objects.filter(date__year=year).order_by("date")
+        ctx["selected_year"] = year
+        ctx["years"] = list(range(timezone.now().year - 1, timezone.now().year + 3))
+        return ctx
+
+
+class PublicHolidayCreateView(AdminRequiredMixin, View):
+    template_name = "dashboard/admin/holiday_form.html"
+
+    def get(self, request):
+        from apps.dashboard.forms import PublicHolidayForm
+        year = request.GET.get("year", timezone.now().year)
+        form = PublicHolidayForm(initial={"date": f"{year}-01-01"})
+        return render(request, self.template_name, {"form": form, "title": "Feiertag anlegen"})
+
+    def post(self, request):
+        from apps.dashboard.forms import PublicHolidayForm
+        form = PublicHolidayForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Feiertag gespeichert.")
+            year = form.cleaned_data["date"].year
+            return redirect(f"{reverse('dashboard:holiday_list')}?year={year}")
+        return render(request, self.template_name, {"form": form, "title": "Feiertag anlegen"})
+
+
+class PublicHolidayUpdateView(AdminRequiredMixin, View):
+    template_name = "dashboard/admin/holiday_form.html"
+
+    def get(self, request, pk):
+        from apps.dashboard.forms import PublicHolidayForm
+        obj = get_object_or_404(PublicHoliday, pk=pk)
+        return render(request, self.template_name, {"form": PublicHolidayForm(instance=obj), "title": "Feiertag bearbeiten", "object": obj})
+
+    def post(self, request, pk):
+        from apps.dashboard.forms import PublicHolidayForm
+        obj = get_object_or_404(PublicHoliday, pk=pk)
+        form = PublicHolidayForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Feiertag gespeichert.")
+            year = form.cleaned_data["date"].year
+            return redirect(f"{reverse('dashboard:holiday_list')}?year={year}")
+        return render(request, self.template_name, {"form": form, "title": "Feiertag bearbeiten", "object": obj})
+
+
+class PublicHolidayDeleteView(AdminRequiredMixin, View):
+    def post(self, request, pk):
+        obj = get_object_or_404(PublicHoliday, pk=pk)
+        year = obj.date.year
+        obj.delete()
+        messages.success(request, f'Feiertag "{obj.name}" gelöscht.')
+        return redirect(f"{reverse('dashboard:holiday_list')}?year={year}")
+
+
+class PublicHolidayGenerateView(AdminRequiredMixin, View):
+    """Ruft das Management-Command create_holidays für ein Jahr auf."""
+
+    def post(self, request):
+        from django.core.management import call_command
+        from io import StringIO
+        year = int(request.POST.get("year", timezone.now().year))
+        out = StringIO()
+        call_command("create_holidays", year, stdout=out)
+        messages.success(request, f"Feiertage für {year} wurden generiert.")
+        return redirect(f"{reverse('dashboard:holiday_list')}?year={year}")

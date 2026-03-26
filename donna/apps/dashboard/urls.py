@@ -14,6 +14,11 @@ from .views import (
     ProjectTypeListView,
     ProjectTypeReorderView,
     ProjectTypeUpdateView,
+    PublicHolidayCreateView,
+    PublicHolidayDeleteView,
+    PublicHolidayGenerateView,
+    PublicHolidayListView,
+    PublicHolidayUpdateView,
     RevenueTargetCreateView,
     RevenueTargetDeleteView,
     RevenueTargetUpdateView,
@@ -76,4 +81,11 @@ urlpatterns = [
 
     # Firmeneinstellungen (Singleton)
     path("admin/company-settings/", CompanySettingsView.as_view(), name="company_settings"),
+
+    # Feiertage
+    path("admin/holidays/",                  PublicHolidayListView.as_view(),     name="holiday_list"),
+    path("admin/holidays/new/",              PublicHolidayCreateView.as_view(),   name="holiday_create"),
+    path("admin/holidays/generate/",         PublicHolidayGenerateView.as_view(), name="holiday_generate"),
+    path("admin/holidays/<int:pk>/edit/",    PublicHolidayUpdateView.as_view(),   name="holiday_update"),
+    path("admin/holidays/<int:pk>/delete/",  PublicHolidayDeleteView.as_view(),   name="holiday_delete"),
 ]

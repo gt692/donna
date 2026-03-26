@@ -1,0 +1,56 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block page_heading %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto">
+  <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100">
+      <h2 class="text-base font-semibold text-slate-700">{{ title }}</h2>
+    </div>
+    <form method="post" class="px-6 py-5 space-y-4">
+      {% csrf_token %}
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">Datum</label>
+          {{ form.date }}
+          {% if form.date.errors %}<p class="text-xs text-red-500 mt-1">{{ form.date.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">Bezeichnung</label>
+          {{ form.name }}
+          {% if form.name.errors %}<p class="text-xs text-red-500 mt-1">{{ form.name.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">Hinweis (optional)</label>
+        {{ form.note }}
+      </div>
+      <div class="flex items-center gap-6 pt-1">
+        <label class="flex items-center gap-2 cursor-pointer">
+          {{ form.is_half_day }}
+          <span class="text-sm text-slate-700">Halber Tag</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          {{ form.is_active }}
+          <span class="text-sm text-slate-700">Aktiv</span>
+        </label>
+      </div>
+      {% if form.non_field_errors %}
+        <div class="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+      <div class="flex items-center justify-between pt-2">
+        <a href="{% url 'dashboard:holiday_list' %}" class="text-sm text-slate-500 hover:text-slate-700 transition">Abbrechen</a>
+        <button type="submit"
+                class="bg-[#2F6FB3] hover:bg-[#265e99] text-white font-medium text-sm px-5 py-2 rounded-lg transition">
+          Speichern
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

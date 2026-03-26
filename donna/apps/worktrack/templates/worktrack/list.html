@@ -119,9 +119,16 @@
               </div>
             </div>
 
+            <!-- Feiertag-Badge -->
+            {% if day.holiday %}
+              <div class="mt-2 rounded-md px-2 py-1 text-xs font-medium bg-violet-100 text-violet-700">
+                {% if day.holiday.is_half_day %}½ {% endif %}{{ day.holiday.name }}
+              </div>
+            {% endif %}
+
             <!-- Abwesenheits-Badge -->
             {% if day.absence %}
-              <div class="mt-2 rounded-md px-2 py-1 text-xs font-medium
+              <div class="mt-1 rounded-md px-2 py-1 text-xs font-medium
                           {% if day.absence.status == 'approved' %}bg-emerald-100 text-emerald-700
                           {% elif day.absence.status == 'pending' %}bg-yellow-100 text-yellow-700
                           {% else %}bg-red-100 text-red-700{% endif %}">

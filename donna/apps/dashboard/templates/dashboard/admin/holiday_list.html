@@ -1,0 +1,135 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}Feiertage{% endblock %}
+{% block page_heading %}Feiertage & Sondertage{% endblock %}
+{% block page_subheading %}Erscheinen in der Zeiterfassung für alle Mitarbeiter{% endblock %}
+
+{% block topbar_actions %}
+  <!-- Jahr-Wechsel -->
+  <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+    {% for y in years %}
+      <a href="?year={{ y }}"
+         class="px-3 py-1.5 rounded-md text-sm transition
+                {% if y == selected_year %}bg-white shadow-sm text-slate-800 font-semibold{% else %}text-slate-500 hover:bg-white{% endif %}">
+        {{ y }}
+      </a>
+    {% endfor %}
+  </div>
+
+  <!-- Feiertage generieren -->
+  <form method="post" action="{% url 'dashboard:holiday_generate' %}">
+    {% csrf_token %}
+    <input type="hidden" name="year" value="{{ selected_year }}">
+    <button type="submit"
+            class="flex items-center gap-2 bg-white border border-slate-200 hover:border-[#2F6FB3] text-slate-600 hover:text-[#2F6FB3]
+                   font-medium text-sm px-3 py-2 rounded-lg transition"
+            onclick="return confirm('Deutsche Feiertage für {{ selected_year }} automatisch anlegen?\nBereits vorhandene Einträge werden übersprungen.')">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+      </svg>
+      DE-Feiertage generieren
+    </button>
+  </form>
+
+  <a href="{% url 'dashboard:holiday_create' %}?year={{ selected_year }}"
+     class="flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white
+            font-medium text-sm px-4 py-2 rounded-lg transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    </svg>
+    Sondertag anlegen
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+
+  {% if holidays %}
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-slate-200 bg-slate-50">
+          <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Datum</th>
+          <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Bezeichnung</th>
+          <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Art</th>
+          <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Hinweis</th>
+          <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+          <th class="w-24"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for holiday in holidays %}
+          <tr class="hover:bg-slate-50 transition {% if not holiday.is_active %}opacity-40{% endif %}">
+            <td class="px-5 py-3 font-medium text-slate-700">
+              {{ holiday.date|date:"j. M Y" }}
+              <span class="text-xs text-slate-400 ml-1">{{ holiday.date|date:"D" }}</span>
+            </td>
+            <td class="px-5 py-3 text-slate-700">{{ holiday.name }}</td>
+            <td class="px-5 py-3">
+              {% if holiday.is_half_day %}
+                <span class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">½ Tag</span>
+              {% else %}
+                <span class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Ganzer Tag</span>
+              {% endif %}
+            </td>
+            <td class="px-5 py-3 text-xs text-slate-400 italic">{{ holiday.note|default:"—" }}</td>
+            <td class="px-5 py-3">
+              {% if holiday.is_active %}
+                <span class="text-xs font-medium text-emerald-600">Aktiv</span>
+              {% else %}
+                <span class="text-xs font-medium text-slate-400">Inaktiv</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex items-center justify-end gap-2">
+                <a href="{% url 'dashboard:holiday_update' holiday.pk %}"
+                   class="p-1.5 text-slate-400 hover:text-[#2F6FB3] hover:bg-[#EFF6FF] rounded transition"
+                   title="Bearbeiten">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                  </svg>
+                </a>
+                <form method="post" action="{% url 'dashboard:holiday_delete' holiday.pk %}"
+                      onsubmit="return confirm('Feiertag „{{ holiday.name }}" wirklich löschen?')">
+                  {% csrf_token %}
+                  <button type="submit"
+                          class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"
+                          title="Löschen">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  {% else %}
+    <div class="px-8 py-12 text-center">
+      <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
+        <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+      </div>
+      <p class="text-sm font-semibold text-slate-600 mb-1">Keine Einträge für {{ selected_year }}</p>
+      <p class="text-sm text-slate-400 mb-4">Jetzt automatisch deutsche Feiertage generieren oder manuell anlegen.</p>
+      <form method="post" action="{% url 'dashboard:holiday_generate' %}" class="inline">
+        {% csrf_token %}
+        <input type="hidden" name="year" value="{{ selected_year }}">
+        <button type="submit"
+                class="bg-[#2F6FB3] hover:bg-[#265e99] text-white font-medium text-sm px-5 py-2 rounded-lg transition">
+          Deutsche Feiertage für {{ selected_year }} generieren
+        </button>
+      </form>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

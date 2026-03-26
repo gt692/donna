@@ -23,7 +23,7 @@ from django.utils import timezone
 from django.views.generic import CreateView, ListView, TemplateView, UpdateView, View
 
 from .forms import AbsenceForm, ApprovalRejectForm, TimeEntryForm, WorkdayLogForm
-from .models import Absence, TimeEntry, VacationAllowance, WorkdayLog, WorkSchedule
+from .models import Absence, PublicHoliday, TimeEntry, VacationAllowance, WorkdayLog, WorkSchedule
 
 
 # ---------------------------------------------------------------------------
@@ -61,6 +61,14 @@ class TimeEntryListView(WorktrackMixin, TemplateView):
             .select_related("project", "project__account")
             .order_by("date", "start_time")
         )
+
+        # Feiertage für die Woche
+        holiday_map = {
+            h.date: h
+            for h in PublicHoliday.objects.filter(
+                date__range=(monday, sunday), is_active=True
+            )
+        }
 
         # WorkdayLogs für die Woche
         workday_logs = {
@@ -111,6 +119,7 @@ class TimeEntryListView(WorktrackMixin, TemplateView):
                 "total":    day_total,
                 "log":      workday_logs.get(day),
                 "absence":  absence_dates.get(day),
+                "holiday":  holiday_map.get(day),
                 "is_today": day == today,
                 "is_weekend": day.weekday() >= 5,
             })
@@ -546,6 +555,14 @@ class TeamCalendarView(WorktrackMixin, TemplateView):
                 id__in=list(user.get_approvable_users().values_list("id", flat=True)) + [user.id]
             ).order_by("last_name", "first_name")
 
+        # Feiertage der Woche
+        holiday_map = {
+            h.date: h
+            for h in PublicHoliday.objects.filter(
+                date__range=(monday, sunday), is_active=True
+            )
+        }
+
         # Alle Abwesenheiten der Woche
         absences = Absence.objects.filter(
             user__in=team_users,
@@ -583,6 +600,7 @@ class TeamCalendarView(WorktrackMixin, TemplateView):
         ctx.update({
             "team_rows":   team_rows,
             "days":        days,
+            "holiday_map": holiday_map,
             "week_offset": offset,
             "monday":      monday,
             "sunday":      sunday,

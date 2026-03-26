@@ -205,6 +205,39 @@ class ActivityType(models.Model):
 
 
 # ---------------------------------------------------------------------------
+# PublicHoliday — Feiertage & firmenweit geschenkte Tage
+# ---------------------------------------------------------------------------
+
+class PublicHoliday(models.Model):
+    """
+    Gesetzliche Feiertage und vom Arbeitgeber geschenkte freie Tage.
+    Werden in der Wochenansicht aller Mitarbeiter angezeigt.
+    """
+    date = models.DateField(unique=True, verbose_name=_("Datum"))
+    name = models.CharField(max_length=100, verbose_name=_("Bezeichnung"))
+    is_half_day = models.BooleanField(
+        default=False,
+        verbose_name=_("Halber Tag"),
+        help_text=_("z.B. Heiligabend Nachmittag"),
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name=_("Aktiv"),
+        help_text=_("Inaktive Feiertage werden nicht angezeigt."),
+    )
+    note = models.CharField(max_length=200, blank=True, verbose_name=_("Hinweis"))
+
+    class Meta:
+        verbose_name = _("Feiertag")
+        verbose_name_plural = _("Feiertage")
+        ordering = ["date"]
+
+    def __str__(self) -> str:
+        suffix = " (½ Tag)" if self.is_half_day else ""
+        return f"{self.date:%d.%m.%Y} – {self.name}{suffix}"
+
+
+# ---------------------------------------------------------------------------
 # WorkSchedule — Arbeitszeitmodell pro Mitarbeiter
 # ---------------------------------------------------------------------------
 

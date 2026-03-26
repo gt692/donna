@@ -10,6 +10,7 @@ from django.core.exceptions import ValidationError
 
 from apps.core.models import CompanySettings, Role, User, UserRole
 from apps.crm.models import ProductCatalog
+from apps.worktrack.models import PublicHoliday
 
 _TW = (
     "w-full px-3 py-2 border border-slate-200 rounded-lg text-sm "
@@ -172,4 +173,17 @@ class ProductCatalogForm(forms.ModelForm):
             "unit":         forms.TextInput(attrs={"class": _INPUT}),
             "quantity":     forms.NumberInput(attrs={"class": _INPUT, "step": "0.01"}),
             "unit_price":   forms.NumberInput(attrs={"class": _INPUT, "step": "0.01"}),
+        }
+
+
+class PublicHolidayForm(forms.ModelForm):
+    class Meta:
+        model = PublicHoliday
+        fields = ["date", "name", "is_half_day", "is_active", "note"]
+        widgets = {
+            "date": forms.DateInput(attrs={"class": _TW, "type": "date"}, format="%Y-%m-%d"),
+            "name": forms.TextInput(attrs={"class": _TW, "placeholder": "z.B. Tag der Arbeit"}),
+            "is_half_day": forms.CheckboxInput(attrs={"class": "w-4 h-4 rounded border-slate-300 text-[#2F6FB3]"}),
+            "is_active": forms.CheckboxInput(attrs={"class": "w-4 h-4 rounded border-slate-300 text-[#2F6FB3]"}),
+            "note": forms.TextInput(attrs={"class": _TW, "placeholder": "Optionaler Hinweis"}),
         }
