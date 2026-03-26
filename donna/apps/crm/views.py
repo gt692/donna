@@ -62,6 +62,81 @@ def _company_ctx():
     return {"company_settings": cs, "company_logo_uri": logo_data_uri}
 
 
+def _build_email(subject: str, text_body: str, to: list[str]) -> EmailMessage:
+    """
+    Erstellt eine HTML-E-Mail mit Firmenlogo und Signatur aus CompanySettings.
+    text_body: Reiner Text-Inhalt (wird in <p>-Blöcke umgewandelt).
+    """
+    import base64, mimetypes
+    from django.conf import settings as dj_settings
+    from apps.core.models import CompanySettings
+
+    cs = CompanySettings.get()
+    sender_name = cs.company_name or dj_settings.MS_SENDER_EMAIL
+    from_email = f"{sender_name} <{dj_settings.MS_SENDER_EMAIL}>"
+
+    # Logo als Base64 Data-URI
+    logo_html = ""
+    if cs.logo and cs.logo.name:
+        try:
+            with open(cs.logo.path, "rb") as f:
+                raw = f.read()
+            mime = mimetypes.guess_type(cs.logo.name)[0] or "image/png"
+            logo_data_uri = f"data:{mime};base64,{base64.b64encode(raw).decode()}"
+            logo_html = f'<img src="{logo_data_uri}" alt="{cs.company_name}" style="max-height:50px;max-width:180px;object-fit:contain;margin-bottom:16px;">'
+        except (OSError, ValueError):
+            pass
+
+    # Signaturzeilen
+    sig_parts = []
+    if cs.company_name:
+        sig_parts.append(f"<strong>{cs.company_name}{'&nbsp;' + cs.legal_form if cs.legal_form else ''}</strong>")
+    addr_parts = [p for p in [cs.street, f"{cs.postal_code} {cs.city}".strip()] if p]
+    if addr_parts:
+        sig_parts.append(" · ".join(addr_parts))
+    if cs.phone:
+        sig_parts.append(f"Tel.: {cs.phone}")
+    if cs.email:
+        sig_parts.append(f'<a href="mailto:{cs.email}" style="color:#2F6FB3;text-decoration:none;">{cs.email}</a>')
+    if cs.website:
+        sig_parts.append(f'<a href="{cs.website}" style="color:#2F6FB3;text-decoration:none;">{cs.website}</a>')
+
+    sig_html = "<br>".join(sig_parts)
+
+    # Text in Absätze umwandeln
+    paragraphs = "".join(
+        f"<p style='margin:0 0 12px 0;'>{line.replace(chr(10), '<br>')}</p>"
+        for line in text_body.split("\n\n") if line.strip()
+    )
+
+    html = f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08);">
+        <!-- Header -->
+        <tr><td style="background:#2F6FB3;padding:24px 32px;">
+          {logo_html if logo_html else f'<span style="color:#fff;font-size:18px;font-weight:700;">{cs.company_name}</span>'}
+        </td></tr>
+        <!-- Body -->
+        <tr><td style="padding:32px;color:#1e293b;font-size:14px;line-height:1.6;">
+          {paragraphs}
+        </td></tr>
+        <!-- Signatur -->
+        <tr><td style="padding:20px 32px 28px;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b;line-height:1.8;">
+          {sig_html}
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>"""
+
+    msg = EmailMessage(subject=subject, body=html, from_email=from_email, to=to)
+    msg.content_subtype = "html"
+    return msg
+
+
 def _all_projects_list(exclude_pk=None) -> list:
     qs = Project.objects.order_by("name")
     if exclude_pk:
@@ -1673,11 +1748,9 @@ class OfferSendView(SendOffersMixin, View):
         commission_url = request.build_absolute_uri(
             reverse("crm:offer_commission_confirm", kwargs={"token": offer.commission_token})
         )
-        from django.core.mail import EmailMessage
-        from django.conf import settings as dj_settings
-        msg = EmailMessage(
+        msg = _build_email(
             subject=f"Angebot {offer.offer_number} – {offer.project.name if offer.project else offer.title}",
-            body=(
+            text_body=(
                 f"Sehr geehrte/r {offer.recipient_name or 'Damen und Herren'},\n\n"
                 f"anbei finden Sie unser Angebot {offer.offer_number}.\n\n"
                 f"Sie können das Angebot bequem online bestätigen:\n{commission_url}\n\n"
@@ -1685,7 +1758,6 @@ class OfferSendView(SendOffersMixin, View):
                 f"mit Ort, Datum und Unterschrift versehen und an uns zurücksenden.\n\n"
                 f"Mit freundlichen Grüßen"
             ),
-            from_email=dj_settings.DEFAULT_FROM_EMAIL,
             to=[offer.recipient_email],
         )
         msg.attach(f"{offer.offer_number}.pdf", pdf_bytes, "application/pdf")
@@ -2164,10 +2236,13 @@ class InvoiceSendView(SendInvoicesMixin, View):
             messages.error(request, f"PDF-Generierung fehlgeschlagen: {e}")
             return redirect("crm:invoice_detail", pk=invoice.pk)
         subject_suffix = f" – {invoice.project.name}" if invoice.project else ""
-        email = EmailMessage(
+        email = _build_email(
             subject=f"Rechnung {invoice.invoice_number}{subject_suffix}",
-            body=invoice.intro_text or f"Anbei erhalten Sie Ihre Rechnung {invoice.invoice_number}.",
-            from_email=settings.DEFAULT_FROM_EMAIL,
+            text_body=(
+                f"Sehr geehrte/r {invoice.recipient_name or 'Damen und Herren'},\n\n"
+                + (invoice.intro_text or f"anbei erhalten Sie Ihre Rechnung {invoice.invoice_number}.")
+                + "\n\nMit freundlichen Grüßen"
+            ),
             to=[invoice.recipient_email],
         )
         email.attach(f"{invoice.invoice_number}.pdf", pdf_bytes, "application/pdf")
@@ -2309,17 +2384,14 @@ class OfferPublicConfirmView(View):
         if offer.recipient_email:
             try:
                 ab_pdf = _generate_offer_pdf_bytes(offer, request)
-                from django.core.mail import EmailMessage
-                from django.conf import settings as dj_settings
-                msg = EmailMessage(
+                msg = _build_email(
                     subject=f"Auftragsbestätigung {offer.display_number} – {offer.title}",
-                    body=(
+                    text_body=(
                         f"Sehr geehrte/r {offer.recipient_name or 'Damen und Herren'},\n\n"
                         f"vielen Dank für Ihren Auftrag! Anbei erhalten Sie Ihre "
                         f"Auftragsbestätigung {offer.display_number}.\n\n"
                         f"Mit freundlichen Grüßen"
                     ),
-                    from_email=dj_settings.DEFAULT_FROM_EMAIL,
                     to=[offer.recipient_email],
                 )
                 msg.attach(f"{offer.display_number}.pdf", ab_pdf, "application/pdf")
@@ -2447,22 +2519,18 @@ def _send_inquiry_email(request, inquiry, recipient_email, recipient_name):
     inquiry_url = request.build_absolute_uri(
         reverse("crm:lead_inquiry_public", kwargs={"token": inquiry.token})
     )
-    subject = "Ihre Anfrage — bitte ergänzen Sie Ihre Kontaktdaten"
-    body = (
-        f"Guten Tag{' ' + recipient_name if recipient_name else ''},\n\n"
-        "vielen Dank für Ihr Interesse. Um Ihre Anfrage optimal bearbeiten zu können, "
-        "bitten wir Sie, Ihre Kontaktdaten und eine kurze Beschreibung Ihres Anliegens "
-        "über folgenden Link zu ergänzen:\n\n"
-        f"{inquiry_url}\n\n"
-        "Dieser Link ist 14 Tage gültig.\n\n"
-        "Mit freundlichen Grüßen"
-    )
     try:
-        from django.core.mail import EmailMessage as DjEmailMessage
-        msg = DjEmailMessage(
-            subject=subject,
-            body=body,
-            from_email=settings.DEFAULT_FROM_EMAIL,
+        msg = _build_email(
+            subject="Ihre Anfrage — bitte ergänzen Sie Ihre Kontaktdaten",
+            text_body=(
+                f"Guten Tag{' ' + recipient_name if recipient_name else ''},\n\n"
+                "vielen Dank für Ihr Interesse. Um Ihre Anfrage optimal bearbeiten zu können, "
+                "bitten wir Sie, Ihre Kontaktdaten und eine kurze Beschreibung Ihres Anliegens "
+                "über folgenden Link zu ergänzen:\n\n"
+                f"{inquiry_url}\n\n"
+                "Dieser Link ist 14 Tage gültig.\n\n"
+                "Mit freundlichen Grüßen"
+            ),
             to=[recipient_email],
         )
         msg.send()
