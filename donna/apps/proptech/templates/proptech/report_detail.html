@@ -131,16 +131,13 @@
         <!-- Pläne (mehrere gleichzeitig) -->
         <div class="px-5 py-4">
           <p class="text-xs font-semibold text-slate-600 mb-2">Grundrisse / Pläne</p>
-          <form method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
+          <form id="plan-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
             {% csrf_token %}
             <input type="hidden" name="file_type" value="plan">
             <div class="space-y-2">
               <input type="file" name="file" multiple accept="image/*,.pdf"
                      class="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-[#EFF6FF] file:text-[#2F6FB3] hover:file:bg-blue-100 cursor-pointer">
-              <button type="submit"
-                      class="w-full bg-slate-700 hover:bg-slate-800 text-white text-xs font-medium py-1.5 rounded-lg transition">
-                Pläne hochladen
-              </button>
+              <button type="submit" class="w-full bg-slate-700 hover:bg-slate-800 text-white text-xs font-medium py-1.5 rounded-lg transition">Pläne hochladen</button>
             </div>
           </form>
         </div>
@@ -148,16 +145,13 @@
         <!-- Bauakte (einzeln) -->
         <div class="px-5 py-4">
           <p class="text-xs font-semibold text-slate-600 mb-2">Bauakte / Gutachten</p>
-          <form method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
+          <form id="bauakte-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
             {% csrf_token %}
             <input type="hidden" name="file_type" value="bauakte">
             <div class="space-y-2">
               <input type="file" name="file" accept=".pdf,image/*"
                      class="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer">
-              <button type="submit"
-                      class="w-full bg-slate-700 hover:bg-slate-800 text-white text-xs font-medium py-1.5 rounded-lg transition">
-                Bauakte hochladen
-              </button>
+              <button type="submit" class="w-full bg-slate-700 hover:bg-slate-800 text-white text-xs font-medium py-1.5 rounded-lg transition">Bauakte hochladen</button>
             </div>
           </form>
         </div>
@@ -165,16 +159,13 @@
         <!-- Sonstiges (einzeln) -->
         <div class="px-5 py-4">
           <p class="text-xs font-semibold text-slate-600 mb-2">Sonstige Dokumente</p>
-          <form method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
+          <form id="misc-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
             {% csrf_token %}
             <input type="hidden" name="file_type" value="misc">
             <div class="space-y-2">
               <input type="file" name="file" accept=".pdf,image/*,.doc,.docx"
                      class="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer">
-              <button type="submit"
-                      class="w-full bg-slate-700 hover:bg-slate-800 text-white text-xs font-medium py-1.5 rounded-lg transition">
-                Dokument hochladen
-              </button>
+              <button type="submit" class="w-full bg-slate-700 hover:bg-slate-800 text-white text-xs font-medium py-1.5 rounded-lg transition">Dokument hochladen</button>
             </div>
           </form>
         </div>
@@ -298,7 +289,7 @@
       <form method="post" action="{% url 'proptech:report_save_text' report.pk %}">
         {% csrf_token %}
         <div class="px-6 py-4">
-          <textarea id="generated-text-area" name="generated_text" rows="20"
+          <textarea id="generated-text-area" name="generated_text" rows="35"
                     class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] transition font-mono leading-relaxed resize-y"
                     placeholder="Der generierte Text erscheint hier. Klicke 'Jetzt generieren' um die KI zu starten.">{{ report.generated_text }}</textarea>
         </div>
@@ -373,6 +364,51 @@ function updatePhotoLabel(input) {
   if (label) label.textContent = count > 0 ? count + ' Datei' + (count !== 1 ? 'en' : '') + ' ausgewählt' : '';
 }
 
+function setupUploadForm(formId, label) {
+  const form = document.getElementById(formId);
+  if (!form) return;
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(form);
+    // Count files from all file inputs in this form
+    let fileCount = 0;
+    form.querySelectorAll('input[type="file"]').forEach(function(inp) {
+      fileCount += inp.files.length;
+    });
+    if (fileCount === 0) { form.submit(); return; }
+
+    document.getElementById('upload-title').textContent = fileCount + ' ' + label + (fileCount !== 1 ? 'n' : '') + ' werden hochgeladen…';
+    document.getElementById('upload-subtitle').textContent = 'Bitte warten und die Seite nicht verlassen.';
+    document.getElementById('upload-bar').style.width = '0%';
+    document.getElementById('upload-percent').textContent = '0%';
+    document.getElementById('upload-overlay').style.display = 'block';
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', form.action);
+
+    xhr.upload.addEventListener('progress', function(ev) {
+      if (ev.lengthComputable) {
+        const pct = Math.round(ev.loaded / ev.total * 100);
+        document.getElementById('upload-bar').style.width = pct + '%';
+        document.getElementById('upload-percent').textContent = pct + '%';
+        if (pct === 100) {
+          document.getElementById('upload-title').textContent = 'Dateien werden verarbeitet…';
+          document.getElementById('upload-subtitle').textContent = 'Fast fertig, bitte noch einen Moment.';
+        }
+      }
+    });
+
+    xhr.addEventListener('load', function() { window.location.reload(); });
+    xhr.addEventListener('error', function() {
+      document.getElementById('upload-overlay').style.display = 'none';
+      alert('Upload fehlgeschlagen. Bitte erneut versuchen.');
+    });
+
+    xhr.send(formData);
+  });
+}
+
+// Photo upload: custom label counting across two inputs
 document.getElementById('photo-upload-form').addEventListener('submit', function(e) {
   e.preventDefault();
   const form = this;
@@ -383,6 +419,9 @@ document.getElementById('photo-upload-form').addEventListener('submit', function
   if (fileCount === 0) { form.submit(); return; }
 
   document.getElementById('upload-title').textContent = fileCount + ' Foto' + (fileCount !== 1 ? 's' : '') + ' werden hochgeladen…';
+  document.getElementById('upload-subtitle').textContent = 'Bitte warten und die Seite nicht verlassen.';
+  document.getElementById('upload-bar').style.width = '0%';
+  document.getElementById('upload-percent').textContent = '0%';
   document.getElementById('upload-overlay').style.display = 'block';
 
   const xhr = new XMLHttpRequest();
@@ -400,10 +439,7 @@ document.getElementById('photo-upload-form').addEventListener('submit', function
     }
   });
 
-  xhr.addEventListener('load', function() {
-    window.location.reload();
-  });
-
+  xhr.addEventListener('load', function() { window.location.reload(); });
   xhr.addEventListener('error', function() {
     document.getElementById('upload-overlay').style.display = 'none';
     alert('Upload fehlgeschlagen. Bitte erneut versuchen.');
@@ -411,6 +447,10 @@ document.getElementById('photo-upload-form').addEventListener('submit', function
 
   xhr.send(formData);
 });
+
+setupUploadForm('plan-upload-form', 'Datei');
+setupUploadForm('bauakte-upload-form', 'Datei');
+setupUploadForm('misc-upload-form', 'Datei');
 
 function refineText() {
   const feedback = document.getElementById('refine-input').value.trim();
