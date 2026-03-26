@@ -157,16 +157,19 @@ class CompanySettingsForm(forms.ModelForm):
 _INPUT = "w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1666b0]"
 
 
+_SELECT = "w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1666b0] bg-white"
+
+
 class ProductCatalogForm(forms.ModelForm):
     class Meta:
         model = ProductCatalog
-        fields = ["name", "description", "category", "unit", "quantity", "unit_price", "sort_order", "is_active"]
+        fields = ["name", "description", "category", "billing_type", "unit", "quantity", "unit_price", "is_active"]
         widgets = {
-            "name":        forms.TextInput(attrs={"class": _INPUT}),
-            "description": forms.Textarea(attrs={"class": _INPUT, "rows": 3}),
-            "category":    forms.TextInput(attrs={"class": _INPUT}),
-            "unit":        forms.TextInput(attrs={"class": _INPUT}),
-            "quantity":    forms.NumberInput(attrs={"class": _INPUT, "step": "0.01"}),
-            "unit_price":  forms.NumberInput(attrs={"class": _INPUT, "step": "0.01"}),
-            "sort_order":  forms.NumberInput(attrs={"class": _INPUT}),
+            "name":         forms.TextInput(attrs={"class": _INPUT}),
+            "description":  forms.Textarea(attrs={"class": _INPUT, "rows": 3}),
+            "category":     forms.TextInput(attrs={"class": _INPUT}),
+            "billing_type": forms.Select(attrs={"class": _SELECT}),
+            "unit":         forms.TextInput(attrs={"class": _INPUT}),
+            "quantity":     forms.NumberInput(attrs={"class": _INPUT, "step": "0.01"}),
+            "unit_price":   forms.NumberInput(attrs={"class": _INPUT, "step": "0.01"}),
         }

@@ -7,6 +7,7 @@ from .views import (
     ProductCatalogCreateView,
     ProductCatalogDeleteView,
     ProductCatalogListView,
+    ProductCatalogReorderView,
     ProductCatalogUpdateView,
     ProjectTypeCreateView,
     ProjectTypeDeleteView,
@@ -68,6 +69,7 @@ urlpatterns = [
 
     # Produktkatalog
     path("admin/products/", ProductCatalogListView.as_view(), name="product_catalog_list"),
+    path("admin/products/reorder/", ProductCatalogReorderView.as_view(), name="product_catalog_reorder"),
     path("admin/products/new/", ProductCatalogCreateView.as_view(), name="product_catalog_create"),
     path("admin/products/<int:pk>/edit/", ProductCatalogUpdateView.as_view(), name="product_catalog_update"),
     path("admin/products/<int:pk>/delete/", ProductCatalogDeleteView.as_view(), name="product_catalog_delete"),

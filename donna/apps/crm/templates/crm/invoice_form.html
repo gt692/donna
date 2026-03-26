@@ -322,11 +322,19 @@
                 <!-- Typ + Löschen -->
                 <div class="flex items-center gap-2 mb-3">
                   {{ item_form.item_type }}
+                  {{ item_form.billing_type }}
                   <div class="type-btn-group flex rounded-md border border-slate-200 overflow-hidden text-xs font-medium">
                     <button type="button" class="type-btn px-2.5 py-1 {% if item_form.instance.item_type == 'normal' or not item_form.instance.pk %}active-normal{% endif %}" data-value="normal">Normal</button>
                     <button type="button" class="type-btn px-2.5 py-1 border-l border-slate-200 {% if item_form.instance.item_type == 'optional' %}active-optional{% endif %}" data-value="optional">Optional</button>
                     <button type="button" class="type-btn px-2.5 py-1 border-l border-slate-200 {% if item_form.instance.item_type == 'text' %}active-text{% endif %}" data-value="text">Freitext</button>
                   </div>
+                  <!-- Abrechnungsart-Auswahl -->
+                  <select class="billing-type-select text-xs border border-slate-200 rounded-md px-2 py-1 bg-white text-slate-600 focus:outline-none focus:ring-1 focus:ring-[#059669]">
+                    <option value="flat">Pauschal</option>
+                    <option value="hourly">Stunden</option>
+                    <option value="at_cost">Nachweis</option>
+                    <option value="commission">Provision</option>
+                  </select>
                   <div class="flex-1"></div>
                   {% if item_form.instance.pk %}
                     <label class="cursor-pointer text-slate-300 hover:text-red-500 transition flex-none" title="Löschen">
@@ -552,11 +560,19 @@
         <!-- Typ + Löschen -->
         <div class="flex items-center gap-2 mb-3">
           <input type="hidden" name="items-__prefix__-item_type" value="normal" class="item-type-input">
+          <input type="hidden" name="items-__prefix__-billing_type" value="flat" class="billing-type-input">
           <div class="type-btn-group flex rounded-md border border-slate-200 overflow-hidden text-xs font-medium">
             <button type="button" class="type-btn active-normal px-2.5 py-1" data-value="normal">Normal</button>
             <button type="button" class="type-btn px-2.5 py-1 border-l border-slate-200" data-value="optional">Optional</button>
             <button type="button" class="type-btn px-2.5 py-1 border-l border-slate-200" data-value="text">Freitext</button>
           </div>
+          <!-- Abrechnungsart-Auswahl -->
+          <select class="billing-type-select text-xs border border-slate-200 rounded-md px-2 py-1 bg-white text-slate-600 focus:outline-none focus:ring-1 focus:ring-[#059669]">
+            <option value="flat">Pauschal</option>
+            <option value="hourly">Stunden</option>
+            <option value="at_cost">Nachweis</option>
+            <option value="commission">Provision</option>
+          </select>
           <div class="flex-1"></div>
           <button type="button" class="remove-row text-slate-300 hover:text-red-500 transition flex-none">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -798,6 +814,16 @@
     });
     if (typeInput) applyTypeStyle(card);
 
+    // Abrechnungsart: sync select → hidden input
+    const billingSelect = card.querySelector('.billing-type-select');
+    const billingInput  = card.querySelector('.billing-type-input');
+    if (billingSelect && billingInput) {
+      billingSelect.value = billingInput.value || 'flat';
+      billingSelect.addEventListener('change', function() {
+        billingInput.value = this.value;
+      });
+    }
+
     const removeBtn = card.querySelector('.remove-row');
     if (removeBtn) {
       removeBtn.addEventListener('click', function () {
@@ -985,17 +1011,23 @@
         html += `<div class="px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wide bg-slate-50">${escHtml(cat)}</div>`;
       }
       items.forEach(item => {
+        const btLabels = {flat:'Pauschal', hourly:'Stunden', at_cost:'Nachweis', commission:'Provision'};
+        const btColors = {flat:'bg-blue-100 text-blue-700', hourly:'bg-violet-100 text-violet-700', at_cost:'bg-amber-100 text-amber-700', commission:'bg-emerald-100 text-emerald-700'};
+        const btLabel = btLabels[item.billing_type] || 'Pauschal';
+        const btColor = btColors[item.billing_type] || btColors.flat;
         html += `
           <div class="flex items-center gap-3 px-3 py-3 hover:bg-emerald-50 cursor-pointer rounded-lg catalog-item"
                data-name="${escHtml(item.name)}"
                data-description="${escHtml(item.description)}"
                data-unit="${escHtml(item.unit)}"
                data-quantity="${item.quantity}"
-               data-unit-price="${item.unit_price}">
+               data-unit-price="${item.unit_price}"
+               data-billing-type="${escHtml(item.billing_type || 'flat')}">
             <div class="flex-1 min-w-0">
               <p class="text-sm font-medium text-slate-800">${escHtml(item.name)}</p>
               ${item.description ? `<p class="text-xs text-slate-400 truncate">${escHtml(item.description)}</p>` : ''}
             </div>
+            <span class="text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${btColor}">${btLabel}</span>
             <div class="text-right flex-shrink-0">
               <p class="text-sm font-mono text-slate-700">${parseFloat(item.unit_price).toFixed(2).replace('.', ',')} €</p>
               <p class="text-xs text-slate-400">${item.quantity} ${escHtml(item.unit)}</p>
@@ -1014,6 +1046,7 @@
         addCatalogItem({
           name: this.dataset.name, description: this.dataset.description,
           unit: this.dataset.unit, quantity: this.dataset.quantity, unitPrice: this.dataset.unitPrice,
+          billingType: this.dataset.billingType || 'flat',
         });
         modal.classList.add('hidden');
       });
@@ -1025,15 +1058,19 @@
     const cards    = document.querySelectorAll('#items-container .pos-card');
     const lastCard = cards[cards.length - 1];
     if (!lastCard) return;
-    const titleInput = lastCard.querySelector('input[name$="-title"]');
-    const descInput  = lastCard.querySelector('textarea[name$="-description"]');
-    const qtyInput   = lastCard.querySelector('input[name$="-quantity"]');
-    const unitInput  = lastCard.querySelector('input[name$="-unit"]');
-    const priceInput = lastCard.querySelector('input[name$="-unit_price"]');
+    const titleInput    = lastCard.querySelector('input[name$="-title"]');
+    const descInput     = lastCard.querySelector('textarea[name$="-description"]');
+    const qtyInput      = lastCard.querySelector('input[name$="-quantity"]');
+    const unitInput     = lastCard.querySelector('input[name$="-unit"]');
+    const priceInput    = lastCard.querySelector('input[name$="-unit_price"]');
+    const billingInput  = lastCard.querySelector('.billing-type-input');
+    const billingSelect = lastCard.querySelector('.billing-type-select');
     if (titleInput) titleInput.value = item.name;
     if (descInput)  descInput.value  = item.description || '';
     if (qtyInput)   qtyInput.value   = item.quantity;
     if (unitInput)  unitInput.value  = item.unit;
+    if (billingInput)  billingInput.value  = item.billingType;
+    if (billingSelect) billingSelect.value = item.billingType;
     if (priceInput) { priceInput.value = item.unitPrice; priceInput.dispatchEvent(new Event('input', {bubbles:true})); }
   }
 })();

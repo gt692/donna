@@ -2452,7 +2452,7 @@ class ProductCatalogAPIView(LoginRequiredMixin, View):
     def get(self, request):
         from .models import ProductCatalog
         items = ProductCatalog.objects.filter(is_active=True).values(
-            "id", "name", "description", "unit", "quantity", "unit_price", "category"
+            "id", "name", "description", "unit", "quantity", "unit_price", "category", "billing_type"
         )
         # Convert Decimals to strings for JSON
         result = []
@@ -2465,6 +2465,7 @@ class ProductCatalogAPIView(LoginRequiredMixin, View):
                 "quantity": str(item["quantity"]),
                 "unit_price": str(item["unit_price"]),
                 "category": item["category"],
+                "billing_type": item["billing_type"],
             })
         return JsonResponse({"items": result})
 

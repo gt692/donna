@@ -19,69 +19,88 @@
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
   <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
     <h3 class="text-sm font-semibold text-slate-700">Alle Produkte &amp; Dienstleistungen</h3>
-    <span class="text-xs text-slate-400">{{ products|length }} Eintr{% if products|length == 1 %}ag{% else %}äge{% endif %}</span>
+    <span class="text-xs text-slate-400">{{ products|length }} Eintr{% if products|length == 1 %}ag{% else %}äge{% endif %} &mdash; Reihenfolge per Drag &amp; Drop ändern</span>
   </div>
 
   {% if products %}
-    <table class="w-full text-sm">
-      <thead>
-        <tr class="border-b border-slate-100">
-          <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Bezeichnung</th>
-          <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Kategorie</th>
-          <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Einheit</th>
-          <th class="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Menge</th>
-          <th class="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Einzelpreis (Netto)</th>
-          <th class="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Aktiv</th>
-          <th class="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Reihenfolge</th>
-          <th class="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Aktionen</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-slate-50">
-        {% for product in products %}
-          <tr class="hover:bg-slate-50 transition">
-            <td class="px-6 py-4">
-              <p class="font-medium text-slate-800">{{ product.name }}</p>
-              {% if product.description %}
-                <p class="text-xs text-slate-400 mt-0.5 truncate max-w-xs">{{ product.description }}</p>
-              {% endif %}
-            </td>
-            <td class="px-6 py-4 text-slate-600">
-              {% if product.category %}
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">
-                  {{ product.category }}
-                </span>
-              {% else %}
-                <span class="text-slate-300">—</span>
-              {% endif %}
-            </td>
-            <td class="px-6 py-4 text-slate-600">{{ product.unit }}</td>
-            <td class="px-6 py-4 text-right font-mono text-slate-700">{{ product.quantity }}</td>
-            <td class="px-6 py-4 text-right font-mono font-semibold text-slate-800">
-              {{ product.unit_price|floatformat:"2g" }} €
-            </td>
-            <td class="px-6 py-4 text-center">
-              {% if product.is_active %}
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Aktiv</span>
-              {% else %}
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-500">Inaktiv</span>
-              {% endif %}
-            </td>
-            <td class="px-6 py-4 text-center font-mono text-slate-500 text-xs">{{ product.sort_order }}</td>
-            <td class="px-6 py-4 text-right">
-              <div class="flex items-center justify-end gap-3">
-                <a href="{% url 'dashboard:product_catalog_update' product.pk %}"
-                   class="text-xs text-[#2F6FB3] hover:text-[#1e4d82] font-medium transition">Bearbeiten</a>
-                <form method="post" action="{% url 'dashboard:product_catalog_delete' product.pk %}"
-                      onsubmit="return confirm('Produkt &quot;{{ product.name }}&quot; wirklich löschen?')">
-                  {% csrf_token %}
-                  <button type="submit" class="text-xs text-red-500 hover:text-red-700 font-medium transition">Löschen</button>
-                </form>
-              </div>
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div id="sortable-products" class="divide-y divide-slate-100">
+      {% for product in products %}
+        <div class="sortable-product flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition cursor-grab active:cursor-grabbing"
+             data-id="{{ product.pk }}">
+          <!-- Drag Handle -->
+          <svg class="w-4 h-4 text-slate-300 flex-shrink-0 select-none" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"/>
+          </svg>
+
+          <!-- Name + Beschreibung -->
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-slate-800">{{ product.name }}</p>
+            {% if product.description %}
+              <p class="text-xs text-slate-400 mt-0.5 truncate max-w-xs">{{ product.description }}</p>
+            {% endif %}
+          </div>
+
+          <!-- Kategorie -->
+          <div class="w-28 flex-shrink-0">
+            {% if product.category %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">
+                {{ product.category }}
+              </span>
+            {% else %}
+              <span class="text-slate-300 text-xs">—</span>
+            {% endif %}
+          </div>
+
+          <!-- Abrechnungsart -->
+          <div class="w-32 flex-shrink-0">
+            {% if product.billing_type == "flat" %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">Pauschal</span>
+            {% elif product.billing_type == "hourly" %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-700">Stundenbasiert</span>
+            {% elif product.billing_type == "at_cost" %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Nach Nachweis</span>
+            {% elif product.billing_type == "commission" %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Provision</span>
+            {% endif %}
+          </div>
+
+          <!-- Einheit + Menge -->
+          <div class="w-24 text-right flex-shrink-0 text-xs text-slate-500">
+            {{ product.quantity }} {{ product.unit }}
+          </div>
+
+          <!-- Preis -->
+          <div class="w-28 text-right flex-shrink-0">
+            <span class="font-mono font-semibold text-sm text-slate-800">{{ product.unit_price|floatformat:"2g" }} €</span>
+          </div>
+
+          <!-- Aktiv -->
+          <div class="w-14 flex-shrink-0 text-center">
+            {% if product.is_active %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">Aktiv</span>
+            {% else %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-500">Inaktiv</span>
+            {% endif %}
+          </div>
+
+          <!-- Aktionen -->
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <a href="{% url 'dashboard:product_catalog_update' product.pk %}"
+               class="text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition">
+              Bearbeiten
+            </a>
+            <form method="post" action="{% url 'dashboard:product_catalog_delete' product.pk %}"
+                  onsubmit="return confirm('Produkt &quot;{{ product.name }}&quot; wirklich löschen?')">
+              {% csrf_token %}
+              <button type="submit"
+                      class="text-xs font-medium px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition">
+                Löschen
+              </button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
   {% else %}
     <div class="px-6 py-16 text-center">
       <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
@@ -98,4 +117,27 @@
     </div>
   {% endif %}
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+const list = document.getElementById('sortable-products');
+if (list) {
+  Sortable.create(list, {
+    animation: 150,
+    handle: '.sortable-product',
+    ghostClass: 'bg-blue-50',
+    onEnd: function() {
+      const order = [...list.querySelectorAll('.sortable-product')].map(el => el.dataset.id);
+      fetch("{% url 'dashboard:product_catalog_reorder' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: JSON.stringify({ order }),
+      });
+    }
+  });
+}
+</script>
 {% endblock %}

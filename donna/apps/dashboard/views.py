@@ -733,3 +733,12 @@ class ProductCatalogDeleteView(AdminRequiredMixin, View):
         obj.delete()
         messages.success(request, "Produkt gelöscht.")
         return redirect("dashboard:product_catalog_list")
+
+
+class ProductCatalogReorderView(AdminRequiredMixin, View):
+    def post(self, request):
+        import json
+        data = json.loads(request.body)
+        for i, pk in enumerate(data.get("order", [])):
+            ProductCatalog.objects.filter(pk=pk).update(sort_order=i)
+        return JsonResponse({"ok": True})

@@ -823,6 +823,17 @@ class Offer(models.Model):
         return self.offer_number
 
 
+# ---------------------------------------------------------------------------
+# BillingType — Abrechnungsarten für Positionen
+# ---------------------------------------------------------------------------
+
+class BillingType(models.TextChoices):
+    FLAT       = "flat",       _("Pauschal")
+    HOURLY     = "hourly",     _("Stundenbasiert")
+    AT_COST    = "at_cost",    _("Nach Nachweis")
+    COMMISSION = "commission", _("Provision")
+
+
 class OfferItem(models.Model):
     class ItemType(models.TextChoices):
         NORMAL   = "normal",   _("Standard")
@@ -857,6 +868,12 @@ class OfferItem(models.Model):
     discount_percent = models.DecimalField(
         max_digits=5, decimal_places=2, default=Decimal("0"),
         verbose_name=_("Rabatt (%)"),
+    )
+    billing_type = models.CharField(
+        max_length=20,
+        choices=BillingType.choices,
+        default=BillingType.FLAT,
+        verbose_name=_("Abrechnungsart"),
     )
 
     class Meta:
@@ -992,6 +1009,7 @@ class InvoiceItem(models.Model):
     unit             = models.CharField(max_length=50, blank=True, default="")
     unit_price       = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
     discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0"))
+    billing_type     = models.CharField(max_length=20, choices=BillingType.choices, default=BillingType.FLAT)
 
     @property
     def net_amount(self):
@@ -1014,8 +1032,14 @@ class InvoiceItem(models.Model):
 
 class ProductCatalog(models.Model):
     """Standard products/services for quick-add in offers and invoices."""
-    name        = models.CharField(max_length=255, verbose_name="Bezeichnung")
-    description = models.TextField(blank=True, verbose_name="Beschreibung")
+    name         = models.CharField(max_length=255, verbose_name="Bezeichnung")
+    description  = models.TextField(blank=True, verbose_name="Beschreibung")
+    billing_type = models.CharField(
+        max_length=20,
+        choices=BillingType.choices,
+        default=BillingType.FLAT,
+        verbose_name="Abrechnungsart",
+    )
     unit        = models.CharField(max_length=50, default="pauschal", verbose_name="Einheit")
     quantity    = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal("1"), verbose_name="Menge")
     unit_price  = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Einzelpreis (Netto)")
