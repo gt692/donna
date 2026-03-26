@@ -28,12 +28,30 @@ class GraphAPIEmailBackend(BaseEmailBackend):
             )
         return result["access_token"]
 
+    @staticmethod
+    def _parse_from(from_email: str) -> tuple[str, str]:
+        """Parst 'Firmenname <addr@domain.de>' → (name, address)."""
+        from email.headerregistry import Address
+        try:
+            if "<" in from_email and ">" in from_email:
+                name = from_email[:from_email.index("<")].strip().strip('"')
+                addr = from_email[from_email.index("<") + 1:from_email.index(">")].strip()
+                return name, addr
+        except Exception:
+            pass
+        return "", from_email.strip()
+
     def send_messages(self, email_messages):
         token = self._get_access_token()
         sender = settings.MS_SENDER_EMAIL
         sent = 0
 
         for message in email_messages:
+            display_name, _ = self._parse_from(message.from_email or sender)
+            from_field: dict = {"address": sender}
+            if display_name:
+                from_field["name"] = display_name
+
             graph_message = {
                 "subject": message.subject,
                 "body": {
@@ -49,7 +67,7 @@ class GraphAPIEmailBackend(BaseEmailBackend):
                     for addr in (message.cc or [])
                 ],
                 "from": {
-                    "emailAddress": {"address": sender}
+                    "emailAddress": from_field
                 },
             }
 
