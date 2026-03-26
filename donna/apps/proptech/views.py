@@ -69,6 +69,7 @@ class PropertyReportDetailView(PropTechMixin, DetailView):
         }
         ctx["upload_form"] = PropertyReportFileForm()
         ctx["pending_files_count"] = report.files.filter(markdown_content="").count()
+        ctx["failed_files_count"] = report.files.filter(markdown_content__startswith="[").count()
         return ctx
 
 
@@ -220,6 +221,18 @@ class PropertyReportFileDeleteView(PropTechMixin, View):
         except Exception:
             pass
         f.delete()
+        return redirect("proptech:report_detail", pk=pk)
+
+
+class PropertyReportFileReprocessView(PropTechMixin, View):
+    """Setzt markdown_content aller fehlgeschlagenen Dateien zurück → werden beim nächsten Generieren neu verarbeitet."""
+    def post(self, request, pk):
+        report = get_object_or_404(PropertyReport, pk=pk)
+        reset_count = report.files.filter(markdown_content__startswith="[").update(markdown_content="")
+        if reset_count:
+            messages.success(request, f"{reset_count} Datei(en) zum Neuverarbeiten vorgemerkt — bitte jetzt generieren.")
+        else:
+            messages.info(request, "Keine fehlgeschlagenen Dateien gefunden.")
         return redirect("proptech:report_detail", pk=pk)
 
 

@@ -18,6 +18,7 @@ urlpatterns = [
     path("<uuid:pk>/files/upload/", views.PropertyReportFileUploadView.as_view(), name="file_upload"),
     path("<uuid:pk>/files/<uuid:fid>/delete/", views.PropertyReportFileDeleteView.as_view(), name="file_delete"),
     path("<uuid:pk>/files/bulk-delete/", views.PropertyReportFileBulkDeleteView.as_view(), name="file_bulk_delete"),
+    path("<uuid:pk>/files/reprocess/", views.PropertyReportFileReprocessView.as_view(), name="file_reprocess"),
     # Vorlagen
     path("templates/", views.DescriptionTemplateListView.as_view(), name="template_list"),
     path("templates/new/", views.DescriptionTemplateCreateView.as_view(), name="template_create"),

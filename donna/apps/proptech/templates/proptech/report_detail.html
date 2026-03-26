@@ -189,6 +189,15 @@
             <button type="button" onclick="selectByType('plan')" class="text-xs text-[#2F6FB3] hover:text-[#265e99] transition">Pläne</button>
             <button type="button" onclick="selectByType('bauakte')" class="text-xs text-[#2F6FB3] hover:text-[#265e99] transition">Bauakte</button>
             <button type="button" onclick="selectByType('misc')" class="text-xs text-[#2F6FB3] hover:text-[#265e99] transition">Sonstige</button>
+            {% if failed_files_count %}
+            <span class="text-slate-200">|</span>
+            <form method="post" action="{% url 'proptech:file_reprocess' report.pk %}" class="inline">
+              {% csrf_token %}
+              <button type="submit" class="text-xs text-amber-600 hover:text-amber-800 transition" title="{{ failed_files_count }} fehlgeschlagene Dateien neu verarbeiten">
+                ↺ {{ failed_files_count }} neu verarbeiten
+              </button>
+            </form>
+            {% endif %}
           </div>
           <button type="button" id="bulk-delete-btn" onclick="confirmBulkDelete()"
                   class="hidden items-center gap-1 text-xs text-red-500 hover:text-red-700 font-medium transition px-2 py-1 rounded hover:bg-red-50">

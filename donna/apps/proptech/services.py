@@ -124,12 +124,64 @@ def _image_to_base64(file_field) -> tuple:
         return base64.standard_b64encode(f.read()).decode(), media_type
 
 
+def _pdf_to_markdown_via_claude(file_record, file_type_label: str, label: str) -> str:
+    """
+    Sendet ein PDF direkt an Claude (Haiku) als Dokument — funktioniert auch für
+    gescannte/bildbasierte PDFs (Grundrisse, Pläne), die pypdf nicht lesen kann.
+    """
+    api_key = getattr(settings, "ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return ""
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+        with file_record.file.open("rb") as f:
+            pdf_b64 = base64.standard_b64encode(f.read()).decode()
+
+        if file_record.file_type == "plan":
+            instruction = (
+                "Beschreibe diesen Grundriss / Plan detailliert für eine KI-gestützte "
+                "Objektbeschreibung. Analysiere:\n"
+                "- Raumaufteilung und Anzahl der Zimmer\n"
+                "- Erschließung und Wegführung\n"
+                "- Lage von Bad, Küche, Wohnbereich\n"
+                "- Besonderheiten wie Terrasse, Keller, Dachschrägen\n"
+                "- Gesamteindruck der Grundrissqualität\n"
+                "Schreibe präzise. Strukturiere als Markdown."
+            )
+        else:
+            instruction = (
+                "Beschreibe den Inhalt dieses Dokuments detailliert für eine KI-gestützte "
+                "Immobilienbeschreibung. Extrahiere alle relevanten Informationen "
+                "über das Objekt. Strukturiere als Markdown."
+            )
+
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1024,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "document",
+                        "source": {"type": "base64", "media_type": "application/pdf", "data": pdf_b64},
+                    },
+                    {"type": "text", "text": instruction},
+                ],
+            }],
+        )
+        return f"# {file_type_label}: {label}\n\n{response.content[0].text}"
+    except Exception as exc:
+        logger.warning("PDF-Vision-Konvertierung fehlgeschlagen (%s): %s", label, exc)
+        return ""
+
+
 def convert_file_to_markdown(file_record) -> str:
     """
     Konvertiert eine hochgeladene Datei in Markdown.
-    PDFs: pypdf-Extraktion. Bilder: Claude Vision (Haiku).
-    Speichert immer etwas in markdown_content — auch bei Fehler —
-    damit Dateien nicht endlos als 'ausstehend' markiert bleiben.
+    PDFs: erst pypdf, bei leerem Ergebnis (gescannte PDFs) → Claude Vision (Haiku).
+    Bilder: Claude Vision (Haiku).
+    Speichert immer etwas in markdown_content damit ⏳ verschwindet.
     """
     label = file_record.label or os.path.basename(file_record.file.name)
     file_type_label = file_record.get_file_type_display()
@@ -140,11 +192,13 @@ def convert_file_to_markdown(file_record) -> str:
         if text:
             markdown = f"# {file_type_label}: {label}\n\n{text}"
         else:
-            markdown = f"[{file_type_label}: {label} — PDF enthält keinen extrahierbaren Text]"
+            # Gescanntes PDF — direkt an Claude Vision schicken
+            markdown = _pdf_to_markdown_via_claude(file_record, file_type_label, label)
+            if not markdown:
+                markdown = f"[{file_type_label}: {label} — PDF konnte nicht verarbeitet werden]"
     elif file_record.is_image:
         if ext in CLAUDE_VISION_UNSUPPORTED:
-            # HEIC/TIFF etc. — Claude Vision unterstützt dieses Format nicht direkt
-            markdown = f"[{file_type_label}: {label} — Format {ext} nicht von KI-Vision unterstützt (bitte als JPG/PNG hochladen)]"
+            markdown = f"[{file_type_label}: {label} — Format {ext} nicht unterstützt (bitte als JPG/PNG hochladen)]"
         else:
             markdown = _image_to_markdown_via_claude(file_record, file_type_label, label)
             if not markdown:
