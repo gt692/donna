@@ -273,11 +273,20 @@ class PropertyDescriptionService:
             except Exception as exc:
                 logger.warning("Markdown-Konvertierung übersprungen (%s): %s", f.filename, exc)
 
+        # Dokumente (Bauakte, Pläne, Sonstiges) immer einbeziehen
         file_sections = []
-        for f in report.files.all().order_by("file_type", "uploaded_at"):
-            md = f.markdown_content
-            if md:
-                file_sections.append(md[:MAX_FILE_MARKDOWN_CHARS])
+        for f in report.files.exclude(file_type="photo").order_by("file_type", "uploaded_at"):
+            if f.markdown_content:
+                file_sections.append(f.markdown_content[:MAX_FILE_MARKDOWN_CHARS])
+
+        # Fotos: max. 20, gleichmäßig über alle Fotos verteilt (nicht nur die ersten)
+        photos = list(report.files.filter(file_type="photo").order_by("uploaded_at"))
+        if photos:
+            step = max(1, len(photos) // 20)
+            selected = photos[::step][:20]
+            for f in selected:
+                if f.markdown_content:
+                    file_sections.append(f.markdown_content[:MAX_FILE_MARKDOWN_CHARS])
 
         if file_sections:
             content.append({
