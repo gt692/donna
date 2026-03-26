@@ -3,7 +3,7 @@
 
 {% block title %}Projekttypen{% endblock %}
 {% block page_heading %}Projekttypen{% endblock %}
-{% block page_subheading %}Typen für Projekte verwalten{% endblock %}
+{% block page_subheading %}Reihenfolge per Drag &amp; Drop ändern{% endblock %}
 
 {% block topbar_actions %}
   <a href="{% url 'dashboard:project_type_create' %}"
@@ -30,17 +30,25 @@
 
   <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
     {% if project_types %}
-      <div class="divide-y divide-slate-100">
+      <div id="sortable-list" class="divide-y divide-slate-100">
         {% for pt in project_types %}
-        <div class="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition">
-          <div class="w-4 h-4 rounded-full flex-shrink-0" style="background-color: {{ pt.color }}"></div>
+        <div class="sortable-item flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition cursor-grab active:cursor-grabbing"
+             data-id="{{ pt.pk }}">
+          <!-- Drag Handle -->
+          <svg class="w-4 h-4 text-slate-300 flex-shrink-0 select-none" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"/>
+          </svg>
+          <!-- Farbkreis -->
+          <div class="w-4 h-4 rounded-full flex-shrink-0 ring-1 ring-black/10" style="background-color: {{ pt.color }}"></div>
+          <!-- Name -->
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium text-slate-800">{{ pt.name }}</p>
             {% if pt.description %}
               <p class="text-xs text-slate-400 mt-0.5">{{ pt.description }}</p>
             {% endif %}
           </div>
-          <div class="flex items-center gap-2">
+          <!-- Aktionen -->
+          <div class="flex items-center gap-2 flex-shrink-0">
             {% if not pt.is_active %}
               <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Inaktiv</span>
             {% endif %}
@@ -75,4 +83,27 @@
   </div>
 
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+const list = document.getElementById('sortable-list');
+if (list) {
+  Sortable.create(list, {
+    animation: 150,
+    handle: '.sortable-item',
+    ghostClass: 'bg-blue-50',
+    onEnd: function() {
+      const order = [...list.querySelectorAll('.sortable-item')].map(el => el.dataset.id);
+      fetch("{% url 'dashboard:project_type_reorder' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: JSON.stringify({ order }),
+      });
+    }
+  });
+}
+</script>
 {% endblock %}

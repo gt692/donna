@@ -11,6 +11,7 @@ from .views import (
     ProjectTypeCreateView,
     ProjectTypeDeleteView,
     ProjectTypeListView,
+    ProjectTypeReorderView,
     ProjectTypeUpdateView,
     RevenueTargetCreateView,
     RevenueTargetDeleteView,
@@ -59,10 +60,11 @@ urlpatterns = [
     path("admin/revenue-targets/<int:pk>/delete/", RevenueTargetDeleteView.as_view(), name="revenue_target_delete"),
 
     # Projekttypen
-    path("admin/project-types/",                 ProjectTypeListView.as_view(),   name="project_type_list"),
-    path("admin/project-types/new/",             ProjectTypeCreateView.as_view(), name="project_type_create"),
-    path("admin/project-types/<int:pk>/edit/",   ProjectTypeUpdateView.as_view(), name="project_type_update"),
-    path("admin/project-types/<int:pk>/delete/", ProjectTypeDeleteView.as_view(), name="project_type_delete"),
+    path("admin/project-types/",                 ProjectTypeListView.as_view(),    name="project_type_list"),
+    path("admin/project-types/reorder/",         ProjectTypeReorderView.as_view(), name="project_type_reorder"),
+    path("admin/project-types/new/",             ProjectTypeCreateView.as_view(),  name="project_type_create"),
+    path("admin/project-types/<int:pk>/edit/",   ProjectTypeUpdateView.as_view(),  name="project_type_update"),
+    path("admin/project-types/<int:pk>/delete/", ProjectTypeDeleteView.as_view(),  name="project_type_delete"),
 
     # Produktkatalog
     path("admin/products/", ProductCatalogListView.as_view(), name="product_catalog_list"),

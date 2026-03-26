@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.mail import send_mail
+from django.db import models
 from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
@@ -562,9 +563,14 @@ class ProjectTypeListView(AdminRequiredMixin, TemplateView):
 
 class ProjectTypeCreateView(AdminRequiredMixin, CreateView):
     model         = ProjectTypeModel
-    fields        = ["name", "description", "color", "order", "is_active"]
+    fields        = ["name", "description", "color", "is_active"]
     template_name = "dashboard/admin/project_type_form.html"
     success_url   = reverse_lazy("dashboard:project_type_list")
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.fields["color"].widget.attrs.update({"type": "color", "class": "h-10 w-16 rounded cursor-pointer border border-slate-200 p-1"})
+        return form
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -573,15 +579,23 @@ class ProjectTypeCreateView(AdminRequiredMixin, CreateView):
         return ctx
 
     def form_valid(self, form):
+        # Neuen Typ ans Ende der Reihenfolge setzen
+        max_order = ProjectTypeModel.objects.aggregate(m=models.Max("order"))["m"] or 0
+        form.instance.order = max_order + 1
         messages.success(self.request, f"Projekttyp \"{form.instance.name}\" wurde angelegt.")
         return super().form_valid(form)
 
 
 class ProjectTypeUpdateView(AdminRequiredMixin, UpdateView):
     model         = ProjectTypeModel
-    fields        = ["name", "description", "color", "order", "is_active"]
+    fields        = ["name", "description", "color", "is_active"]
     template_name = "dashboard/admin/project_type_form.html"
     success_url   = reverse_lazy("dashboard:project_type_list")
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.fields["color"].widget.attrs.update({"type": "color", "class": "h-10 w-16 rounded cursor-pointer border border-slate-200 p-1"})
+        return form
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -593,6 +607,18 @@ class ProjectTypeUpdateView(AdminRequiredMixin, UpdateView):
     def form_valid(self, form):
         messages.success(self.request, f"Projekttyp \"{form.instance.name}\" wurde gespeichert.")
         return super().form_valid(form)
+
+
+class ProjectTypeReorderView(AdminRequiredMixin, View):
+    def post(self, request):
+        import json
+        try:
+            order = json.loads(request.body).get("order", [])
+            for i, pk in enumerate(order):
+                ProjectTypeModel.objects.filter(pk=pk).update(order=i)
+            return JsonResponse({"ok": True})
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
 
 
 class ProjectTypeDeleteView(AdminRequiredMixin, View):
