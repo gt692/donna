@@ -616,9 +616,15 @@ class TeamCalendarView(WorktrackMixin, TemplateView):
 # Kalender-Ansicht
 # ---------------------------------------------------------------------------
 
-class TimeEntryCalendarView(LoginRequiredMixin, TemplateView):
-    login_url     = "/auth/login/"
-    template_name = "worktrack/calendar.html"
+class TimeEntryCalendarView(WorktrackMixin, View):
+    """Leitet auf den Team-Kalender um (FullCalendar ersetzt)."""
+    def get(self, request, *args, **kwargs):
+        from django.urls import reverse
+        week = request.GET.get("week", "")
+        url  = reverse("worktrack:team_calendar")
+        if week:
+            url += f"?week={week}"
+        return redirect(url)
 
 
 class TimeEntryCalendarAPIView(LoginRequiredMixin, View):
