@@ -82,7 +82,8 @@ Alles Übernommene kritisch prüfen, anpassen und verbessern — nie 1:1 kopiere
 - Schreibe auf Deutsch, Duzen vermeiden (neutral formulieren)"""
 
 MAX_TEMPLATE_CHARS = 8_000
-MAX_FILE_MARKDOWN_CHARS = 6_000
+MAX_FILE_MARKDOWN_CHARS = 6_000   # für Dokumente (PDFs, Pläne, Bauakte)
+MAX_PHOTO_MARKDOWN_CHARS = 500    # für Fotos — kurze Beschreibung reicht, alle werden gesendet
 
 
 def _extract_pdf_text(file_field) -> str:
@@ -157,14 +158,9 @@ def _image_to_markdown_via_claude(file_record, file_type_label: str, label: str)
 
         if file_record.file_type == "photo":
             instruction = (
-                "Beschreibe dieses Immobilienfoto detailliert für eine KI-gestützte "
-                "Objektbeschreibung. Analysiere:\n"
-                "- Welcher Raum / Bereich ist zu sehen?\n"
-                "- Ausstattungsmerkmale: Böden, Wände, Decken, Fenster, Einbauten\n"
-                "- Qualität und Zustand der sichtbaren Elemente\n"
-                "- Besonderheiten, Highlights oder Mängel\n"
-                "- Stimmung und Wirkung des Raums\n"
-                "Schreibe präzise und sachlich. Strukturiere als Markdown mit kurzen Absätzen."
+                "Beschreibe dieses Immobilienfoto in maximal 3-4 Sätzen: "
+                "Welcher Raum/Bereich? Böden, Wände, Einbauten, Zustand, Besonderheiten. "
+                "Nur Fakten, kein Fließtext, keine Wertung."
             )
         elif file_record.file_type == "plan":
             instruction = (
@@ -273,20 +269,16 @@ class PropertyDescriptionService:
             except Exception as exc:
                 logger.warning("Markdown-Konvertierung übersprungen (%s): %s", f.filename, exc)
 
-        # Dokumente (Bauakte, Pläne, Sonstiges) immer einbeziehen
+        # Dokumente (Bauakte, Pläne, Sonstiges) vollständig einbeziehen
         file_sections = []
         for f in report.files.exclude(file_type="photo").order_by("file_type", "uploaded_at"):
             if f.markdown_content:
                 file_sections.append(f.markdown_content[:MAX_FILE_MARKDOWN_CHARS])
 
-        # Fotos: max. 20, gleichmäßig über alle Fotos verteilt (nicht nur die ersten)
-        photos = list(report.files.filter(file_type="photo").order_by("uploaded_at"))
-        if photos:
-            step = max(1, len(photos) // 20)
-            selected = photos[::step][:20]
-            for f in selected:
-                if f.markdown_content:
-                    file_sections.append(f.markdown_content[:MAX_FILE_MARKDOWN_CHARS])
+        # Fotos: alle einbeziehen, aber kurz gefasst (~500 Zeichen pro Foto)
+        for f in report.files.filter(file_type="photo").order_by("uploaded_at"):
+            if f.markdown_content:
+                file_sections.append(f.markdown_content[:MAX_PHOTO_MARKDOWN_CHARS])
 
         if file_sections:
             content.append({
