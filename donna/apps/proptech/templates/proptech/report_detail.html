@@ -1,0 +1,264 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ report.title }}{% endblock %}
+{% block page_heading %}{{ report.title }}{% endblock %}
+{% block page_subheading %}
+  {% if report.role == 'gutachter' %}Gutachter-Beschreibung{% else %}Makler-Beschreibung (Exposé){% endif %}
+  {% if report.city %} · {{ report.city }}{% endif %}
+{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'proptech:report_list' %}"
+     class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Zurück
+  </a>
+  <a href="{% url 'proptech:report_update' report.pk %}"
+     class="flex items-center gap-2 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 font-medium text-sm px-3 py-2 rounded-lg transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+    </svg>
+    Bearbeiten
+  </a>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+  {% for msg in messages %}
+  <div class="mb-4 px-4 py-3 rounded-lg text-sm border
+    {% if msg.tags == 'error' %}bg-red-50 border-red-200 text-red-700
+    {% else %}bg-emerald-50 border-emerald-200 text-emerald-700{% endif %}">
+    {{ msg }}
+  </div>
+  {% endfor %}
+{% endif %}
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  <!-- Linke Spalte: Metadaten + Dateien -->
+  <div class="space-y-4">
+
+    <!-- Objektdaten -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-slate-700">Objektdaten</h3>
+        {% if report.role == 'gutachter' %}
+          <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#2F6FB3]">Gutachter</span>
+        {% else %}
+          <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">Makler</span>
+        {% endif %}
+      </div>
+      <div class="px-5 py-4 space-y-2 text-sm">
+        {% if report.street or report.city %}
+        <div>
+          <p class="text-xs text-slate-400">Adresse</p>
+          <p class="text-slate-700">{{ report.street }}{% if report.street and report.city %}<br>{% endif %}{{ report.postal_code }} {{ report.city }}</p>
+        </div>
+        {% endif %}
+        {% if report.building_type %}
+        <div><p class="text-xs text-slate-400">Gebäudeart</p><p class="text-slate-700">{{ report.building_type }}</p></div>
+        {% endif %}
+        {% if report.year_of_construction %}
+        <div><p class="text-xs text-slate-400">Baujahr</p><p class="text-slate-700">{{ report.year_of_construction }}</p></div>
+        {% endif %}
+        {% if report.condition %}
+        <div><p class="text-xs text-slate-400">Zustand</p><p class="text-slate-700">{{ report.condition }}</p></div>
+        {% endif %}
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          {% if report.living_area %}
+          <div><p class="text-xs text-slate-400">Wohnfläche</p><p class="text-slate-700">{{ report.living_area }} m²</p></div>
+          {% endif %}
+          {% if report.plot_area %}
+          <div><p class="text-xs text-slate-400">Grundstück</p><p class="text-slate-700">{{ report.plot_area }} m²</p></div>
+          {% endif %}
+          {% if report.number_of_rooms %}
+          <div><p class="text-xs text-slate-400">Zimmer</p><p class="text-slate-700">{{ report.number_of_rooms }}</p></div>
+          {% endif %}
+          {% if report.number_of_floors %}
+          <div><p class="text-xs text-slate-400">Stockwerke</p><p class="text-slate-700">{{ report.number_of_floors }}</p></div>
+          {% endif %}
+        </div>
+        {% if report.project %}
+        <div class="pt-1 border-t border-slate-100">
+          <p class="text-xs text-slate-400">Projekt</p>
+          <a href="{% url 'crm:project_detail' report.project.pk %}" class="text-[#2F6FB3] hover:text-[#265e99] text-sm transition">{{ report.project.name }}</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Dateien hochladen -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Unterlagen hochladen</h3>
+        <p class="text-xs text-slate-400 mt-0.5">Fotos, Pläne und Dokumente für die KI</p>
+      </div>
+      <div class="px-5 py-4">
+        <form method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">Typ</label>
+              {{ upload_form.file_type }}
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">Datei</label>
+              {{ upload_form.file }}
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">Bezeichnung (optional)</label>
+              {{ upload_form.label }}
+            </div>
+            <button type="submit"
+                    class="w-full bg-slate-700 hover:bg-slate-800 text-white text-sm font-medium py-2 rounded-lg transition">
+              Hochladen
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Hochgeladene Dateien -->
+    {% with all_files=files_by_type.photo|length|add:files_by_type.plan|length|add:files_by_type.bauakte|length|add:files_by_type.misc|length %}
+    {% if all_files %}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Hochgeladene Dateien</h3>
+      </div>
+      <div class="divide-y divide-slate-100">
+        {% for file_type, label in report.files.model.TYPE_CHOICES %}
+          {% with type_files=files_by_type|dictsort:file_type %}
+          {% endwith %}
+        {% endfor %}
+        {% for f in report.files.all %}
+        <div class="px-5 py-3 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2 min-w-0">
+            {% if f.is_image %}
+              <svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+            {% elif f.is_pdf %}
+              <svg class="w-4 h-4 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+            {% else %}
+              <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+              </svg>
+            {% endif %}
+            <div class="min-w-0">
+              <p class="text-xs font-medium text-slate-700 truncate">{{ f.label|default:f.filename }}</p>
+              <p class="text-xs text-slate-400">{{ f.get_file_type_display }}</p>
+            </div>
+          </div>
+          <form method="post" action="{% url 'proptech:file_delete' report.pk f.pk %}"
+                onsubmit="return confirm('Datei löschen?')">
+            {% csrf_token %}
+            <button type="submit" class="text-slate-300 hover:text-red-500 transition flex-shrink-0">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Löschen -->
+    <form method="post" action="{% url 'proptech:report_delete' report.pk %}"
+          onsubmit="return confirm('Baubeschreibung und alle Dateien löschen?')">
+      {% csrf_token %}
+      <button type="submit"
+              class="w-full text-xs text-slate-400 hover:text-red-500 transition py-2">
+        Baubeschreibung löschen
+      </button>
+    </form>
+  </div>
+
+  <!-- Rechte Spalte: KI-Generierung -->
+  <div class="lg:col-span-2 space-y-4">
+
+    <!-- Generieren-Card -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <div>
+          <h3 class="text-sm font-semibold text-slate-700">KI-Beschreibung generieren</h3>
+          {% if report.generated_at %}
+          <p class="text-xs text-slate-400 mt-0.5">Zuletzt generiert: {{ report.generated_at|date:"d.m.Y H:i" }} Uhr</p>
+          {% endif %}
+        </div>
+        <form method="post" action="{% url 'proptech:report_generate' report.pk %}" id="generate-form">
+          {% csrf_token %}
+          <button type="submit" id="generate-btn"
+                  class="flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
+            <svg class="w-4 h-4" id="generate-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            <span id="generate-label">{% if report.has_generated_text %}Neu generieren{% else %}Jetzt generieren{% endif %}</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Loading-Overlay (versteckt) -->
+      <div id="generate-loading" class="hidden px-6 py-8 text-center">
+        <div class="flex flex-col items-center gap-3">
+          <svg class="animate-spin w-8 h-8 text-[#2F6FB3]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <p class="text-sm font-medium text-slate-600">KI erstellt Baubeschreibung…</p>
+          <p class="text-xs text-slate-400">Das kann 15–30 Sekunden dauern.</p>
+        </div>
+      </div>
+
+      {% if report.hints %}
+      <div class="px-6 py-3 bg-amber-50 border-b border-amber-100 text-xs text-amber-700">
+        {{ report.hints }}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Generierter Text -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">
+          {% if report.has_generated_text %}Generierter Text{% else %}Generierter Text (noch leer){% endif %}
+        </h3>
+      </div>
+      <form method="post" action="{% url 'proptech:report_save_text' report.pk %}">
+        {% csrf_token %}
+        <div class="px-6 py-4">
+          <textarea name="generated_text" rows="20"
+                    class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] transition font-mono leading-relaxed resize-y"
+                    placeholder="Der generierte Text erscheint hier. Klicke 'Jetzt generieren' um die KI zu starten.">{{ report.generated_text }}</textarea>
+        </div>
+        <div class="px-6 pb-4 flex items-center justify-between">
+          <p class="text-xs text-slate-400">Du kannst den Text hier direkt bearbeiten und anschließend speichern.</p>
+          <button type="submit"
+                  class="bg-slate-700 hover:bg-slate-800 text-white font-medium text-sm px-4 py-2 rounded-lg transition">
+            Text speichern
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<script>
+document.getElementById('generate-form').addEventListener('submit', function() {
+  document.getElementById('generate-loading').classList.remove('hidden');
+  document.getElementById('generate-btn').disabled = true;
+  document.getElementById('generate-btn').classList.add('opacity-50', 'cursor-not-allowed');
+});
+</script>
+{% endblock %}

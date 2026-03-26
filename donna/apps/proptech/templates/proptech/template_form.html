@@ -1,0 +1,68 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}Vorlage hochladen{% endblock %}
+{% block page_heading %}Stil-Vorlage hochladen{% endblock %}
+{% block page_subheading %}Referenztext für die KI{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'proptech:template_list' %}"
+     class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Zurück
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+  <div class="bg-[#EFF6FF] border border-[#A5F3FC] rounded-xl px-5 py-4 mb-5 text-sm text-[#2F6FB3]">
+    Lade eine fertige Baubeschreibung oder ein Gutachten als PDF oder TXT hoch.
+    Der Text wird automatisch extrahiert und der KI als Stil-Referenz übergeben.
+  </div>
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+
+    {% if form.errors %}
+    <div class="bg-red-50 border border-red-200 rounded-xl px-5 py-4 mb-4 text-sm text-red-700">
+      {% for field in form %}{% if field.errors %}<p>{{ field.label }}: {{ field.errors|join:", " }}</p>{% endif %}{% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Vorlage</h3>
+      </div>
+      <div class="px-6 py-5 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Name <span class="text-red-500">*</span></label>
+          {{ form.name }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Rolle <span class="text-red-500">*</span></label>
+          {{ form.role }}
+          <p class="mt-1 text-xs text-slate-400">Für welche Beschreibungsart soll diese Vorlage verwendet werden?</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Datei (PDF oder TXT) <span class="text-red-500">*</span></label>
+          {{ form.file }}
+        </div>
+        <div class="flex items-center gap-2">
+          {{ form.is_active }}
+          <label for="{{ form.is_active.id_for_label }}" class="text-sm text-slate-600 cursor-pointer">Aktiv (wird bei Generierung verwendet)</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between">
+      <a href="{% url 'proptech:template_list' %}" class="text-sm text-slate-500 hover:text-slate-700 transition">Abbrechen</a>
+      <button type="submit"
+              class="bg-[#2F6FB3] hover:bg-[#265e99] text-white font-medium text-sm px-6 py-2.5 rounded-lg transition">
+        Hochladen
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

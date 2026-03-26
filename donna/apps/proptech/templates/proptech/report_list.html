@@ -1,0 +1,113 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}Baubeschreibungen{% endblock %}
+{% block page_heading %}Baubeschreibungen{% endblock %}
+{% block page_subheading %}KI-gestützte Objekt- und Gutachten-Beschreibungen{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'proptech:template_list' %}"
+     class="flex items-center gap-2 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 font-medium text-sm px-3 py-2 rounded-lg transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+    </svg>
+    Stil-Vorlagen
+  </a>
+  <a href="{% url 'proptech:report_create' %}"
+     class="flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    </svg>
+    Neue Baubeschreibung
+  </a>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+  {% for msg in messages %}
+  <div class="mb-4 px-4 py-3 rounded-lg text-sm
+    {% if msg.tags == 'error' %}bg-red-50 border border-red-200 text-red-700
+    {% else %}bg-emerald-50 border border-emerald-200 text-emerald-700{% endif %}">
+    {{ msg }}
+  </div>
+  {% endfor %}
+{% endif %}
+
+{% if reports %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="border-b border-slate-200 bg-slate-50">
+        <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Bezeichnung</th>
+        <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Rolle</th>
+        <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Projekt</th>
+        <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+        <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Erstellt</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for r in reports %}
+      <tr class="hover:bg-slate-50 transition">
+        <td class="px-5 py-4">
+          <a href="{% url 'proptech:report_detail' r.pk %}" class="font-medium text-slate-800 hover:text-[#2F6FB3] transition">
+            {{ r.title }}
+          </a>
+          {% if r.street or r.city %}
+          <p class="text-xs text-slate-400 mt-0.5">{{ r.street }}{% if r.street and r.city %}, {% endif %}{{ r.city }}</p>
+          {% endif %}
+        </td>
+        <td class="px-5 py-4">
+          {% if r.role == 'gutachter' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#EFF6FF] text-[#2F6FB3]">Gutachter</span>
+          {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">Makler</span>
+          {% endif %}
+        </td>
+        <td class="px-5 py-4 text-slate-500">
+          {% if r.project %}
+            <a href="{% url 'crm:project_detail' r.project.pk %}" class="hover:text-[#2F6FB3] transition">{{ r.project.name }}</a>
+          {% else %}—{% endif %}
+        </td>
+        <td class="px-5 py-4">
+          {% if r.has_generated_text %}
+            <span class="inline-flex items-center gap-1 text-xs text-emerald-700">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>
+              Generiert
+            </span>
+          {% else %}
+            <span class="text-xs text-slate-400">Noch nicht generiert</span>
+          {% endif %}
+        </td>
+        <td class="px-5 py-4 text-xs text-slate-400">{{ r.created_at|date:"d.m.Y" }}</td>
+        <td class="px-5 py-4 text-right">
+          <a href="{% url 'proptech:report_detail' r.pk %}"
+             class="text-xs text-[#2F6FB3] hover:text-[#265e99] font-medium transition">Öffnen →</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center">
+  <svg class="w-12 h-12 text-slate-200 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+      d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+  </svg>
+  <p class="text-slate-500 font-medium mb-1">Noch keine Baubeschreibungen</p>
+  <p class="text-slate-400 text-sm mb-4">Erstelle deine erste KI-generierte Objekt- oder Gutachten-Beschreibung.</p>
+  <a href="{% url 'proptech:report_create' %}"
+     class="inline-flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    </svg>
+    Erste Baubeschreibung erstellen
+  </a>
+</div>
+{% endif %}
+{% endblock %}

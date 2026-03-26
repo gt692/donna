@@ -279,6 +279,30 @@
       </div>
       {% endif %}
 
+      <!-- ── Tools ──────────────────────────── -->
+      {% if request.user.is_admin %}
+      <div class="pt-2">
+        <button type="button" data-section="tools"
+                class="nav-section-btn w-full flex items-center justify-between px-1 py-1 group">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider group-hover:text-slate-300 transition">Tools</span>
+          <svg class="nav-chevron w-3.5 h-3.5 text-slate-500 transition-transform duration-200 group-hover:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </button>
+      </div>
+      <div data-section-body="tools" class="space-y-0.5">
+        <a href="{% url 'proptech:report_list' %}"
+           class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition
+                  {% if '/proptech' in request.path %}bg-[#2F6FB3] text-white{% else %}text-slate-400 hover:bg-slate-800 hover:text-white{% endif %}">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+          Baubeschreibungen
+        </a>
+      </div>
+      {% endif %}
+
       <!-- ── System ──────────────────────────── -->
       {% if request.user.is_admin %}
       <div class="pt-2">

@@ -1,3 +1,5 @@
+anthropic>=0.40.0
+pypdf>=4.0.0
 asgiref==3.11.1
 certifi==2026.2.25
 cffi==2.0.0

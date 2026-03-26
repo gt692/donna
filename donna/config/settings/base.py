@@ -51,6 +51,7 @@ LOCAL_APPS = [
     "apps.crm.apps.CrmConfig",
     "apps.worktrack.apps.WorktrackConfig",
     "apps.dashboard.apps.DashboardConfig",
+    "apps.proptech.apps.PropTechConfig",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -169,6 +170,9 @@ GOOGLE_MAPS_API_KEY    = env("GOOGLE_MAPS_API_KEY", default="")
 
 # Basis-Pfad für Netzlaufwerk / lokales Storage
 STORAGE_BASE_PATH = env("STORAGE_BASE_PATH", default="")
+
+# Anthropic Claude API
+ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")
 
 
 # ── Jazzmin Admin-Theme ────────────────────────────────────────────────────

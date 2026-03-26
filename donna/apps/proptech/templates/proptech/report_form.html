@@ -1,0 +1,128 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_heading %}{{ page_title }}{% endblock %}
+{% block page_subheading %}{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'proptech:report_list' %}"
+     class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Zurück
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    {% if form.errors %}
+    <div class="bg-red-50 border border-red-200 rounded-xl px-5 py-4 mb-4 text-sm text-red-700">
+      <p class="font-semibold mb-1">Bitte korrigiere folgende Fehler:</p>
+      {% for field in form %}{% if field.errors %}<p>{{ field.label }}: {{ field.errors|join:", " }}</p>{% endif %}{% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Allgemein -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Allgemein</h3>
+      </div>
+      <div class="px-6 py-5 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Bezeichnung <span class="text-red-500">*</span></label>
+          {{ form.title }}
+          {% if form.title.errors %}<p class="mt-1 text-xs text-red-600">{{ form.title.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Rolle <span class="text-red-500">*</span></label>
+            {{ form.role }}
+            <p class="mt-1 text-xs text-slate-400">Bestimmt Stil und Detailtiefe der KI-Beschreibung</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Projekt (optional)</label>
+            {{ form.project }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Adresse -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Adresse</h3>
+      </div>
+      <div class="px-6 py-5 grid grid-cols-2 gap-4">
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-600 mb-1">Straße + Hausnummer</label>
+          {{ form.street }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">PLZ</label>
+          {{ form.postal_code }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Ort</label>
+          {{ form.city }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Objektdaten -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+        <h3 class="text-sm font-semibold text-slate-700">Objektdaten</h3>
+        <p class="text-xs text-slate-400 mt-0.5">Je mehr Felder ausgefüllt, desto präziser die KI-Ausgabe</p>
+      </div>
+      <div class="px-6 py-5 grid grid-cols-2 gap-4">
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-600 mb-1">Gebäudeart</label>
+          {{ form.building_type }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Baujahr</label>
+          {{ form.year_of_construction }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Zustand</label>
+          {{ form.condition }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Wohnfläche (m²)</label>
+          {{ form.living_area }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Grundstücksfläche (m²)</label>
+          {{ form.plot_area }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Zimmeranzahl</label>
+          {{ form.number_of_rooms }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Stockwerke</label>
+          {{ form.number_of_floors }}
+        </div>
+        <div class="col-span-2">
+          <label class="block text-sm font-medium text-slate-600 mb-1">Zusätzliche Hinweise für die KI</label>
+          {{ form.additional_notes }}
+          <p class="mt-1 text-xs text-slate-400">Besonderheiten, Ausstattungsdetails, Baujahre von Sanierungen, Hinweise die nicht aus Dokumenten hervorgehen</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between">
+      <a href="{% url 'proptech:report_list' %}" class="text-sm text-slate-500 hover:text-slate-700 transition">Abbrechen</a>
+      <button type="submit"
+              class="bg-[#2F6FB3] hover:bg-[#265e99] text-white font-medium text-sm px-6 py-2.5 rounded-lg transition">
+        {{ submit_label }}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

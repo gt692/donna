@@ -1,0 +1,106 @@
+{% extends "dashboard/base.html" %}
+{% load i18n %}
+
+{% block title %}Stil-Vorlagen{% endblock %}
+{% block page_heading %}Stil-Vorlagen{% endblock %}
+{% block page_subheading %}Referenztexte für die KI — Gutachter & Makler{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'proptech:report_list' %}"
+     class="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Baubeschreibungen
+  </a>
+  <a href="{% url 'proptech:template_create' %}"
+     class="flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    </svg>
+    Vorlage hochladen
+  </a>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+  {% for msg in messages %}
+  <div class="mb-4 px-4 py-3 rounded-lg text-sm border
+    {% if msg.tags == 'error' %}bg-red-50 border-red-200 text-red-700
+    {% else %}bg-emerald-50 border-emerald-200 text-emerald-700{% endif %}">
+    {{ msg }}
+  </div>
+  {% endfor %}
+{% endif %}
+
+<div class="bg-[#EFF6FF] border border-[#A5F3FC] rounded-xl px-5 py-4 mb-5 text-sm text-[#2F6FB3]">
+  <p class="font-medium mb-1">Wozu dienen Stil-Vorlagen?</p>
+  <p class="text-xs">
+    Lade hier fertige Baubeschreibungen oder Gutachten-Texte hoch (PDF oder TXT).
+    Die KI nutzt diese als Stil-Referenz und orientiert sich am Tonfall und Aufbau deiner eigenen Texte.
+    Maximal 2 aktive Vorlagen je Rolle werden bei der Generierung verwendet.
+  </p>
+</div>
+
+{% if templates %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="border-b border-slate-200 bg-slate-50">
+        <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Name</th>
+        <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Rolle</th>
+        <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Text extrahiert</th>
+        <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+        <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Hochgeladen</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for tpl in templates %}
+      <tr class="hover:bg-slate-50 transition {% if not tpl.is_active %}opacity-50{% endif %}">
+        <td class="px-5 py-4 font-medium text-slate-700">{{ tpl.name }}</td>
+        <td class="px-5 py-4">
+          {% if tpl.role == 'gutachter' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#EFF6FF] text-[#2F6FB3]">Gutachter</span>
+          {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">Makler</span>
+          {% endif %}
+        </td>
+        <td class="px-5 py-4 text-xs text-slate-500">
+          {% if tpl.extracted_text %}
+            <span class="text-emerald-600">✓ {{ tpl.extracted_text|length }} Zeichen</span>
+          {% else %}
+            <span class="text-slate-400">Kein Text (kein PDF?)</span>
+          {% endif %}
+        </td>
+        <td class="px-5 py-4">
+          {% if tpl.is_active %}
+            <span class="text-xs text-emerald-600 font-medium">Aktiv</span>
+          {% else %}
+            <span class="text-xs text-slate-400">Inaktiv</span>
+          {% endif %}
+        </td>
+        <td class="px-5 py-4 text-xs text-slate-400">{{ tpl.uploaded_at|date:"d.m.Y" }}</td>
+        <td class="px-5 py-4 text-right">
+          <form method="post" action="{% url 'proptech:template_delete' tpl.pk %}"
+                onsubmit="return confirm('Vorlage löschen?')">
+            {% csrf_token %}
+            <button type="submit" class="text-xs text-slate-400 hover:text-red-500 transition">Löschen</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-10 text-center">
+  <p class="text-slate-400 text-sm mb-3">Noch keine Vorlagen hochgeladen.</p>
+  <a href="{% url 'proptech:template_create' %}"
+     class="inline-flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] text-white font-medium text-sm px-4 py-2 rounded-lg transition">
+    Erste Vorlage hochladen
+  </a>
+</div>
+{% endif %}
+{% endblock %}

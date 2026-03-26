@@ -8,6 +8,7 @@ urlpatterns = [
     path("dashboard/",  include("apps.dashboard.urls",  namespace="dashboard")),
     path("worktrack/",  include("apps.worktrack.urls",  namespace="worktrack")),
     path("crm/",        include("apps.crm.urls",        namespace="crm")),
+    path("proptech/",   include("apps.proptech.urls",   namespace="proptech")),
     # Wurzel-Redirect auf Dashboard
     path("", lambda request: __import__("django.shortcuts", fromlist=["redirect"]).redirect("dashboard:home")),
 ]
