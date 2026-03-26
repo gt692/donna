@@ -119,8 +119,8 @@ class TimeEntryListView(WorktrackMixin, TemplateView):
         approved   = sum(float(e.duration_hours) for e in entries if e.status == TimeEntry.Status.APPROVED)
         pending    = sum(float(e.duration_hours) for e in entries if e.status == TimeEntry.Status.SUBMITTED)
 
-        # Überstunden
-        if schedule:
+        # Überstunden (nur wenn WorkSchedule vorhanden UND track_overtime=True)
+        if schedule and schedule.track_overtime:
             week_target = float(schedule.hours_per_week)
             overtime    = week_total - week_target
         else:

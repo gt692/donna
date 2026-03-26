@@ -230,6 +230,11 @@ class WorkSchedule(models.Model):
         default=30,
         verbose_name=_("Urlaubstage / Jahr"),
     )
+    track_overtime = models.BooleanField(
+        default=True,
+        verbose_name=_("Überstunden erfassen"),
+        help_text=_("Bei Vertrauensarbeitszeit deaktivieren."),
+    )
 
     class Meta:
         verbose_name = _("Arbeitszeitmodell")
