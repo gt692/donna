@@ -11,6 +11,7 @@
       font-size: 9.5pt;
       color: #1a1a2e;
       background: #fff;
+      padding-bottom: 40pt; /* Freiraum für den fixed Footer auf jeder Seite */
     }
 
     @page {
@@ -242,11 +243,13 @@
     /* ── Unterschriftsfeld ────────────────────────────────── */
     .signature-block {
       margin-top: 24pt;
+      margin-bottom: 20pt;
       padding: 14pt 16pt;
       border: 1pt solid #ccc;
       border-radius: 3pt;
       background: #fafafa;
       page-break-inside: avoid;
+      break-inside: avoid; /* WeasyPrint modernes Property */
     }
     .signature-block p {
       font-size: 9pt;
