@@ -177,6 +177,12 @@ class DescriptionTemplateCreateView(PropTechMixin, CreateView):
     template_name = "proptech/template_form.html"
     success_url = reverse_lazy("proptech:template_list")
 
+    def get_context_data(self, **kwargs):
+        from django.conf import settings as dj_settings
+        ctx = super().get_context_data(**kwargs)
+        ctx["google_maps_api_key"] = dj_settings.GOOGLE_MAPS_API_KEY
+        return ctx
+
     def form_valid(self, form):
         response = super().form_valid(form)
         obj = self.object

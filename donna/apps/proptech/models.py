@@ -129,6 +129,9 @@ class DescriptionTemplate(models.Model):
         max_length=20, choices=BUILDING_TYPE_CHOICES, blank=True,
         verbose_name=_("Gebäudetyp"),
     )
+    street = models.CharField(max_length=255, blank=True, verbose_name=_("Straße + Hausnummer"))
+    postal_code = models.CharField(max_length=10, blank=True, verbose_name=_("PLZ"))
+    city = models.CharField(max_length=100, blank=True, verbose_name=_("Ort"))
     file = models.FileField(upload_to="description_templates/", verbose_name=_("Datei (PDF oder TXT)"))
     extracted_text = models.TextField(blank=True, verbose_name=_("Extrahierter Text"))
     is_active = models.BooleanField(default=True, verbose_name=_("Aktiv"))

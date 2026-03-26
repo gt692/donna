@@ -1,5 +1,6 @@
 {% extends "dashboard/base.html" %}
 {% load i18n %}
+{% load static %}
 
 {% block title %}Vorlage hochladen{% endblock %}
 {% block page_heading %}Stil-Vorlage hochladen{% endblock %}
@@ -51,6 +52,34 @@
           </div>
         </div>
         <p class="text-xs text-slate-400 -mt-2">Gebäudetyp hilft der KI, passende Vorlagen zu priorisieren</p>
+
+        <!-- Adresse des Referenzobjekts -->
+        <div>
+          <label class="block text-sm font-medium text-slate-600 mb-1">Straße + Hausnummer <span class="text-xs text-slate-400">(Referenzobjekt)</span></label>
+          <input type="text" id="id_tpl_street" name="street"
+                 value="{{ form.street.value|default:'' }}"
+                 placeholder="Musterstraße 1"
+                 autocomplete="off"
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] transition">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">PLZ</label>
+            <input type="text" id="id_tpl_postal_code" name="postal_code"
+                   value="{{ form.postal_code.value|default:'' }}"
+                   placeholder="12345"
+                   class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] transition">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Ort</label>
+            <input type="text" id="id_tpl_city" name="city"
+                   value="{{ form.city.value|default:'' }}"
+                   placeholder="München"
+                   class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F6FB3] transition">
+          </div>
+        </div>
+        <p class="text-xs text-slate-400 -mt-2">Adresse ermöglicht präzises Lage-Matching für ähnliche Objekte</p>
+
         <div>
           <label class="block text-sm font-medium text-slate-600 mb-1">Datei (PDF oder TXT) <span class="text-red-500">*</span></label>
           {{ form.file }}
@@ -71,4 +100,33 @@
     </div>
   </form>
 </div>
+
+{% if google_maps_api_key %}
+<script>
+function initTplAutocomplete() {
+  const input = document.getElementById('id_tpl_street');
+  if (!input) return;
+  const ac = new google.maps.places.Autocomplete(input, {
+    types: ['address'],
+    componentRestrictions: { country: ['de', 'at', 'ch'] },
+    fields: ['address_components'],
+  });
+  ac.addListener('place_changed', function() {
+    const place = ac.getPlace();
+    if (!place.address_components) return;
+    let street = '', number = '', postal = '', city = '';
+    place.address_components.forEach(c => {
+      if (c.types.includes('route'))         street = c.long_name;
+      if (c.types.includes('street_number')) number = c.long_name;
+      if (c.types.includes('postal_code'))   postal = c.long_name;
+      if (c.types.includes('locality'))      city   = c.long_name;
+    });
+    input.value = number ? `${street} ${number}` : street;
+    document.getElementById('id_tpl_postal_code').value = postal;
+    document.getElementById('id_tpl_city').value        = city;
+  });
+}
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initTplAutocomplete" async defer></script>
+{% endif %}
 {% endblock %}

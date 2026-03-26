@@ -245,6 +245,7 @@ class PropertyDescriptionService:
                     "text": (
                         f"## Referenz-Exposé aus vergangenen Projekten: {tpl.name}"
                         + (f" [{tpl.get_building_type_display()}]" if tpl.building_type else "")
+                        + (f" — {' '.join(filter(None, [tpl.street, tpl.postal_code, tpl.city]))}" if any([tpl.street, tpl.city]) else "")
                         + "\n\n"
                         f"{snippet}\n\n"
                         "[Analysiere dieses Referenz-Exposé als Beispiel dafür, wie unsere Experten "
