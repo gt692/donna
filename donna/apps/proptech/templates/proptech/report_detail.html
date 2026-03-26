@@ -201,10 +201,12 @@
               <p class="text-xs font-medium text-slate-700 truncate">{{ f.label|default:f.filename }}</p>
               <p class="text-xs text-slate-400">
                 {{ f.get_file_type_display }}
-                {% if f.markdown_content %}
+                {% if f.markdown_content and not f.markdown_content|slice:":1" == "[" %}
                   <span class="ml-1 text-emerald-500" title="Markdown aufbereitet">✓ KI-bereit</span>
+                {% elif f.markdown_content %}
+                  <span class="ml-1 text-amber-500" title="{{ f.markdown_content }}">⚠ nicht verarbeitbar</span>
                 {% else %}
-                  <span class="ml-1 text-amber-400" title="Noch nicht aufbereitet">⏳</span>
+                  <span class="ml-1 text-slate-400" title="Noch nicht aufbereitet">⏳ ausstehend</span>
                 {% endif %}
               </p>
             </div>

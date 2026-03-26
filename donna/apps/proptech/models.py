@@ -112,7 +112,9 @@ class PropertyReportFile(models.Model):
 
     @property
     def is_image(self):
-        return os.path.splitext(self.file.name)[1].lower() in (".jpg", ".jpeg", ".png", ".webp", ".gif")
+        return os.path.splitext(self.file.name)[1].lower() in (
+            ".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic", ".heif", ".tiff", ".tif", ".bmp"
+        )
 
     @property
     def is_pdf(self):

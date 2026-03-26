@@ -43,22 +43,30 @@ Erstelle eine ansprechende, verkaufsfördernde Objektbeschreibung für ein Expos
 Gliedere den Text immer in genau diese drei Abschnitte mit den folgenden Überschriften:
 
 **Immobilie**
-Beschreibe das Objekt als Ganzes: Art, Charakter, Baujahr, Zustand, Besonderheiten,
-was das Haus oder die Wohnung auf den ersten Blick ausmacht. Beginne mit einem
-einleitenden Satz, der das Objekt auf den Punkt bringt. Ton: einladend und professionell.
+Beschreibe das Objekt ausführlich und konkret — mindestens 4–6 Sätze.
+Geh ein auf: Gebäudeart und -charakter, Baujahr und Bauweise, Gesamtzustand,
+Besonderheiten der Architektur oder des Grundrisses, Anzahl der Zimmer und Etagen,
+Außenanlagen (Garten, Terrasse, Carport, Garage), Keller, Dachgeschoss.
+Was macht dieses Objekt als Ganzes aus — was fällt beim ersten Anblick auf?
+Beginne mit einem einleitenden Satz, der das Objekt auf den Punkt bringt.
+Ton: einladend, professionell, konkret — keine leeren Allgemeinaussagen.
 
 **Ausstattung**
-Beschreibe die Ausstattungsmerkmale konkret und ansprechend: Böden, Bäder, Küche,
-Heizung, Fenster, Einbauschränke, Keller, Garage, Terrasse, Garten — was immer
-aus den Unterlagen und Fotos erkennbar ist. Fokus auf Qualität und Wohngefühl,
-nicht auf reine technische Fakten.
+Beschreibe die Ausstattungsmerkmale vollständig, detailliert und objektbezogen — mindestens 5–8 Sätze.
+Geh systematisch durch alle erkennbaren Merkmale: Böden (Material, Zustand, welche Räume),
+Bäder und WCs (Ausstattung, Fliesen, Sanitär, Himmelsrichtung falls erkennbar),
+Küche (Einbauküche vorhanden? Zustand, Ausstattung), Heizungsanlage (Art, Energieträger, Baujahr falls bekannt),
+Fenster und Verglasung, Einbauschränke und Stauraumlösungen, Smart-Home oder besondere Technik,
+Kamin, Fußbodenheizung, Dachterrasse, Photovoltaik — was immer aus Fotos und Dokumenten erkennbar ist.
+Beschreibe nicht nur was vorhanden ist, sondern auch den Zustand und das Wohngefühl.
+Keine reine technische Aufzählung — verbinde Fakten mit Qualitätseindruck.
 
 **Lage**
 Beschreibe die Lage basierend auf deinem Wissen über den angegebenen Ort und Stadtteil.
 Gehe ein auf: Infrastruktur (ÖPNV, Autobahnanbindung), Einkaufsmöglichkeiten,
 Schulen und Kindergärten, Naherholung und Natur, Charakter des Viertels / der Gemeinde,
 Entfernungen zu relevanten Zentren. Formuliere aus der Perspektive eines künftigen
-Bewohners, der sich dort ein Leben aufbaut.
+Bewohners, der sich dort ein Leben aufbaut. Mindestens 3–4 Sätze.
 
 Umgang mit Referenz-Exposés:
 Du erhältst möglicherweise fertige Exposés aus vergangenen Projekten unserer Experten.
@@ -75,11 +83,11 @@ Immobilienprofis konkrete Objekte mit Fotos und Dokumenten bewertet und in Texte
 Alles Übernommene kritisch prüfen, anpassen und verbessern — nie 1:1 kopieren.
 
 Übergreifende Stilregeln:
-- Bildhafte, lebendige Sprache — keine leeren Floskeln ("einmalig", "traumhaft")
+- Bildhafte, lebendige Sprache — keine leeren Floskeln ("einmalig", "traumhaft", "charmant")
 - Sprich Käufer emotional an: Lebensqualität, Alltag, Potenzial
-- Keine rein technischen Aufzählungen — Fließtext mit natürlichem Lesefluss
-- Jeder Abschnitt 2–4 Sätze bis zu einem kurzen Absatz
-- Schreibe auf Deutsch, Duzen vermeiden (neutral formulieren)"""
+- Fließtext mit natürlichem Lesefluss — keine reinen Stichpunktlisten
+- Schreibe auf Deutsch, Duzen vermeiden (neutral formulieren)
+- Mehr ist besser: lieber ein Merkmal zu viel beschreiben als eines weglassen"""
 
 MAX_TEMPLATE_CHARS = 8_000
 MAX_FILE_MARKDOWN_CHARS = 6_000   # für Dokumente (PDFs, Pläne, Bauakte)
@@ -96,6 +104,9 @@ def _extract_pdf_text(file_field) -> str:
     except Exception as exc:
         logger.warning("PDF-Extraktion fehlgeschlagen: %s", exc)
         return ""
+
+
+CLAUDE_VISION_UNSUPPORTED = {".heic", ".heif", ".tiff", ".tif", ".bmp"}
 
 
 def _image_to_base64(file_field) -> tuple:
@@ -115,31 +126,34 @@ def _image_to_base64(file_field) -> tuple:
 
 def convert_file_to_markdown(file_record) -> str:
     """
-    Konvertiert eine hochgeladene Datei sofort beim Upload in Markdown.
-    PDFs werden per pypdf extrahiert, Bilder via Claude Vision beschrieben.
-    Das Ergebnis wird in file_record.markdown_content gespeichert.
-    Gibt den generierten Markdown-Text zurück.
+    Konvertiert eine hochgeladene Datei in Markdown.
+    PDFs: pypdf-Extraktion. Bilder: Claude Vision (Haiku).
+    Speichert immer etwas in markdown_content — auch bei Fehler —
+    damit Dateien nicht endlos als 'ausstehend' markiert bleiben.
     """
     label = file_record.label or os.path.basename(file_record.file.name)
     file_type_label = file_record.get_file_type_display()
+    ext = os.path.splitext(file_record.file.name)[1].lower()
 
     if file_record.is_pdf:
         text = _extract_pdf_text(file_record.file)
-        if not text:
-            return ""
-        markdown = (
-            f"# {file_type_label}: {label}\n\n"
-            f"{text}"
-        )
+        if text:
+            markdown = f"# {file_type_label}: {label}\n\n{text}"
+        else:
+            markdown = f"[{file_type_label}: {label} — PDF enthält keinen extrahierbaren Text]"
     elif file_record.is_image:
-        markdown = _image_to_markdown_via_claude(file_record, file_type_label, label)
+        if ext in CLAUDE_VISION_UNSUPPORTED:
+            # HEIC/TIFF etc. — Claude Vision unterstützt dieses Format nicht direkt
+            markdown = f"[{file_type_label}: {label} — Format {ext} nicht von KI-Vision unterstützt (bitte als JPG/PNG hochladen)]"
+        else:
+            markdown = _image_to_markdown_via_claude(file_record, file_type_label, label)
+            if not markdown:
+                markdown = f"[{file_type_label}: {label} — Bildbeschreibung fehlgeschlagen]"
     else:
-        return ""
+        markdown = f"[{file_type_label}: {label} — Dateiformat wird nicht verarbeitet]"
 
-    if markdown:
-        file_record.markdown_content = markdown
-        file_record.save(update_fields=["markdown_content"])
-
+    file_record.markdown_content = markdown
+    file_record.save(update_fields=["markdown_content"])
     return markdown
 
 
@@ -316,7 +330,7 @@ class PropertyDescriptionService:
 
         response = client.messages.create(
             model="claude-opus-4-6",
-            max_tokens=4096,
+            max_tokens=8192,
             system=system,
             messages=[{"role": "user", "content": content}],
         )
