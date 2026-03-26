@@ -236,13 +236,20 @@ class AccountQuickCreateView(EditAccountsMixin, View):
     """Minimal Account-Erstellung via AJAX — gibt JSON zurück für Modal im Angebotsformular."""
 
     def post(self, request):
-        name         = request.POST.get("name", "").strip()
-        account_type = request.POST.get("account_type", Account.AccountType.COMPANY)
-        email        = request.POST.get("email", "").strip()
-        phone        = request.POST.get("phone", "").strip()
+        account_type  = request.POST.get("account_type", Account.AccountType.COMPANY)
+        email         = request.POST.get("email", "").strip()
+        phone         = request.POST.get("phone", "").strip()
         address_line1 = request.POST.get("address_line1", "").strip()
-        postal_code  = request.POST.get("postal_code", "").strip()
-        city         = request.POST.get("city", "").strip()
+        postal_code   = request.POST.get("postal_code", "").strip()
+        city          = request.POST.get("city", "").strip()
+
+        is_private = account_type == Account.AccountType.PRIVATE
+        if is_private:
+            first_name = request.POST.get("first_name", "").strip()
+            last_name  = request.POST.get("last_name", "").strip()
+            name = f"{first_name} {last_name}".strip()
+        else:
+            name = request.POST.get("name", "").strip()
 
         if not name:
             return JsonResponse({"error": "Name ist erforderlich."}, status=400)

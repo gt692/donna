@@ -615,10 +615,12 @@ class CompanySettingsView(AdminRequiredMixin, View):
     template_name = "dashboard/admin/company_settings.html"
 
     def _ctx(self, form, obj):
+        from django.conf import settings as dj_settings
         return {
-            "form":        form,
-            "settings_obj": obj,
-            "targets":     RevenueTarget.objects.all(),
+            "form":             form,
+            "settings_obj":     obj,
+            "targets":          RevenueTarget.objects.all(),
+            "google_maps_api_key": dj_settings.GOOGLE_MAPS_API_KEY,
         }
 
     def get(self, request):

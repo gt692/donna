@@ -332,4 +332,38 @@
     </div>
   </div>
 </form>
+
+{% if google_maps_api_key %}
+<script>
+function initGoogleAutocomplete() {
+  const input = document.getElementById('{{ form.street.id_for_label }}');
+  if (!input) return;
+  input.setAttribute('autocomplete', 'off');
+  const ac = new google.maps.places.Autocomplete(input, {
+    types: ['address'],
+    componentRestrictions: { country: ['de', 'at', 'ch'] },
+    fields: ['address_components'],
+  });
+  ac.addListener('place_changed', function() {
+    const place = ac.getPlace();
+    if (!place.address_components) return;
+    const get = types => { const c = place.address_components.find(c => types.some(t => c.types.includes(t))); return c ? c.long_name : ''; };
+    const street = get(['route']), number = get(['street_number']);
+    if (street) input.value = number ? `${street} ${number}` : street;
+    const postalEl  = document.getElementById('{{ form.postal_code.id_for_label }}');
+    const cityEl    = document.getElementById('{{ form.city.id_for_label }}');
+    const countryEl = document.getElementById('{{ form.country.id_for_label }}');
+    if (postalEl)  postalEl.value  = get(['postal_code']);
+    if (cityEl)    cityEl.value    = get(['locality', 'sublocality', 'postal_town']);
+    if (countryEl) countryEl.value = get(['country']);
+    [input, postalEl, cityEl, countryEl].forEach(f => {
+      if (!f?.value) return;
+      f.classList.add('ring-2', 'ring-green-400', 'border-green-300');
+      setTimeout(() => f.classList.remove('ring-2', 'ring-green-400', 'border-green-300'), 1500);
+    });
+  });
+}
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initGoogleAutocomplete" async defer></script>
+{% endif %}
 {% endblock %}

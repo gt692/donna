@@ -1462,6 +1462,9 @@ fetch('{% url "crm:unit_api" %}')
 </script>
 
 <!-- ── Modal: Neuen Kunden anlegen ────────────────────────────── -->
+{% if google_maps_api_key %}
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&loading=async" async defer></script>
+{% endif %}
 <div id="account-quick-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm p-4">
   <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
     <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
@@ -1485,12 +1488,27 @@ fetch('{% url "crm:unit_api" %}')
         </div>
         <input type="hidden" id="aqm-account-type" name="account_type" value="company">
       </div>
-      <!-- Name -->
-      <div>
-        <label id="aqm-name-label" class="block text-xs text-slate-500 mb-1">Firmenname *</label>
-        <input type="text" name="name" id="aqm-name" required
+      <!-- Name Unternehmen -->
+      <div id="aqm-company-name-row">
+        <label class="block text-xs text-slate-500 mb-1">Firmenname *</label>
+        <input type="text" name="name" id="aqm-name"
                class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-[#2F6FB3]"
                placeholder="Mustermann GmbH">
+      </div>
+      <!-- Name Privatperson -->
+      <div id="aqm-private-name-row" class="hidden grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">Vorname *</label>
+          <input type="text" name="first_name" id="aqm-first-name"
+                 class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-[#2F6FB3]"
+                 placeholder="Max">
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">Nachname *</label>
+          <input type="text" name="last_name" id="aqm-last-name"
+                 class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-[#2F6FB3]"
+                 placeholder="Mustermann">
+        </div>
       </div>
       <!-- E-Mail -->
       <div>
@@ -1503,19 +1521,19 @@ fetch('{% url "crm:unit_api" %}')
       <div class="grid grid-cols-3 gap-2">
         <div class="col-span-3">
           <label class="block text-xs text-slate-500 mb-1">Straße, Nr.</label>
-          <input type="text" name="address_line1"
+          <input type="text" name="address_line1" id="aqm-address"
                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-[#2F6FB3]"
-                 placeholder="Musterstraße 1">
+                 placeholder="Musterstraße 1" autocomplete="off">
         </div>
         <div>
           <label class="block text-xs text-slate-500 mb-1">PLZ</label>
-          <input type="text" name="postal_code"
+          <input type="text" name="postal_code" id="aqm-postal"
                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-[#2F6FB3]"
                  placeholder="12345">
         </div>
         <div class="col-span-2">
           <label class="block text-xs text-slate-500 mb-1">Ort</label>
-          <input type="text" name="city"
+          <input type="text" name="city" id="aqm-city"
                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-[#2F6FB3]"
                  placeholder="Berlin">
         </div>
@@ -1538,7 +1556,8 @@ function openAccountQuickModal() {
   const modal = document.getElementById('account-quick-modal');
   modal.classList.remove('hidden');
   modal.classList.add('flex');
-  document.getElementById('aqm-name').focus();
+  const isPrivate = document.getElementById('aqm-account-type').value === 'private';
+  (isPrivate ? document.getElementById('aqm-first-name') : document.getElementById('aqm-name')).focus();
 }
 function closeAccountQuickModal() {
   const modal = document.getElementById('account-quick-modal');
@@ -1555,7 +1574,11 @@ function aqmSetType(type) {
     'px-4 py-1.5 transition ' + (isCompany ? 'bg-[#2F6FB3] text-white' : 'bg-white text-slate-500');
   document.getElementById('aqm-type-private').className =
     'px-4 py-1.5 transition ' + (!isCompany ? 'bg-[#2F6FB3] text-white' : 'bg-white text-slate-500');
-  document.getElementById('aqm-name-label').textContent = isCompany ? 'Firmenname *' : 'Name(n) *';
+  document.getElementById('aqm-company-name-row').classList.toggle('hidden', !isCompany);
+  document.getElementById('aqm-private-name-row').classList.toggle('hidden', isCompany);
+  document.getElementById('aqm-name').required = isCompany;
+  document.getElementById('aqm-first-name').required = !isCompany;
+  document.getElementById('aqm-last-name').required = !isCompany;
 }
 document.getElementById('account-quick-form').addEventListener('submit', async function(e) {
   e.preventDefault();
@@ -1585,6 +1608,30 @@ document.getElementById('account-quick-form').addEventListener('submit', async f
 // ESC schließt Modal
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeAccountQuickModal();
+});
+// Google Places Autovervollständigung
+window.addEventListener('load', function() {
+  if (typeof google === 'undefined' || !google.maps || !google.maps.places) return;
+  const input = document.getElementById('aqm-address');
+  const ac = new google.maps.places.Autocomplete(input, {
+    types: ['address'],
+    componentRestrictions: { country: ['de', 'at', 'ch'] },
+    fields: ['address_components'],
+  });
+  ac.addListener('place_changed', function() {
+    const place = ac.getPlace();
+    if (!place.address_components) return;
+    let street = '', number = '', postal = '', city = '';
+    place.address_components.forEach(c => {
+      if (c.types.includes('route'))                        street = c.long_name;
+      if (c.types.includes('street_number'))                number = c.long_name;
+      if (c.types.includes('postal_code'))                  postal = c.long_name;
+      if (c.types.includes('locality'))                     city   = c.long_name;
+    });
+    input.value = number ? `${street} ${number}` : street;
+    document.getElementById('aqm-postal').value = postal;
+    document.getElementById('aqm-city').value   = city;
+  });
 });
 </script>
 
