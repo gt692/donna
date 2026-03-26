@@ -22,18 +22,44 @@ _TW_SELECT = (
 )
 
 
+_TW_CHECKBOX = "w-4 h-4 rounded border-slate-300 text-[#2F6FB3] cursor-pointer"
+
+
 class UserCreateForm(forms.ModelForm):
     """Einladungs-Formular — kein Passwort, wird per E-Mail vergeben."""
 
     class Meta:
         model = User
-        fields = ["first_name", "last_name", "email", "role", "reporting_to", "notify_by_email"]
+        fields = [
+            "first_name", "last_name", "email", "role", "reporting_to", "notify_by_email",
+            "perm_edit_leads", "perm_delete_leads",
+            "perm_edit_projects", "perm_delete_projects",
+            "perm_edit_offers", "perm_delete_offers", "perm_send_offers",
+            "perm_edit_invoices", "perm_delete_invoices", "perm_send_invoices",
+            "perm_edit_accounts", "perm_delete_accounts",
+            "perm_approve_time",
+            "perm_edit_templates",
+        ]
         widgets = {
             "first_name":   forms.TextInput(attrs={"class": _TW}),
             "last_name":    forms.TextInput(attrs={"class": _TW}),
             "email":        forms.EmailInput(attrs={"class": _TW}),
             "role":         forms.Select(attrs={"class": _TW_SELECT}),
             "reporting_to": forms.Select(attrs={"class": _TW_SELECT}),
+            "perm_edit_leads":      forms.CheckboxInput(attrs={"class": _TW_CHECKBOX}),
+            "perm_delete_leads":    forms.CheckboxInput(attrs={"class": _TW_CHECKBOX}),
+            "perm_edit_projects":   forms.CheckboxInput(attrs={"class": _TW_CHECKBOX}),
+            "perm_delete_projects": forms.CheckboxInput(attrs={"class": _TW_CHECKBOX}),
+            "perm_edit_offers":     forms.CheckboxInput(attrs={"class": _TW_CHECKBOX}),
+            "perm_delete_offers":   forms.CheckboxInput(attrs={"class": _TW_CHECKBOX}),
+            "perm_send_offers":     forms.CheckboxInput(attrs={"class": _TW_CHECKBOX}),
+            "perm_edit_invoices":   forms.CheckboxInput(attrs={"class": _TW_CHECKBOX}),
+            "perm_delete_invoices": forms.CheckboxInput(attrs={"class": _TW_CHECKBOX}),
+            "perm_send_invoices":   forms.CheckboxInput(attrs={"class": _TW_CHECKBOX}),
+            "perm_edit_accounts":   forms.CheckboxInput(attrs={"class": _TW_CHECKBOX}),
+            "perm_delete_accounts": forms.CheckboxInput(attrs={"class": _TW_CHECKBOX}),
+            "perm_approve_time":    forms.CheckboxInput(attrs={"class": _TW_CHECKBOX}),
+            "perm_edit_templates":  forms.CheckboxInput(attrs={"class": _TW_CHECKBOX}),
         }
 
     def __init__(self, *args, **kwargs):
