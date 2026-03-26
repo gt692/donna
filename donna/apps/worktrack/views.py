@@ -127,6 +127,12 @@ class TimeEntryListView(WorktrackMixin, TemplateView):
             week_target = None
             overtime    = None
 
+        has_default_times = (
+            schedule is not None
+            and schedule.default_start_time is not None
+            and schedule.default_end_time is not None
+        )
+
         ctx.update({
             "days":        days,
             "week_total":  week_total,
@@ -145,6 +151,7 @@ class TimeEntryListView(WorktrackMixin, TemplateView):
             "vacation_remaining": vacation_remaining,
             "vacation_total": vacation_total,
             "schedule":    schedule,
+            "has_default_times": has_default_times,
         })
         return ctx
 
@@ -369,14 +376,30 @@ class WorkdayLogSaveView(WorktrackMixin, View):
             return redirect("worktrack:list")
 
         obj, _ = WorkdayLog.objects.get_or_create(user=request.user, date=log_date)
-        form = WorkdayLogForm(request.POST, instance=obj)
-        if form.is_valid():
-            form.save()
-            messages.success(request, f"Arbeitszeit für {log_date:%d.%m.%Y} gespeichert.")
+
+        # Schnell-Erfassung: Standard-Zeiten aus WorkSchedule übernehmen
+        if request.POST.get("use_default"):
+            try:
+                schedule = request.user.work_schedule
+                if schedule.default_start_time and schedule.default_end_time:
+                    obj.start_time  = schedule.default_start_time
+                    obj.end_time    = schedule.default_end_time
+                    obj.break_mins  = schedule.default_break_mins
+                    obj.save()
+                    messages.success(request, f"Standardtag für {log_date:%d.%m.%Y} eingetragen.")
+                else:
+                    messages.warning(request, "Keine Standard-Zeiten hinterlegt. Bitte im Profil eintragen.")
+            except WorkSchedule.DoesNotExist:
+                messages.warning(request, "Kein Arbeitszeitmodell hinterlegt.")
         else:
-            for field, errors in form.errors.items():
-                for e in errors:
-                    messages.error(request, e)
+            form = WorkdayLogForm(request.POST, instance=obj)
+            if form.is_valid():
+                form.save()
+                messages.success(request, f"Arbeitszeit für {log_date:%d.%m.%Y} gespeichert.")
+            else:
+                for field, errors in form.errors.items():
+                    for e in errors:
+                        messages.error(request, e)
         from django.urls import reverse
         offset = request.POST.get("week_offset", 0)
         return redirect(f"{reverse('worktrack:list')}?week={offset}")

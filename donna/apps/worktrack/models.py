@@ -235,6 +235,20 @@ class WorkSchedule(models.Model):
         verbose_name=_("Überstunden erfassen"),
         help_text=_("Bei Vertrauensarbeitszeit deaktivieren."),
     )
+    default_start_time = models.TimeField(
+        null=True, blank=True,
+        verbose_name=_("Standard-Arbeitsbeginn"),
+        help_text=_("z.B. 08:00 — ermöglicht Schnell-Erfassung ganzer Tage."),
+    )
+    default_end_time = models.TimeField(
+        null=True, blank=True,
+        verbose_name=_("Standard-Arbeitsende"),
+        help_text=_("z.B. 16:00"),
+    )
+    default_break_mins = models.PositiveSmallIntegerField(
+        default=30,
+        verbose_name=_("Standard-Pause (Minuten)"),
+    )
 
     class Meta:
         verbose_name = _("Arbeitszeitmodell")

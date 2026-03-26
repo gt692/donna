@@ -147,13 +147,31 @@
                   <button onclick="toggleStempeluhr('{{ day.date|date:'Y-m-d' }}')"
                           class="text-xs text-slate-400 hover:text-[#2F6FB3] mt-0.5 transition">bearbeiten</button>
                 {% else %}
-                  <button onclick="toggleStempeluhr('{{ day.date|date:'Y-m-d' }}')"
-                          class="text-xs text-slate-400 hover:text-[#2F6FB3] transition flex items-center gap-1">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Stempeluhr
-                  </button>
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    {% if has_default_times %}
+                      <form method="post" action="{% url 'worktrack:log_save' %}" class="inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="date" value="{{ day.date|date:'Y-m-d' }}">
+                        <input type="hidden" name="week_offset" value="{{ week_offset }}">
+                        <input type="hidden" name="use_default" value="1">
+                        <button type="submit"
+                                class="text-xs bg-slate-100 hover:bg-[#EFF6FF] text-slate-500 hover:text-[#2F6FB3] px-2 py-0.5 rounded transition flex items-center gap-1"
+                                title="{{ schedule.default_start_time|time:'H:i' }} – {{ schedule.default_end_time|time:'H:i' }}, {{ schedule.default_break_mins }} min Pause">
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                          </svg>
+                          Standard
+                        </button>
+                      </form>
+                    {% endif %}
+                    <button onclick="toggleStempeluhr('{{ day.date|date:'Y-m-d' }}')"
+                            class="text-xs text-slate-400 hover:text-[#2F6FB3] transition flex items-center gap-1">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                      </svg>
+                      Stempeluhr
+                    </button>
+                  </div>
                 {% endif %}
 
                 <!-- Stempeluhr-Formular (versteckt) -->
