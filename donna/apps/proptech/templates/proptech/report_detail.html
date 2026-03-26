@@ -172,17 +172,13 @@
     </div>
 
     <!-- Hochgeladene Dateien -->
-    {% with all_files=files_by_type.photo|length|add:files_by_type.plan|length|add:files_by_type.bauakte|length|add:files_by_type.misc|length %}
-    {% if all_files %}
+    {% if report.files.all %}
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div class="px-5 py-4 bg-slate-50 border-b border-slate-200">
+      <div class="px-5 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
         <h3 class="text-sm font-semibold text-slate-700">Hochgeladene Dateien</h3>
+        <span class="text-xs text-slate-400">{{ report.files.count }} Datei{{ report.files.count|pluralize:"en" }}</span>
       </div>
       <div class="divide-y divide-slate-100">
-        {% for file_type, label in report.files.model.TYPE_CHOICES %}
-          {% with type_files=files_by_type|dictsort:file_type %}
-          {% endwith %}
-        {% endfor %}
         {% for f in report.files.all %}
         <div class="px-5 py-3 flex items-center justify-between gap-3">
           <div class="flex items-center gap-2 min-w-0">
@@ -225,7 +221,6 @@
       </div>
     </div>
     {% endif %}
-    {% endwith %}
 
     <!-- Löschen -->
     <form method="post" action="{% url 'proptech:report_delete' report.pk %}"
