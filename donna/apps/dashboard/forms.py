@@ -32,6 +32,7 @@ class UserCreateForm(forms.ModelForm):
         model = User
         fields = [
             "first_name", "last_name", "email", "role", "reporting_to", "notify_by_email",
+            "date_of_birth",
             "perm_edit_leads", "perm_delete_leads",
             "perm_edit_projects", "perm_delete_projects",
             "perm_edit_offers", "perm_delete_offers", "perm_send_offers",
@@ -60,6 +61,7 @@ class UserCreateForm(forms.ModelForm):
             "perm_delete_accounts": forms.CheckboxInput(attrs={"class": _TW_CHECKBOX}),
             "perm_approve_time":    forms.CheckboxInput(attrs={"class": _TW_CHECKBOX}),
             "perm_edit_templates":  forms.CheckboxInput(attrs={"class": _TW_CHECKBOX}),
+            "date_of_birth":        forms.DateInput(attrs={"class": _TW, "type": "date"}, format="%Y-%m-%d"),
         }
 
     def __init__(self, *args, **kwargs):
@@ -97,6 +99,7 @@ class UserEditForm(forms.ModelForm):
         fields = [
             "first_name", "last_name", "email",
             "role", "reporting_to",
+            "date_of_birth",
             "is_active", "notify_by_email", "show_in_kanban",
             "perm_edit_leads", "perm_delete_leads",
             "perm_edit_projects", "perm_delete_projects",
@@ -112,6 +115,7 @@ class UserEditForm(forms.ModelForm):
             "email":        forms.EmailInput(attrs={"class": _TW}),
             "role":         forms.Select(attrs={"class": _TW_SELECT}),
             "reporting_to": forms.Select(attrs={"class": _TW_SELECT}),
+            "date_of_birth": forms.DateInput(attrs={"class": _TW, "type": "date"}, format="%Y-%m-%d"),
         }
 
     def __init__(self, *args, **kwargs):

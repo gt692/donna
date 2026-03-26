@@ -589,9 +589,15 @@ class TeamCalendarView(WorktrackMixin, TemplateView):
             row_days = []
             for day in days:
                 absence = absence_map.get((u.id, day))
+                is_birthday = (
+                    u.date_of_birth is not None
+                    and u.date_of_birth.month == day.month
+                    and u.date_of_birth.day == day.day
+                )
                 row_days.append({
                     "date": day,
                     "absence": absence,
+                    "is_birthday": is_birthday,
                     "is_weekend": day.weekday() >= 5,
                     "is_today": day == today,
                 })

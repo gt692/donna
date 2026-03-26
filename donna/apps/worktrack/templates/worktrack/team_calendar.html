@@ -47,7 +47,7 @@
 {% block content %}
 
 <!-- Legende -->
-<div class="flex items-center gap-4 mb-4 text-xs text-slate-500">
+<div class="flex items-center gap-4 mb-4 text-xs text-slate-500 flex-wrap">
   <div class="flex items-center gap-1.5">
     <div class="w-3 h-3 rounded bg-emerald-200"></div>
     Urlaub (genehmigt)
@@ -63,6 +63,10 @@
   <div class="flex items-center gap-1.5">
     <div class="w-3 h-3 rounded bg-slate-200"></div>
     Sonstiges
+  </div>
+  <div class="flex items-center gap-1.5">
+    <span class="text-sm">🎂</span>
+    Geburtstag
   </div>
 </div>
 
@@ -124,6 +128,9 @@
                   <div class="mx-auto rounded px-1 py-0.5 bg-slate-100 text-slate-500 text-xs font-medium leading-tight"
                        title="{{ cell.absence.get_absence_type_display }}">—</div>
                 {% endif %}
+                {% if cell.is_birthday %}<div class="text-xs mt-0.5" title="Geburtstag">🎂</div>{% endif %}
+              {% elif cell.is_birthday %}
+                <div class="text-base" title="Geburtstag 🎂">🎂</div>
               {% elif cell.is_weekend %}
                 <span class="text-slate-200 text-xs">—</span>
               {% else %}
@@ -146,7 +153,7 @@
 <!-- Erklärung der Kürzel -->
 <p class="mt-3 text-xs text-slate-400">
   U = Urlaub (genehmigt) &nbsp;·&nbsp; U? = Urlaub (beantragt) &nbsp;·&nbsp;
-  K = Krankmeldung &nbsp;·&nbsp; SU = Sonderurlaub
+  K = Krankmeldung &nbsp;·&nbsp; SU = Sonderurlaub &nbsp;·&nbsp; 🎂 = Geburtstag
 </p>
 
 {% endblock %}

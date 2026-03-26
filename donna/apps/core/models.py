@@ -150,6 +150,13 @@ class User(AbstractUser):
     perm_approve_time    = models.BooleanField(default=False, verbose_name=_("Zeiterfassung genehmigen"))
     perm_edit_templates  = models.BooleanField(default=False, verbose_name=_("Vorlagen bearbeiten (Textbausteine, Einheiten)"))
 
+    # Persönliche Daten
+    date_of_birth = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name=_("Geburtsdatum"),
+    )
+
     # Einladungs-Flow
     invitation_token = models.CharField(
         max_length=64,
