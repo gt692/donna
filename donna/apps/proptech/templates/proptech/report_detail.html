@@ -103,7 +103,7 @@
         <!-- Fotos (mehrere gleichzeitig + Ordner) -->
         <div class="px-5 py-4">
           <p class="text-xs font-semibold text-slate-600 mb-2">Fotos</p>
-          <form method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
+          <form id="photo-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
             {% csrf_token %}
             <input type="hidden" name="file_type" value="photo">
             <div class="space-y-2">
@@ -315,12 +315,68 @@
   </div>
 </div>
 
+<!-- Upload-Overlay Modal -->
+<div id="upload-overlay" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(15,23,42,0.6);backdrop-filter:blur(2px);">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:white;border-radius:1rem;padding:2rem 2.5rem;min-width:320px;text-align:center;box-shadow:0 25px 50px rgba(0,0,0,0.3);">
+    <svg class="animate-spin mx-auto mb-4 w-10 h-10 text-[#2F6FB3]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+    <p id="upload-title" class="text-sm font-semibold text-slate-700 mb-1">Fotos werden hochgeladen…</p>
+    <p id="upload-subtitle" class="text-xs text-slate-400 mb-4">Bitte warten und die Seite nicht verlassen.</p>
+    <div class="w-full bg-slate-100 rounded-full h-2 mb-2">
+      <div id="upload-bar" style="width:0%;transition:width 0.3s;" class="bg-[#2F6FB3] h-2 rounded-full"></div>
+    </div>
+    <p id="upload-percent" class="text-xs font-medium text-[#2F6FB3]">0%</p>
+  </div>
+</div>
+
 <script>
 function updatePhotoLabel(input) {
   const count = input.files.length;
   const label = document.getElementById('photo-label');
   if (label) label.textContent = count > 0 ? count + ' Datei' + (count !== 1 ? 'en' : '') + ' ausgewählt' : '';
 }
+
+document.getElementById('photo-upload-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const form = this;
+  const formData = new FormData(form);
+  const fileCount = (document.getElementById('photo-files-input').files.length || 0)
+                  + (document.getElementById('photo-folder-input').files.length || 0);
+
+  if (fileCount === 0) { form.submit(); return; }
+
+  document.getElementById('upload-title').textContent = fileCount + ' Foto' + (fileCount !== 1 ? 's' : '') + ' werden hochgeladen…';
+  document.getElementById('upload-overlay').style.display = 'block';
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', form.action);
+
+  xhr.upload.addEventListener('progress', function(e) {
+    if (e.lengthComputable) {
+      const pct = Math.round(e.loaded / e.total * 100);
+      document.getElementById('upload-bar').style.width = pct + '%';
+      document.getElementById('upload-percent').textContent = pct + '%';
+      if (pct === 100) {
+        document.getElementById('upload-title').textContent = 'Dateien werden verarbeitet…';
+        document.getElementById('upload-subtitle').textContent = 'Fast fertig, bitte noch einen Moment.';
+      }
+    }
+  });
+
+  xhr.addEventListener('load', function() {
+    window.location.reload();
+  });
+
+  xhr.addEventListener('error', function() {
+    document.getElementById('upload-overlay').style.display = 'none';
+    alert('Upload fehlgeschlagen. Bitte erneut versuchen.');
+  });
+
+  xhr.send(formData);
+});
+
 document.getElementById('generate-form').addEventListener('submit', function() {
   document.getElementById('generate-loading').classList.remove('hidden');
   document.getElementById('generate-btn').disabled = true;
