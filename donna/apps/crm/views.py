@@ -2136,70 +2136,51 @@ class InvoiceCreateStandaloneView(EditInvoicesMixin, View):
 
 
 class InvoiceFromOfferView(EditInvoicesMixin, View):
-    def get(self, request, pk):
+    """1-Klick: Rechnungsentwurf direkt aus Angebot anlegen, ohne Zwischenformular."""
+
+    def post(self, request, pk):
         offer = get_object_or_404(Offer, pk=pk)
         if offer.status != Offer.Status.ACCEPTED:
             messages.error(request, "Rechnungen können nur aus beauftragten Angeboten erstellt werden.")
             return redirect("crm:offer_detail", pk=offer.pk)
-        initial = {
-            "title":               offer.title,
-            "recipient_name":      offer.recipient_name,
-            "recipient_email":     offer.recipient_email,
-            "recipient_address":   offer.recipient_address,
-            "tax_rate":            offer.tax_rate,
-            "intro_text":          offer.intro_text,
-            "closing_text":        offer.closing_text,
-            "payment_info":        offer.payment_terms,
-            "discount_percent":    offer.discount_percent,
-            "discount_amount_eur": offer.discount_amount_eur,
-        }
-        form = InvoiceForm(initial=initial)
-        items_initial = [
-            {
-                "position":         item.position,
-                "item_type":        item.item_type,
-                "billing_type":     item.billing_type,
-                "title":            item.title,
-                "description":      item.description,
-                "quantity":         item.quantity,
-                "unit":             item.unit,
-                "unit_price":       item.unit_price,
-                "discount_percent": item.discount_percent,
-            }
-            for item in offer.items.all()
-        ]
-        from django import forms as _forms
-        FormSet = _forms.inlineformset_factory(
-            Invoice, InvoiceItem, form=InvoiceItemForm, extra=len(items_initial), can_delete=True
-        )
-        formset = FormSet(initial=items_initial)
-        return render(request, "crm/invoice_form.html", {
-            "form": form, "formset": formset, "project": offer.project, "offer": offer,
-            "page_title": "Rechnung aus Angebot",
-            "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
-        })
 
-    def post(self, request, pk):
-        offer = get_object_or_404(Offer, pk=pk)
-        form = InvoiceForm(request.POST)
-        formset = _build_invoice_formset(request)
-        if form.is_valid() and formset.is_valid():
-            invoice = form.save(commit=False)
-            invoice.project = offer.project
-            invoice.offer = offer
-            invoice.created_by = request.user
-            invoice.save()
-            formset.instance = invoice
-            formset.save()
-            invoice.net_total_cached = invoice.net_total
-            invoice.save(update_fields=["net_total_cached"])
-            messages.success(request, f"Rechnung {invoice.invoice_number} aus Angebot erstellt.")
-            return redirect("crm:invoice_detail", pk=invoice.pk)
-        return render(request, "crm/invoice_form.html", {
-            "form": form, "formset": formset, "project": offer.project, "offer": offer,
-            "page_title": "Rechnung aus Angebot",
-            "google_maps_api_key": settings.GOOGLE_MAPS_API_KEY,
-        })
+        invoice = Invoice.objects.create(
+            project            = offer.project,
+            offer              = offer,
+            created_by         = request.user,
+            title              = offer.title,
+            recipient_name     = offer.recipient_name,
+            recipient_email    = offer.recipient_email,
+            recipient_address  = offer.recipient_address,
+            tax_rate           = offer.tax_rate,
+            intro_text         = offer.intro_text,
+            closing_text       = offer.closing_text,
+            payment_info       = offer.payment_terms,
+            discount_percent   = offer.discount_percent,
+            discount_amount_eur= offer.discount_amount_eur,
+        )
+
+        InvoiceItem.objects.bulk_create([
+            InvoiceItem(
+                invoice          = invoice,
+                position         = item.position,
+                item_type        = item.item_type,
+                billing_type     = item.billing_type,
+                title            = item.title,
+                description      = item.description,
+                quantity         = item.quantity,
+                unit             = item.unit,
+                unit_price       = item.unit_price,
+                discount_percent = item.discount_percent,
+            )
+            for item in offer.items.all()
+        ])
+
+        invoice.net_total_cached = invoice.net_total
+        invoice.save(update_fields=["net_total_cached"])
+
+        messages.success(request, f"Rechnungsentwurf {invoice.invoice_number} aus Angebot übernommen.")
+        return redirect("crm:invoice_detail", pk=invoice.pk)
 
 
 class InvoiceDetailView(LoginRequiredMixin, DetailView):
