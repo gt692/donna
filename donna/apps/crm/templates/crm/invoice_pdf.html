@@ -15,11 +15,17 @@
 
     @page {
       size: A4;
-      margin: 18mm 18mm 38mm 20mm;
-      @bottom-center {
+      margin: 18mm 18mm 40mm 20mm;
+      @bottom-left {
+        content: element(footer);
+        vertical-align: top;
+      }
+      @bottom-right {
         content: "Seite " counter(page) " von " counter(pages);
         font-size: 7.5pt;
         color: #999;
+        vertical-align: top;
+        padding-top: 8pt;
       }
     }
 
@@ -188,17 +194,14 @@
       white-space: pre-wrap;
     }
 
-    /* ── Fußzeile (fixed → wiederholt auf jeder Seite) ───── */
+    /* ── Fußzeile (running element → erscheint in @page-Margin auf jeder Seite) */
     .footer {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 30pt;
+      position: running(footer);
       border-top: 0.5pt solid #ddd;
       padding-top: 6pt;
       display: flex;
       gap: 12pt;
+      width: 100%;
     }
     .footer-col {
       flex: 1;
