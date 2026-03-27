@@ -121,6 +121,16 @@ class TimeEntry(models.Model):
         help_text=_("Pflichtfeld bei Ablehnung."),
     )
 
+    # Abrechnung
+    invoiced_in = models.ForeignKey(
+        "crm.Invoice",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="imported_time_entries",
+        verbose_name=_("Abgerechnet in Rechnung"),
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

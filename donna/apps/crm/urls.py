@@ -5,6 +5,7 @@ from .views import (
     ContactVCardExportView, ContactVCardImportView,
     DocumentDeleteView, DocumentServeView, DocumentUploadView,
     InvoiceCreateStandaloneView, InvoiceCreateView, InvoiceDeleteView, InvoiceDetailView, InvoiceFromOfferView,
+    InvoiceImportHoursView,
     InvoiceListView, InvoicePDFView, InvoiceSendView, InvoiceStatusUpdateView, InvoiceUpdateView,
     InvoiceXRechnungView,
     KanbanView, ProjectKanbanMoveView,
@@ -113,6 +114,7 @@ urlpatterns = [
     path("invoices/<uuid:pk>/status/", InvoiceStatusUpdateView.as_view(), name="invoice_status"),
     path("invoices/<uuid:pk>/delete/", InvoiceDeleteView.as_view(), name="invoice_delete"),
     path("invoices/<uuid:pk>/xrechnung/", InvoiceXRechnungView.as_view(), name="invoice_xrechnung"),
+    path("invoices/<uuid:pk>/import-hours/", InvoiceImportHoursView.as_view(), name="invoice_import_hours"),
     path("offers/<uuid:pk>/ab/", OfferOrderConfirmationView.as_view(), name="offer_ab"),
 
     # Empfänger-Suche (Angebot/Rechnung)

@@ -45,6 +45,17 @@
 
   {% if request.user.can_edit_invoices %}
     {% if invoice.status == "draft" %}
+      {% if invoice.project %}
+      <button type="button" onclick="openImportHoursModal()"
+              class="flex items-center gap-2 border border-[#2F6FB3] bg-[#EFF6FF] hover:bg-[#dbeafe]
+                     text-[#2F6FB3] font-medium text-sm px-4 py-2 rounded-lg transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        Stunden importieren
+      </button>
+      {% endif %}
       <a href="{% url 'crm:invoice_edit' invoice.pk %}"
          class="flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50
                 text-slate-700 font-medium text-sm px-4 py-2 rounded-lg transition">
@@ -313,4 +324,146 @@
 
   </div>
 </div>
+
+<!-- ── Modal: Stunden importieren ─────────────────────────────────────── -->
+<div id="import-hours-modal" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(15,23,42,0.5);">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:white;border-radius:1rem;width:min(580px,95vw);max-height:80vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,0.25);">
+
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+      <div>
+        <h2 class="text-base font-semibold text-slate-800">Stunden importieren</h2>
+        <p class="text-xs text-slate-400 mt-0.5">Freigegebene, noch nicht abgerechnete Stunden des Projekts</p>
+      </div>
+      <button onclick="closeImportHoursModal()" class="text-slate-400 hover:text-slate-600 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div id="import-hours-body" class="px-6 py-5">
+      <!-- Wird per JS befüllt -->
+      <div class="flex items-center justify-center py-8 text-slate-400 text-sm gap-2">
+        <svg class="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        Lade Stunden…
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-3">
+      <button type="button" onclick="closeImportHoursModal()"
+              class="text-sm text-slate-500 hover:text-slate-700 font-medium transition">
+        Abbrechen
+      </button>
+      <form id="import-hours-form" method="post" action="{% url 'crm:invoice_import_hours' invoice.pk %}">
+        {% csrf_token %}
+        <div id="import-hours-role-inputs"></div>
+        <button type="submit" id="import-hours-submit" disabled
+                class="flex items-center gap-2 bg-[#2F6FB3] hover:bg-[#265e99] disabled:bg-slate-200 disabled:text-slate-400
+                       text-white font-medium text-sm px-4 py-2 rounded-lg transition disabled:cursor-not-allowed">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+          </svg>
+          <span id="import-hours-submit-label">Positionen hinzufügen</span>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function openImportHoursModal() {
+  document.getElementById('import-hours-modal').style.display = 'block';
+  loadImportHours();
+}
+function closeImportHoursModal() {
+  document.getElementById('import-hours-modal').style.display = 'none';
+}
+
+function loadImportHours() {
+  fetch('{% url "crm:invoice_import_hours" invoice.pk %}', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    .then(r => r.json())
+    .then(data => renderImportHours(data.groups))
+    .catch(() => {
+      document.getElementById('import-hours-body').innerHTML =
+        '<p class="text-sm text-red-500 py-4">Fehler beim Laden der Stunden.</p>';
+    });
+}
+
+function renderImportHours(groups) {
+  const body = document.getElementById('import-hours-body');
+  const roleInputs = document.getElementById('import-hours-role-inputs');
+  const submit = document.getElementById('import-hours-submit');
+  const submitLabel = document.getElementById('import-hours-submit-label');
+
+  if (!groups.length) {
+    body.innerHTML = '<p class="text-sm text-slate-400 py-4 text-center">Keine freigegebenen, noch nicht abgerechneten Stunden für dieses Projekt vorhanden.</p>';
+    submit.disabled = true;
+    return;
+  }
+
+  let html = '<div class="space-y-3">';
+  groups.forEach(g => {
+    const activities = g.activities.length ? g.activities.join(', ') : '—';
+    const rate = parseFloat(g.rate).toFixed(2).replace('.', ',');
+    const hours = parseFloat(g.hours).toFixed(2).replace('.', ',');
+    const amount = parseFloat(g.amount).toFixed(2).replace('.', ',');
+    html += `
+      <label class="flex items-start gap-3 p-4 rounded-xl border border-slate-200 hover:border-[#2F6FB3] hover:bg-[#EFF6FF] cursor-pointer transition group">
+        <input type="checkbox" class="import-role-cb mt-0.5 rounded border-slate-300 text-[#2F6FB3] cursor-pointer flex-shrink-0"
+               data-role="${g.role_slug}" onchange="updateImportSubmit()" checked>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-sm font-semibold text-slate-800">${g.role_name}</span>
+            <span class="text-sm font-bold text-[#2F6FB3] whitespace-nowrap">${amount} €</span>
+          </div>
+          <div class="text-xs text-slate-500 mt-1">
+            ${hours} Std. × ${rate} €/Std. &nbsp;·&nbsp; ${g.entry_count} Buchung${g.entry_count !== 1 ? 'en' : ''}
+          </div>
+          <div class="text-xs text-slate-400 mt-0.5 truncate" title="${activities}">
+            ${activities}
+          </div>
+        </div>
+      </label>`;
+  });
+  html += '</div>';
+  body.innerHTML = html;
+
+  // Alle gecheckt → Submit aktivieren
+  updateImportSubmit();
+}
+
+function updateImportSubmit() {
+  const checked = document.querySelectorAll('.import-role-cb:checked');
+  const submit = document.getElementById('import-hours-submit');
+  const label = document.getElementById('import-hours-submit-label');
+  const roleInputs = document.getElementById('import-hours-role-inputs');
+
+  // Hidden inputs für die gewählten Rollen
+  roleInputs.innerHTML = '';
+  checked.forEach(cb => {
+    const inp = document.createElement('input');
+    inp.type = 'hidden';
+    inp.name = 'roles';
+    inp.value = cb.dataset.role;
+    roleInputs.appendChild(inp);
+  });
+
+  submit.disabled = checked.length === 0;
+  label.textContent = checked.length > 1
+    ? `${checked.length} Positionen hinzufügen`
+    : 'Position hinzufügen';
+}
+
+// Modal schließen bei Klick außerhalb
+document.getElementById('import-hours-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeImportHoursModal();
+});
+</script>
 {% endblock %}

@@ -2350,6 +2350,144 @@ class InvoiceXRechnungView(LoginRequiredMixin, View):
         return response
 
 
+class InvoiceImportHoursView(EditInvoicesMixin, View):
+    """
+    GET  → JSON: freigegebene, noch nicht abgerechnete Stunden des Projekts,
+           gruppiert nach Mitarbeiter-Rolle.
+    POST → Rechnungspositionen anlegen + TimeEntries als abgerechnet markieren.
+    """
+
+    def get(self, request, pk):
+        from collections import defaultdict
+        from apps.worktrack.models import TimeEntry
+        from apps.core.models import UserRole
+        from django.http import JsonResponse
+
+        invoice = get_object_or_404(Invoice, pk=pk)
+        if not invoice.project:
+            return JsonResponse({"groups": []})
+
+        entries = (
+            TimeEntry.objects
+            .filter(
+                project=invoice.project,
+                is_billable=True,
+                invoiced_in__isnull=True,
+                status=TimeEntry.Status.APPROVED,
+            )
+            .select_related("user")
+        )
+
+        role_data = defaultdict(lambda: {"hours": Decimal("0"), "activities": set(), "entry_count": 0})
+        for entry in entries:
+            key = entry.user.role or ""
+            role_data[key]["hours"] += entry.duration_hours
+            if entry.activity_type:
+                role_data[key]["activities"].add(entry.get_activity_type_display())
+            role_data[key]["entry_count"] += 1
+
+        groups = []
+        for role_slug, data in sorted(role_data.items()):
+            try:
+                ur = UserRole.objects.get(slug=role_slug)
+                role_name = ur.name
+                rate = ur.hourly_rate
+            except UserRole.DoesNotExist:
+                role_name = role_slug or "Unbekannte Rolle"
+                rate = Decimal("0")
+
+            hours = data["hours"]
+            amount = (hours * rate).quantize(Decimal("0.01"))
+            groups.append({
+                "role_slug":    role_slug,
+                "role_name":    role_name,
+                "hours":        str(hours),
+                "rate":         str(rate),
+                "amount":       str(amount),
+                "activities":   sorted(data["activities"]),
+                "entry_count":  data["entry_count"],
+            })
+
+        return JsonResponse({"groups": groups})
+
+    def post(self, request, pk):
+        from collections import defaultdict
+        from apps.worktrack.models import TimeEntry
+        from apps.core.models import UserRole
+        from django.db.models import Max
+
+        invoice = get_object_or_404(Invoice, pk=pk)
+        if invoice.status != Invoice.Status.DRAFT:
+            messages.error(request, "Nur Entwürfe können bearbeitet werden.")
+            return redirect("crm:invoice_detail", pk=pk)
+        if not invoice.project:
+            messages.error(request, "Kein Projekt verknüpft.")
+            return redirect("crm:invoice_detail", pk=pk)
+
+        selected_roles = request.POST.getlist("roles")
+        if not selected_roles:
+            messages.error(request, "Keine Rolle ausgewählt.")
+            return redirect("crm:invoice_detail", pk=pk)
+
+        entries = (
+            TimeEntry.objects
+            .filter(
+                project=invoice.project,
+                is_billable=True,
+                invoiced_in__isnull=True,
+                status=TimeEntry.Status.APPROVED,
+                user__role__in=selected_roles,
+            )
+            .select_related("user")
+        )
+
+        role_data = defaultdict(lambda: {"hours": Decimal("0"), "activities": set(), "entries": []})
+        for entry in entries:
+            key = entry.user.role
+            role_data[key]["hours"] += entry.duration_hours
+            if entry.activity_type:
+                role_data[key]["activities"].add(entry.get_activity_type_display())
+            role_data[key]["entries"].append(entry)
+
+        last_pos = invoice.items.aggregate(m=Max("position"))["m"] or 0
+        created = 0
+
+        for role_slug, data in role_data.items():
+            try:
+                ur = UserRole.objects.get(slug=role_slug)
+                role_name = ur.name
+                rate = ur.hourly_rate
+            except UserRole.DoesNotExist:
+                role_name = role_slug or "Unbekannte Rolle"
+                rate = Decimal("0")
+
+            last_pos += 1
+            activities_str = ", ".join(sorted(data["activities"]))
+            description = f"Tätigkeiten: {activities_str}" if activities_str else ""
+
+            InvoiceItem.objects.create(
+                invoice      = invoice,
+                position     = last_pos,
+                billing_type = BillingType.HOURLY,
+                title        = f"Stundenleistung {role_name}",
+                description  = description,
+                quantity     = data["hours"],
+                unit         = "Std.",
+                unit_price   = rate,
+            )
+
+            TimeEntry.objects.filter(
+                pk__in=[e.pk for e in data["entries"]]
+            ).update(invoiced_in=invoice)
+
+            created += 1
+
+        invoice.net_total_cached = invoice.net_total
+        invoice.save(update_fields=["net_total_cached"])
+        messages.success(request, f"{created} Stunden-Position(en) zur Rechnung hinzugefügt.")
+        return redirect("crm:invoice_detail", pk=pk)
+
+
 class OfferOrderConfirmationView(SendOffersMixin, View):
     def post(self, request, pk):
         offer = get_object_or_404(Offer, pk=pk)
