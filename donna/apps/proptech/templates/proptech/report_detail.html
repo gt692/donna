@@ -128,7 +128,7 @@
           <!-- Drop zone -->
           <div id="photo-dropzone"
                onclick="document.getElementById('photo-files-input').click()"
-               ondragover="handleDragOver(event,'photo')" ondragleave="handleDragLeave('photo')" ondrop="handleDrop(event,'photo')"
+               ondragover="handleDragOver(event,'photo')" ondragleave="handleDragLeave(event,'photo')" ondrop="handleDrop(event,'photo')"
                class="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center cursor-pointer hover:border-violet-300 hover:bg-violet-50 transition-all">
             <svg class="w-7 h-7 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -174,7 +174,7 @@
                  style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;"
                  onchange="onFileSelect('plan', this)">
           <div onclick="document.getElementById('plan-input').click()"
-               ondragover="handleDragOver(event,'plan')" ondragleave="handleDragLeave('plan')" ondrop="handleDrop(event,'plan')"
+               ondragover="handleDragOver(event,'plan')" ondragleave="handleDragLeave(event,'plan')" ondrop="handleDrop(event,'plan')"
                class="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center cursor-pointer hover:border-[#2F6FB3] hover:bg-[#EFF6FF] transition-all">
             <svg class="w-7 h-7 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
@@ -194,6 +194,64 @@
         </form>
       </div>
 
+      <!-- Tab: Flächenberechnung -->
+      <div id="utab-flaechenberechnung" class="upload-tab-panel p-4 hidden">
+        <form id="flaechenberechnung-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="file_type" value="flaechenberechnung">
+          <input id="flaechenberechnung-input" type="file" name="file" multiple accept=".pdf,image/*"
+                 style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;"
+                 onchange="onFileSelect('flaechenberechnung', this)">
+          <div onclick="document.getElementById('flaechenberechnung-input').click()"
+               ondragover="handleDragOver(event,'flaechenberechnung')" ondragleave="handleDragLeave(event,'flaechenberechnung')" ondrop="handleDrop(event,'flaechenberechnung')"
+               class="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center cursor-pointer hover:border-[#2F6FB3] hover:bg-[#EFF6FF] transition-all">
+            <svg class="w-7 h-7 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
+            </svg>
+            <p class="text-xs font-medium text-slate-500">Flächenberechnung ablegen</p>
+            <p class="text-xs text-slate-400 mt-0.5">PDF oder Scan — KI extrahiert Wohnfläche & Raumaufteilung</p>
+          </div>
+          <div id="flaechenberechnung-selection" class="hidden mt-3 px-3 py-2 bg-[#EFF6FF] rounded-lg border border-blue-100 flex items-center justify-between">
+            <span id="flaechenberechnung-count" class="text-xs font-medium text-[#2F6FB3]"></span>
+            <button type="button" onclick="clearSelection('flaechenberechnung')" class="text-xs text-blue-300 hover:text-blue-500">✕</button>
+          </div>
+          <button type="submit" id="flaechenberechnung-submit" disabled
+                  class="mt-3 w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-lg transition disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            Hochladen
+          </button>
+        </form>
+      </div>
+
+      <!-- Tab: Baubeschreibung (Original) -->
+      <div id="utab-baubeschreibung_original" class="upload-tab-panel p-4 hidden">
+        <form id="baubeschreibung_original-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="file_type" value="baubeschreibung_original">
+          <input id="baubeschreibung_original-input" type="file" name="file" multiple accept=".pdf,image/*,.doc,.docx"
+                 style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;"
+                 onchange="onFileSelect('baubeschreibung_original', this)">
+          <div onclick="document.getElementById('baubeschreibung_original-input').click()"
+               ondragover="handleDragOver(event,'baubeschreibung_original')" ondragleave="handleDragLeave(event,'baubeschreibung_original')" ondrop="handleDrop(event,'baubeschreibung_original')"
+               class="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center cursor-pointer hover:border-orange-300 hover:bg-orange-50 transition-all">
+            <svg class="w-7 h-7 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+            <p class="text-xs font-medium text-slate-500">Orig. Baubeschreibung ablegen</p>
+            <p class="text-xs text-slate-400 mt-0.5">Aus der ursprünglichen Planung — PDF, Scan oder Word</p>
+          </div>
+          <div id="baubeschreibung_original-selection" class="hidden mt-3 px-3 py-2 bg-orange-50 rounded-lg border border-orange-100 flex items-center justify-between">
+            <span id="baubeschreibung_original-count" class="text-xs font-medium text-orange-700"></span>
+            <button type="button" onclick="clearSelection('baubeschreibung_original')" class="text-xs text-orange-300 hover:text-orange-500">✕</button>
+          </div>
+          <button type="submit" id="baubeschreibung_original-submit" disabled
+                  class="mt-3 w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-lg transition disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            Hochladen
+          </button>
+        </form>
+      </div>
+
       <!-- Tab: Bauakte -->
       <div id="utab-bauakte" class="upload-tab-panel p-4 hidden">
         <form id="bauakte-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
@@ -203,7 +261,7 @@
                  style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;"
                  onchange="onFileSelect('bauakte', this)">
           <div onclick="document.getElementById('bauakte-input').click()"
-               ondragover="handleDragOver(event,'bauakte')" ondragleave="handleDragLeave('bauakte')" ondrop="handleDrop(event,'bauakte')"
+               ondragover="handleDragOver(event,'bauakte')" ondragleave="handleDragLeave(event,'bauakte')" ondrop="handleDrop(event,'bauakte')"
                class="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center cursor-pointer hover:border-amber-300 hover:bg-amber-50 transition-all">
             <svg class="w-7 h-7 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -232,7 +290,7 @@
                  style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;"
                  onchange="onFileSelect('energieausweis', this)">
           <div onclick="document.getElementById('energieausweis-input').click()"
-               ondragover="handleDragOver(event,'energieausweis')" ondragleave="handleDragLeave('energieausweis')" ondrop="handleDrop(event,'energieausweis')"
+               ondragover="handleDragOver(event,'energieausweis')" ondragleave="handleDragLeave(event,'energieausweis')" ondrop="handleDrop(event,'energieausweis')"
                class="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center cursor-pointer hover:border-emerald-300 hover:bg-emerald-50 transition-all">
             <svg class="w-7 h-7 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
@@ -252,6 +310,35 @@
         </form>
       </div>
 
+      <!-- Tab: Grundbuch -->
+      <div id="utab-grundbuch" class="upload-tab-panel p-4 hidden">
+        <form id="grundbuch-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="file_type" value="grundbuch">
+          <input id="grundbuch-input" type="file" name="file" multiple accept=".pdf,image/*"
+                 style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;"
+                 onchange="onFileSelect('grundbuch', this)">
+          <div onclick="document.getElementById('grundbuch-input').click()"
+               ondragover="handleDragOver(event,'grundbuch')" ondragleave="handleDragLeave(event,'grundbuch')" ondrop="handleDrop(event,'grundbuch')"
+               class="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-all">
+            <svg class="w-7 h-7 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/>
+            </svg>
+            <p class="text-xs font-medium text-slate-500">Grundbuch & Auskünfte ablegen</p>
+            <p class="text-xs text-slate-400 mt-0.5">Grundbuchauszug, Baulasten, Altlasten, Erschließung</p>
+          </div>
+          <div id="grundbuch-selection" class="hidden mt-3 px-3 py-2 bg-purple-50 rounded-lg border border-purple-100 flex items-center justify-between">
+            <span id="grundbuch-count" class="text-xs font-medium text-purple-700"></span>
+            <button type="button" onclick="clearSelection('grundbuch')" class="text-xs text-purple-300 hover:text-purple-500">✕</button>
+          </div>
+          <button type="submit" id="grundbuch-submit" disabled
+                  class="mt-3 w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-lg transition disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            Hochladen
+          </button>
+        </form>
+      </div>
+
       <!-- Tab: Sonstiges -->
       <div id="utab-misc" class="upload-tab-panel p-4 hidden">
         <form id="misc-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
@@ -261,7 +348,7 @@
                  style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;"
                  onchange="onFileSelect('misc', this)">
           <div onclick="document.getElementById('misc-input').click()"
-               ondragover="handleDragOver(event,'misc')" ondragleave="handleDragLeave('misc')" ondrop="handleDrop(event,'misc')"
+               ondragover="handleDragOver(event,'misc')" ondragleave="handleDragLeave(event,'misc')" ondrop="handleDrop(event,'misc')"
                class="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center cursor-pointer hover:border-slate-300 hover:bg-slate-50 transition-all">
             <svg class="w-7 h-7 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
@@ -331,10 +418,28 @@
             📐 <span class="ml-0.5">{{ files_by_type.plan.count }}</span>
           </button>
           {% endif %}
+          {% if files_by_type.flaechenberechnung.exists %}
+          <button type="button" onclick="filterFiles('flaechenberechnung')" id="ftab-flaechenberechnung"
+                  class="file-filter-btn px-3 py-2 text-slate-400 border-b-2 border-transparent hover:text-slate-600">
+            📏 <span class="ml-0.5">{{ files_by_type.flaechenberechnung.count }}</span>
+          </button>
+          {% endif %}
+          {% if files_by_type.baubeschreibung_original.exists %}
+          <button type="button" onclick="filterFiles('baubeschreibung_original')" id="ftab-baubeschreibung_original"
+                  class="file-filter-btn px-3 py-2 text-slate-400 border-b-2 border-transparent hover:text-slate-600">
+            ✏️ <span class="ml-0.5">{{ files_by_type.baubeschreibung_original.count }}</span>
+          </button>
+          {% endif %}
           {% if files_by_type.bauakte.exists %}
           <button type="button" onclick="filterFiles('bauakte')" id="ftab-bauakte"
                   class="file-filter-btn px-3 py-2 text-slate-400 border-b-2 border-transparent hover:text-slate-600">
             📋 <span class="ml-0.5">{{ files_by_type.bauakte.count }}</span>
+          </button>
+          {% endif %}
+          {% if files_by_type.grundbuch.exists %}
+          <button type="button" onclick="filterFiles('grundbuch')" id="ftab-grundbuch"
+                  class="file-filter-btn px-3 py-2 text-slate-400 border-b-2 border-transparent hover:text-slate-600">
+            🏛️ <span class="ml-0.5">{{ files_by_type.grundbuch.count }}</span>
           </button>
           {% endif %}
           {% if files_by_type.energieausweis.exists %}
@@ -612,26 +717,21 @@ function clearSelection(type) {
 // ── Drag & Drop ───────────────────────────────────────────────────────────────
 function handleDragOver(e, type) {
   e.preventDefault();
-  var dz = document.getElementById(type === 'photo' ? 'photo-dropzone' : 'utab-' + type)
-             ?.querySelector('[ondragover]') || e.currentTarget;
-  e.currentTarget.classList.add('border-[#2F6FB3]', 'bg-[#EFF6FF]');
+  e.currentTarget.style.borderColor = '#2F6FB3';
+  e.currentTarget.style.backgroundColor = '#EFF6FF';
 }
-function handleDragLeave(type) {
-  var targets = document.querySelectorAll('#utab-' + type + ' [ondragleave]');
-  targets.forEach(function(el) {
-    el.classList.remove('border-[#2F6FB3]', 'bg-[#EFF6FF]',
-      'border-violet-300', 'bg-violet-50',
-      'border-amber-300', 'bg-amber-50',
-      'border-emerald-300', 'bg-emerald-50',
-      'border-slate-300', 'bg-slate-50');
-  });
+function handleDragLeave(e, type) {
+  // Ignore if pointer moved to a child element (avoids flickering)
+  if (e.relatedTarget && e.currentTarget.contains(e.relatedTarget)) return;
+  e.currentTarget.style.borderColor = '';
+  e.currentTarget.style.backgroundColor = '';
 }
 function handleDrop(e, type) {
   e.preventDefault();
-  handleDragLeave(type);
+  e.currentTarget.style.borderColor = '';
+  e.currentTarget.style.backgroundColor = '';
   var files = e.dataTransfer.files;
   if (!files.length) return;
-  // Assign dropped files to the primary input
   var inputId = type === 'photo' ? 'photo-files-input' : type + '-input';
   var inp = document.getElementById(inputId);
   if (!inp) return;
@@ -678,7 +778,7 @@ document.getElementById('photo-upload-form').addEventListener('submit', function
   doUpload(this, count, 'Foto' + (count !== 1 ? 's' : ''));
 });
 
-['plan','bauakte','energieausweis','misc'].forEach(function(type) {
+['plan','flaechenberechnung','baubeschreibung_original','bauakte','energieausweis','grundbuch','misc'].forEach(function(type) {
   var form = document.getElementById(type + '-upload-form');
   if (!form) return;
   form.addEventListener('submit', function(e) {
