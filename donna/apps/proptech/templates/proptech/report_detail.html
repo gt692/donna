@@ -99,13 +99,14 @@
         <p class="text-xs text-slate-400 mt-0.5">Fotos, Pläne und Dokumente für die KI</p>
       </div>
 
-      <!-- Upload-Tabs -->
-      <div class="flex text-xs font-medium border-b border-slate-100 bg-white">
+      <!-- Upload-Tabs (2-Zeilen-Grid für 8 Typen) -->
+      <div class="grid grid-cols-4 text-xs font-medium border-b border-slate-100 bg-white">
         {% for tab_id, tab_label, tab_color in upload_tabs %}
         <button type="button" onclick="showUploadTab('{{ tab_id }}')"
                 id="utab-{{ tab_id }}"
-                class="upload-tab-btn flex-1 py-2.5 text-center transition border-b-2
-                       {% if forloop.first %}border-[#2F6FB3] text-[#2F6FB3]{% else %}border-transparent text-slate-400 hover:text-slate-600{% endif %}">
+                class="upload-tab-btn py-2 text-center transition border-b-2
+                       {% if forloop.first %}border-[#2F6FB3] text-[#2F6FB3]{% else %}border-transparent text-slate-400 hover:text-slate-600{% endif %}
+                       {% if forloop.counter > 4 %}border-t border-slate-100{% endif %}">
           {{ tab_label }}
         </button>
         {% endfor %}
@@ -371,6 +372,11 @@
 
     <!-- Hochgeladene Dateien -->
     {% if report.files.all %}
+    {% if failed_files_count %}
+    <form id="reprocess-form" method="post" action="{% url 'proptech:file_reprocess' report.pk %}" style="display:none">
+      {% csrf_token %}
+    </form>
+    {% endif %}
     <form id="bulk-delete-form" method="post" action="{% url 'proptech:file_bulk_delete' report.pk %}">
       {% csrf_token %}
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -385,12 +391,10 @@
           </div>
           <div class="flex items-center gap-2">
             {% if failed_files_count %}
-            <form method="post" action="{% url 'proptech:file_reprocess' report.pk %}" class="inline">
-              {% csrf_token %}
-              <button type="submit" class="text-xs text-amber-500 hover:text-amber-700 font-medium transition">
-                ↺ {{ failed_files_count }} neu
-              </button>
-            </form>
+            <button type="button" onclick="document.getElementById('reprocess-form').submit()"
+                    class="text-xs text-amber-500 hover:text-amber-700 font-medium transition">
+              ↺ {{ failed_files_count }} neu
+            </button>
             {% endif %}
             <button type="button" id="bulk-delete-btn" onclick="confirmBulkDelete()"
                     class="hidden items-center gap-1 text-xs text-red-500 hover:text-red-700 font-medium transition px-2 py-1 rounded hover:bg-red-50">
