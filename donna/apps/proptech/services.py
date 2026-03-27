@@ -156,6 +156,48 @@ BAUAKTE_PROMPT_MAKLER = (
     "Strukturiere als Markdown."
 )
 
+FLAECHENBERECHNUNG_PROMPT = (
+    "Analysiere diese Flächenberechnung / Kubaturberechnung und extrahiere alle Werte strukturiert:\n"
+    "- Wohnfläche gesamt (nach WohnflächenVO) und je Raum/Geschoss\n"
+    "- Nutzfläche, Nebenfläche, Verkehrsfläche (falls ausgewiesen)\n"
+    "- Brutto-Grundfläche (BGF) und Brutto-Rauminhalt (BRI/Kubatur)\n"
+    "- Aufschlüsselung je Geschoss (KG, EG, OG, DG, Garage)\n"
+    "- Balkon-/Terrassen-/Loggiaflächen und deren Anrechnungsfaktor\n"
+    "- Kellerräume und Nebengebäude\n"
+    "Strukturiere als Markdown-Tabelle soweit möglich."
+)
+
+BAUBESCHREIBUNG_ORIGINAL_PROMPT = (
+    "Analysiere diese originale Baubeschreibung / dieses Leistungsverzeichnis aus der Bauplanung. "
+    "Extrahiere alle technischen Angaben strukturiert:\n"
+    "- Konstruktion und Tragwerk (Bauweise, Mauerwerk, Decken, Dach)\n"
+    "- Fassade und Außenwände (Material, Dämmung, U-Wert falls angegeben)\n"
+    "- Fenster und Außentüren (Material, Verglasung, Uw-Wert)\n"
+    "- Dach (Form, Eindeckung, Dämmung)\n"
+    "- Innenausbau: Böden je Raum, Wand- und Deckenoberflächen\n"
+    "- Sanitär: Bäder, WCs, Ausstattungsstandard\n"
+    "- Heizungsanlage: Art, Energieträger, Hersteller falls angegeben\n"
+    "- Elektroinstallation\n"
+    "- Besondere Ausstattung (Fußbodenheizung, Kamin, Smart-Home etc.)\n"
+    "Strukturiere als Markdown. Dies ist eine primäre Informationsquelle für Materialien und Ausstattungsstandard."
+)
+
+GRUNDBUCH_PROMPT = (
+    "Analysiere dieses Dokument (Grundbuchauszug, Baulastenauskunft, Altlastenauskunft, "
+    "Denkmalschutzauskunft oder Erschließungsbeitragsbescheid) und extrahiere alle "
+    "wertrelevanten Eintragungen strukturiert:\n\n"
+    "**Grundbuch:**\n"
+    "- Abt. I: Eigentümer und Eigentumsanteile\n"
+    "- Abt. II: Alle Lasten und Beschränkungen (Wegerechte, Nießbrauch, Vorkaufsrecht, "
+    "Reallasten, Wohnrechte, Leitungsrechte) — mit genauer Bezeichnung und Inhalt\n"
+    "- Abt. III: Grundpfandrechte (Hypotheken, Grundschulden) — Betrag und Gläubiger\n\n"
+    "**Baulasten:** Art und Umfang der eingetragenen Baulasten\n"
+    "**Altlasten:** Kontaminationsstatus, Altablagerungen, Verdachtsflächenstatus\n"
+    "**Denkmalschutz:** Schutzumfang (Einzeldenkmal, Ensemble), Auflagen, Fördermöglichkeiten\n"
+    "**Erschließung:** Noch offene Beiträge, Erschließungsstand\n\n"
+    "Hebe besonders hervor: Was beeinflusst den Wert oder die Nutzbarkeit des Objekts negativ?"
+)
+
 ENERGIEAUSWEIS_PROMPT = (
     "Analysiere diesen Energieausweis und extrahiere alle relevanten Daten strukturiert:\n"
     "- Art des Ausweises (Bedarfs- oder Verbrauchsausweis)\n"
@@ -280,6 +322,18 @@ def _pdf_to_markdown_via_vision(file_record, prompt: str, label: str, file_type_
 
 # ── Haupt-Konvertierungsfunktion ──────────────────────────────────────────────
 
+def _get_doc_prompt(file_type: str, is_gutachter: bool) -> str:
+    """Gibt den passenden Extraktions-Prompt für einen Nicht-Foto-Dateityp zurück."""
+    return {
+        "plan":                   PLAN_PROMPT,
+        "flaechenberechnung":     FLAECHENBERECHNUNG_PROMPT,
+        "baubeschreibung_original": BAUBESCHREIBUNG_ORIGINAL_PROMPT,
+        "bauakte":                BAUAKTE_PROMPT_GUTACHTER if is_gutachter else BAUAKTE_PROMPT_MAKLER,
+        "energieausweis":         ENERGIEAUSWEIS_PROMPT,
+        "grundbuch":              GRUNDBUCH_PROMPT,
+    }.get(file_type, BAUAKTE_PROMPT_GUTACHTER if is_gutachter else DOC_PROMPT)
+
+
 def convert_file_to_markdown(file_record, role: str = "") -> str:
     """
     Konvertiert eine hochgeladene Datei in Markdown und speichert das Ergebnis.
@@ -302,24 +356,13 @@ def convert_file_to_markdown(file_record, role: str = "") -> str:
         text, num_pages = _extract_pdf_text(file_record.file)
 
         if _pdf_text_is_sufficient(text, num_pages):
-            # Gut lesbares PDF (digitale Behördenakte, modernes Dokument)
             markdown = f"# {file_type_label}: {label}\n\n{text}"
         else:
-            # Gescanntes PDF (fotografierte Bauakte, eingescannte Pläne)
-            if file_record.file_type == "plan":
-                prompt = PLAN_PROMPT
-            elif file_record.file_type == "bauakte":
-                prompt = BAUAKTE_PROMPT_GUTACHTER if is_gutachter else BAUAKTE_PROMPT_MAKLER
-            elif file_record.file_type == "energieausweis":
-                prompt = ENERGIEAUSWEIS_PROMPT
-            else:
-                prompt = BAUAKTE_PROMPT_GUTACHTER if is_gutachter else DOC_PROMPT
-
+            prompt = _get_doc_prompt(file_record.file_type, is_gutachter)
             markdown = _pdf_to_markdown_via_vision(file_record, prompt, label, file_type_label)
 
     elif file_record.is_image:
         if ext in CLAUDE_VISION_UNSUPPORTED:
-            # Sollte durch Upload-Validierung eigentlich nicht mehr vorkommen
             markdown = (
                 f"[{file_type_label}: {label} — Format {ext} nicht unterstützt "
                 f"(bitte als JPG/PNG hochladen)]"
@@ -327,15 +370,8 @@ def convert_file_to_markdown(file_record, role: str = "") -> str:
         else:
             if file_record.file_type == "photo":
                 prompt = PHOTO_PROMPT_GUTACHTER if is_gutachter else PHOTO_PROMPT_MAKLER
-            elif file_record.file_type == "plan":
-                prompt = PLAN_PROMPT
-            elif file_record.file_type == "bauakte":
-                prompt = BAUAKTE_PROMPT_GUTACHTER if is_gutachter else BAUAKTE_PROMPT_MAKLER
-            elif file_record.file_type == "energieausweis":
-                prompt = ENERGIEAUSWEIS_PROMPT
             else:
-                prompt = BAUAKTE_PROMPT_GUTACHTER if is_gutachter else DOC_PROMPT
-
+                prompt = _get_doc_prompt(file_record.file_type, is_gutachter)
             markdown = _image_to_markdown(file_record, prompt, label, file_type_label)
 
     if not markdown:

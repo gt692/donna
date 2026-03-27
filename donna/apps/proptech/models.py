@@ -83,20 +83,26 @@ class PropertyReport(models.Model):
 class PropertyReportFile(models.Model):
     TYPE_PHOTO = "photo"
     TYPE_PLAN = "plan"
+    TYPE_FLAECHENBERECHNUNG = "flaechenberechnung"
+    TYPE_BAUBESCHREIBUNG = "baubeschreibung_original"
     TYPE_BAUAKTE = "bauakte"
     TYPE_ENERGIEAUSWEIS = "energieausweis"
+    TYPE_GRUNDBUCH = "grundbuch"
     TYPE_MISC = "misc"
     TYPE_CHOICES = [
         (TYPE_PHOTO, "Fotos"),
         (TYPE_PLAN, "Grundrisse / Pläne"),
-        (TYPE_BAUAKTE, "Bauakte / Beschreibungen"),
+        (TYPE_FLAECHENBERECHNUNG, "Flächenberechnung"),
+        (TYPE_BAUBESCHREIBUNG, "Baubeschreibung (original)"),
+        (TYPE_BAUAKTE, "Bauakte"),
         (TYPE_ENERGIEAUSWEIS, "Energieausweis"),
+        (TYPE_GRUNDBUCH, "Grundbuch und Auskünfte"),
         (TYPE_MISC, "Sonstige Dokumente"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     report = models.ForeignKey(PropertyReport, on_delete=models.CASCADE, related_name="files")
-    file_type = models.CharField(max_length=20, choices=TYPE_CHOICES, verbose_name=_("Dateityp"))
+    file_type = models.CharField(max_length=30, choices=TYPE_CHOICES, verbose_name=_("Dateityp"))
     file = models.FileField(upload_to="property_reports/%Y/%m/", verbose_name=_("Datei"))
     label = models.CharField(max_length=255, blank=True, verbose_name=_("Bezeichnung"))
     markdown_content = models.TextField(blank=True, verbose_name=_("Markdown-Inhalt (KI-aufbereitet)"))
