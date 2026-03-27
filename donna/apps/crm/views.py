@@ -2142,18 +2142,30 @@ class InvoiceFromOfferView(EditInvoicesMixin, View):
             messages.error(request, "Rechnungen können nur aus beauftragten Angeboten erstellt werden.")
             return redirect("crm:offer_detail", pk=offer.pk)
         initial = {
-            "title": offer.title,
-            "recipient_name": offer.recipient_name,
-            "recipient_email": offer.recipient_email,
-            "recipient_address": offer.recipient_address,
-            "tax_rate": offer.tax_rate,
-            "intro_text": offer.intro_text,
-            "closing_text": offer.closing_text,
+            "title":               offer.title,
+            "recipient_name":      offer.recipient_name,
+            "recipient_email":     offer.recipient_email,
+            "recipient_address":   offer.recipient_address,
+            "tax_rate":            offer.tax_rate,
+            "intro_text":          offer.intro_text,
+            "closing_text":        offer.closing_text,
+            "payment_info":        offer.payment_terms,
+            "discount_percent":    offer.discount_percent,
+            "discount_amount_eur": offer.discount_amount_eur,
         }
         form = InvoiceForm(initial=initial)
         items_initial = [
-            {"position": item.position, "description": item.description,
-             "quantity": item.quantity, "unit": item.unit, "unit_price": item.unit_price}
+            {
+                "position":         item.position,
+                "item_type":        item.item_type,
+                "billing_type":     item.billing_type,
+                "title":            item.title,
+                "description":      item.description,
+                "quantity":         item.quantity,
+                "unit":             item.unit,
+                "unit_price":       item.unit_price,
+                "discount_percent": item.discount_percent,
+            }
             for item in offer.items.all()
         ]
         from django import forms as _forms
