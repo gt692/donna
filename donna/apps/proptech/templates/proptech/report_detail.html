@@ -111,12 +111,12 @@
                 <label class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded border border-violet-200 bg-violet-50 text-violet-700 text-xs font-medium cursor-pointer hover:bg-violet-100 transition">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                   Fotos auswählen
-                  <input id="photo-files-input" type="file" name="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;" onchange="updatePhotoLabel(this)">
+                  <input id="photo-files-input" type="file" name="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif" style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;" onchange="updatePhotoLabel(this)">
                 </label>
                 <label class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded border border-violet-200 bg-violet-50 text-violet-700 text-xs font-medium cursor-pointer hover:bg-violet-100 transition" title="Ordner auswählen">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
                   Ordner
-                  <input id="photo-folder-input" type="file" name="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" webkitdirectory style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;" onchange="updatePhotoLabel(this)">
+                  <input id="photo-folder-input" type="file" name="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif" webkitdirectory style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;" onchange="updatePhotoLabel(this)">
                 </label>
               </div>
               <p id="photo-label" class="text-xs text-slate-400"></p>

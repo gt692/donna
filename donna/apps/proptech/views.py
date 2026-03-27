@@ -180,7 +180,34 @@ class PropertyReportRefineView(PropTechMixin, View):
 
 # ── Dateien ────────────────────────────────────────────────────────────────────
 
-BLOCKED_EXTENSIONS = {".heic", ".heif", ".tiff", ".tif", ".bmp"}
+HEIC_EXTENSIONS = {".heic", ".heif"}
+BLOCKED_EXTENSIONS = {".tiff", ".tif", ".bmp"}
+
+
+def _convert_heic_to_jpeg(uploaded_file):
+    """Konvertiert eine HEIC/HEIF-Datei in JPEG. Gibt ein neues File-Objekt zurück."""
+    from io import BytesIO
+    from django.core.files.uploadedfile import InMemoryUploadedFile
+    from PIL import Image
+    try:
+        from pillow_heif import register_heif_opener
+        register_heif_opener()
+    except ImportError:
+        return None
+    try:
+        img = Image.open(uploaded_file)
+        if img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+        output = BytesIO()
+        img.save(output, format="JPEG", quality=92)
+        output.seek(0)
+        new_name = os.path.splitext(uploaded_file.name)[0] + ".jpg"
+        return InMemoryUploadedFile(
+            output, "file", new_name, "image/jpeg", output.getbuffer().nbytes, None
+        )
+    except Exception as exc:
+        logger.warning("HEIC-Konvertierung fehlgeschlagen (%s): %s", uploaded_file.name, exc)
+        return None
 
 
 class PropertyReportFileUploadView(PropTechMixin, View):
@@ -192,24 +219,30 @@ class PropertyReportFileUploadView(PropTechMixin, View):
         if not files or not file_type:
             messages.error(request, "Bitte Dateityp wählen und mindestens eine Datei auswählen.")
             return redirect("proptech:report_detail", pk=pk)
-        skipped = []
+        converted = skipped = 0
         for uploaded in files:
             ext = os.path.splitext(uploaded.name)[1].lower()
             if ext in BLOCKED_EXTENSIONS:
-                skipped.append(uploaded.name)
+                skipped += 1
                 continue
+            if ext in HEIC_EXTENSIONS:
+                jpeg = _convert_heic_to_jpeg(uploaded)
+                if jpeg:
+                    uploaded = jpeg
+                    converted += 1
+                else:
+                    skipped += 1
+                    continue
             PropertyReportFile.objects.create(
                 report=report,
                 file_type=file_type,
                 file=uploaded,
                 label=label,
             )
+        if converted:
+            messages.info(request, f"{converted} HEIC-Foto{'s' if converted != 1 else ''} automatisch zu JPEG konvertiert.")
         if skipped:
-            messages.warning(
-                request,
-                f"{len(skipped)} Datei(en) übersprungen (HEIC/TIFF nicht unterstützt — bitte als JPG/PNG exportieren): "
-                + ", ".join(skipped[:5]) + ("…" if len(skipped) > 5 else ""),
-            )
+            messages.warning(request, f"{skipped} Datei(en) übersprungen (nicht unterstütztes Format).")
         return redirect("proptech:report_detail", pk=pk)
 
 

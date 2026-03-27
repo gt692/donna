@@ -2,8 +2,15 @@
 proptech/services.py
 
 KI-Service zur Generierung von Baubeschreibungen via Claude API.
-Jede hochgeladene Datei wird sofort beim Upload in Markdown konvertiert
-und als wiederverwendbarer Wissenspool gespeichert.
+
+Pipeline:
+  Fotos  → Claude Haiku Vision (rollenspezifischer Prompt, 6-8 Sätze)
+  PDFs   → pypdf (Qualitätscheck: >200 Zeichen/Seite)
+             └ zu wenig Text → Claude Haiku als Dokument (auch für gescannte PDFs)
+  HEIC   → wird bereits beim Upload zu JPEG konvertiert (pillow-heif in views.py)
+
+Lazy Conversion: findet beim ersten Generieren statt, Ergebnis wird in
+PropertyReportFile.markdown_content gespeichert und danach wiederverwendet.
 """
 import base64
 import logging
@@ -12,6 +19,8 @@ import os
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+# ── Prompts ──────────────────────────────────────────────────────────────────
 
 SYSTEM_PROMPT_GUTACHTER = """Du bist ein erfahrener Sachverständiger für Immobilienbewertung \
 (zertifiziert nach DIN EN ISO/IEC 17024).
@@ -22,15 +31,17 @@ Beschreibe die Immobilie systematisch nach folgenden Aspekten \
 (soweit aus den Unterlagen erkennbar):
 - Gebäudeart, Baujahr, Bauweise, Tragwerk/Konstruktion
 - Dach (Dachform, Eindeckung, Zustand)
-- Fassade und Außenwände
-- Fenster und Außentüren
+- Fassade und Außenwände (Material, Dämmung, Zustand)
+- Fenster und Außentüren (Material, Verglasung, Zustand)
 - Grundriss und Raumaufteilung
-- Fußböden, Wand- und Deckenbeläge
-- Sanitärausstattung und Bäder
-- Heizungsanlage und Warmwasserversorgung
+- Fußböden (Material je Bereich, Zustand)
+- Wand- und Deckenbeläge (Material, Zustand)
+- Sanitärausstattung und Bäder (Ausstattungsstandard, Baujahr/Erneuerung)
+- Heizungsanlage und Warmwasserversorgung (Art, Energieträger, Baujahr)
 - Elektroinstallation
 - Modernisierungen und Renovierungen (mit Jahreszahlen wenn bekannt)
-- Beurteilung des Bauzustandes
+- Sichtbare Schäden, Mängel oder Auffälligkeiten
+- Beurteilung des Bauzustandes insgesamt
 
 Schreibe fachlich korrekt, vollständig und sachlich ohne Wertungen oder \
 Marketingformulierungen. Verwende Fachterminologie. \
@@ -54,10 +65,9 @@ Ton: einladend, professionell, konkret — keine leeren Allgemeinaussagen.
 **Ausstattung**
 Beschreibe die Ausstattungsmerkmale vollständig, detailliert und objektbezogen — mindestens 5–8 Sätze.
 Geh systematisch durch alle erkennbaren Merkmale: Böden (Material, Zustand, welche Räume),
-Bäder und WCs (Ausstattung, Fliesen, Sanitär, Himmelsrichtung falls erkennbar),
-Küche (Einbauküche vorhanden? Zustand, Ausstattung), Heizungsanlage (Art, Energieträger, Baujahr falls bekannt),
-Fenster und Verglasung, Einbauschränke und Stauraumlösungen, Smart-Home oder besondere Technik,
-Kamin, Fußbodenheizung, Dachterrasse, Photovoltaik — was immer aus Fotos und Dokumenten erkennbar ist.
+Bäder und WCs (Ausstattung, Fliesen, Sanitär), Küche (Einbauküche vorhanden? Zustand, Ausstattung),
+Heizungsanlage (Art, Energieträger), Fenster und Verglasung, Einbauschränke, Smart-Home oder
+besondere Technik, Kamin, Fußbodenheizung, Terrasse, Photovoltaik — was immer erkennbar ist.
 Beschreibe nicht nur was vorhanden ist, sondern auch den Zustand und das Wohngefühl.
 Keine reine technische Aufzählung — verbinde Fakten mit Qualitätseindruck.
 
@@ -74,42 +84,119 @@ Diese sind keine bloßen Stilvorlagen — sie sind Beispiele dafür, wie erfahre
 Immobilienprofis konkrete Objekte mit Fotos und Dokumenten bewertet und in Texte
 übersetzt haben. Lerne daraus:
 - BEWERTUNGSLOGIK: Was haben die Experten als wichtig erachtet, was weggelassen?
-  Wende dieselbe Prioritätensetzung auf das aktuelle Objekt an.
-- AUSSTATTUNG: Wie wurden ähnliche Merkmale (Böden, Bäder, Küche, Garten etc.)
-  bewertet und formuliert? Übertrage diese Bewertungen auf vergleichbare Merkmale.
-- LAGE: Bei ähnlichem Standort: konkrete Infrastrukturinfos übernehmen, validieren,
-  ans aktuelle Objekt anpassen und mit eigenem Wissen anreichern.
+- AUSSTATTUNG: Wie wurden ähnliche Merkmale bewertet und formuliert?
+- LAGE: Bei vergleichbarem Standort konkrete Infos übernehmen, validieren, anpassen.
 - STIL: Ton, Satzbau und Abstraktionsgrad als Muster übernehmen.
-Alles Übernommene kritisch prüfen, anpassen und verbessern — nie 1:1 kopieren.
+Alles kritisch prüfen, anpassen und verbessern — nie 1:1 kopieren.
 
 Übergreifende Stilregeln:
-- Bildhafte, lebendige Sprache — keine leeren Floskeln ("einmalig", "traumhaft", "charmant")
-- Sprich Käufer emotional an: Lebensqualität, Alltag, Potenzial
-- Fließtext mit natürlichem Lesefluss — keine reinen Stichpunktlisten
-- Schreibe auf Deutsch, Duzen vermeiden (neutral formulieren)
+- Bildhafte, lebendige Sprache — keine leeren Floskeln ("einmalig", "traumhaft")
+- Käufer emotional ansprechen: Lebensqualität, Alltag, Potenzial
+- Fließtext mit natürlichem Lesefluss
+- Schreibe auf Deutsch, neutral (kein Duzen)
 - Mehr ist besser: lieber ein Merkmal zu viel beschreiben als eines weglassen"""
 
+# ── Foto-Konvertierungs-Prompts (rollenspezifisch) ────────────────────────────
+
+PHOTO_PROMPT_GUTACHTER = (
+    "Beschreibe dieses Immobilienfoto für ein Verkehrswertgutachten präzise und vollständig "
+    "in 6–8 Sätzen. Analysiere:\n"
+    "- Welcher Raum oder Bereich ist zu sehen?\n"
+    "- Bodenbelag: Material (Parkett, Fliesen, Teppich, Laminat …), Zustand, sichtbare Schäden\n"
+    "- Wände und Decken: Oberfläche, Zustand, Feuchtigkeitsschäden, Risse\n"
+    "- Einbauten und Ausstattung: Fenster (Material, Verglasung), Türen, Heizkörper, Sanitär\n"
+    "- Sichtbare Mängel, Schäden oder Modernisierungsbedarf\n"
+    "- Baualterseinschätzung der sichtbaren Elemente\n"
+    "Nur sachliche Fakten, keine Werturteile."
+)
+
+PHOTO_PROMPT_MAKLER = (
+    "Beschreibe dieses Immobilienfoto für ein Exposé ansprechend und konkret in 6–8 Sätzen. "
+    "Analysiere:\n"
+    "- Welcher Raum oder Bereich? Größeneindruck, Raumgefühl, Helligkeit\n"
+    "- Bodenbelag: Material und Qualitätseindruck\n"
+    "- Ausstattungsmerkmale: Einbauten, Küche, Bad, Kamin, Terrasse, Besonderheiten\n"
+    "- Zustand und Modernisierungsgrad: wirkt renoviert, gepflegt, hochwertig?\n"
+    "- Atmosphäre und Wohngefühl: was macht den Raum attraktiv für Käufer?\n"
+    "Konkrete Fakten mit Qualitätseindruck verbinden. Keine leeren Floskeln."
+)
+
+# ── Plan/Dokument-Prompts ─────────────────────────────────────────────────────
+
+PLAN_PROMPT = (
+    "Beschreibe diesen Grundriss / Plan detailliert für eine Immobilienbeschreibung. "
+    "Analysiere:\n"
+    "- Raumaufteilung: Anzahl und Art der Zimmer, Größenverhältnisse\n"
+    "- Erschließung: Eingangssituation, Flure, Treppenhaus\n"
+    "- Lage von Bad, Küche, Wohnbereich, Schlafzimmer\n"
+    "- Besonderheiten: Terrasse, Balkon, Keller, Garage, Dachschrägen\n"
+    "- Grundrissqualität: Funktionalität, Raumfluss, Tageslicht-Situation\n"
+    "Strukturiere als Markdown mit klaren Absätzen."
+)
+
+BAUAKTE_PROMPT_GUTACHTER = (
+    "Analysiere dieses Dokument aus einer Bauakte für ein Verkehrswertgutachten. "
+    "Extrahiere alle relevanten technischen Informationen:\n"
+    "- Baugenehmigungen, Baujahre, Bauabschnitte\n"
+    "- Materialangaben, Konstruktionsdetails, Tragwerk\n"
+    "- Nachträgliche Änderungen, Anbauten, Modernisierungen\n"
+    "- Technische Anlagen (Heizung, Elektro, Sanitär)\n"
+    "- Behördliche Auflagen oder Einschränkungen\n"
+    "- Sichtbare Mängel oder Schadensdokumentation\n"
+    "Strukturiere als Markdown. Fachterminologie verwenden."
+)
+
+BAUAKTE_PROMPT_MAKLER = (
+    "Analysiere dieses Dokument aus einer Bauakte. "
+    "Extrahiere alle Informationen, die für eine Exposé-Beschreibung relevant sind:\n"
+    "- Baujahr und Bauabschnitte\n"
+    "- Modernisierungen und Renovierungen (mit Jahreszahlen)\n"
+    "- Besondere Ausstattungsmerkmale\n"
+    "- Wohnfläche, Nutzfläche, Raumanzahl laut Genehmigung\n"
+    "Strukturiere als Markdown."
+)
+
+DOC_PROMPT = (
+    "Analysiere dieses Dokument und extrahiere alle Informationen, die für eine "
+    "Immobilienbeschreibung (Gutachten oder Exposé) relevant sind. "
+    "Strukturiere als Markdown."
+)
+
+# ── Kontext-Limits ────────────────────────────────────────────────────────────
+
 MAX_TEMPLATE_CHARS = 8_000
-MAX_FILE_MARKDOWN_CHARS = 6_000   # für Dokumente (PDFs, Pläne, Bauakte)
-MAX_PHOTO_MARKDOWN_CHARS = 500    # für Fotos — kurze Beschreibung reicht, alle werden gesendet
+MAX_FILE_MARKDOWN_CHARS = 6_000
+MAX_PHOTO_MARKDOWN_CHARS = 1_200   # erhöht: Fotos sind das wichtigste Element
 
-
-def _extract_pdf_text(file_field) -> str:
-    """Extrahiert Text aus einem PDF-FileField via pypdf."""
-    try:
-        from pypdf import PdfReader
-        reader = PdfReader(file_field.path)
-        texts = [page.extract_text() for page in reader.pages if page.extract_text()]
-        return "\n\n".join(t.strip() for t in texts)
-    except Exception as exc:
-        logger.warning("PDF-Extraktion fehlgeschlagen: %s", exc)
-        return ""
-
+# Qualitätsschwelle pypdf: weniger als X Zeichen pro Seite → PDF ist gescannt
+MIN_CHARS_PER_PAGE = 200
 
 CLAUDE_VISION_UNSUPPORTED = {".heic", ".heif", ".tiff", ".tif", ".bmp"}
 
 
-def _image_to_base64(file_field) -> tuple:
+# ── Hilfsfunktionen ───────────────────────────────────────────────────────────
+
+def _extract_pdf_text(file_field) -> tuple[str, int]:
+    """Extrahiert Text aus einem PDF. Gibt (text, num_pages) zurück."""
+    try:
+        from pypdf import PdfReader
+        reader = PdfReader(file_field.path)
+        num_pages = len(reader.pages)
+        texts = [page.extract_text() for page in reader.pages if page.extract_text()]
+        return "\n\n".join(t.strip() for t in texts), num_pages
+    except Exception as exc:
+        logger.warning("PDF-Extraktion fehlgeschlagen: %s", exc)
+        return "", 0
+
+
+def _pdf_text_is_sufficient(text: str, num_pages: int) -> bool:
+    """True wenn pypdf genug Text geliefert hat (kein gescanntes PDF)."""
+    if not text.strip() or num_pages == 0:
+        return False
+    return len(text.strip()) / num_pages >= MIN_CHARS_PER_PAGE
+
+
+def _image_to_base64(file_field) -> tuple[str, str]:
     """Gibt (base64_data, media_type) zurück."""
     ext = os.path.splitext(file_field.name)[1].lower()
     media_map = {
@@ -124,151 +211,125 @@ def _image_to_base64(file_field) -> tuple:
         return base64.standard_b64encode(f.read()).decode(), media_type
 
 
-def _pdf_to_markdown_via_claude(file_record, file_type_label: str, label: str) -> str:
-    """
-    Sendet ein PDF direkt an Claude (Haiku) als Dokument — funktioniert auch für
-    gescannte/bildbasierte PDFs (Grundrisse, Pläne), die pypdf nicht lesen kann.
-    """
+def _call_haiku(messages: list, max_tokens: int = 1024) -> str:
+    """Hilfsfunktion: Claude Haiku aufrufen und Text zurückgeben."""
     api_key = getattr(settings, "ANTHROPIC_API_KEY", "")
     if not api_key:
         return ""
     try:
         import anthropic
         client = anthropic.Anthropic(api_key=api_key)
-        with file_record.file.open("rb") as f:
-            pdf_b64 = base64.standard_b64encode(f.read()).decode()
-
-        if file_record.file_type == "plan":
-            instruction = (
-                "Beschreibe diesen Grundriss / Plan detailliert für eine KI-gestützte "
-                "Objektbeschreibung. Analysiere:\n"
-                "- Raumaufteilung und Anzahl der Zimmer\n"
-                "- Erschließung und Wegführung\n"
-                "- Lage von Bad, Küche, Wohnbereich\n"
-                "- Besonderheiten wie Terrasse, Keller, Dachschrägen\n"
-                "- Gesamteindruck der Grundrissqualität\n"
-                "Schreibe präzise. Strukturiere als Markdown."
-            )
-        else:
-            instruction = (
-                "Beschreibe den Inhalt dieses Dokuments detailliert für eine KI-gestützte "
-                "Immobilienbeschreibung. Extrahiere alle relevanten Informationen "
-                "über das Objekt. Strukturiere als Markdown."
-            )
-
         response = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=1024,
-            messages=[{
-                "role": "user",
-                "content": [
-                    {
-                        "type": "document",
-                        "source": {"type": "base64", "media_type": "application/pdf", "data": pdf_b64},
-                    },
-                    {"type": "text", "text": instruction},
-                ],
-            }],
+            max_tokens=max_tokens,
+            messages=messages,
         )
-        return f"# {file_type_label}: {label}\n\n{response.content[0].text}"
+        return response.content[0].text
     except Exception as exc:
-        logger.warning("PDF-Vision-Konvertierung fehlgeschlagen (%s): %s", label, exc)
+        logger.warning("Haiku-API-Fehler: %s", exc)
         return ""
 
 
-def convert_file_to_markdown(file_record) -> str:
+def _image_to_markdown(file_record, prompt: str, label: str, file_type_label: str) -> str:
+    """Bild → Markdown via Claude Haiku Vision."""
+    try:
+        b64, media_type = _image_to_base64(file_record.file)
+        text = _call_haiku([{
+            "role": "user",
+            "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
+                {"type": "text", "text": prompt},
+            ],
+        }], max_tokens=1024)
+        return f"# {file_type_label}: {label}\n\n{text}" if text else ""
+    except Exception as exc:
+        logger.warning("Bild-zu-Markdown fehlgeschlagen (%s): %s", label, exc)
+        return ""
+
+
+def _pdf_to_markdown_via_vision(file_record, prompt: str, label: str, file_type_label: str) -> str:
+    """Gescanntes PDF → Markdown via Claude Haiku (Document API)."""
+    try:
+        with file_record.file.open("rb") as f:
+            pdf_b64 = base64.standard_b64encode(f.read()).decode()
+        text = _call_haiku([{
+            "role": "user",
+            "content": [
+                {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": pdf_b64}},
+                {"type": "text", "text": prompt},
+            ],
+        }], max_tokens=2048)
+        return f"# {file_type_label}: {label}\n\n{text}" if text else ""
+    except Exception as exc:
+        logger.warning("PDF-Vision fehlgeschlagen (%s): %s", label, exc)
+        return ""
+
+
+# ── Haupt-Konvertierungsfunktion ──────────────────────────────────────────────
+
+def convert_file_to_markdown(file_record, role: str = "") -> str:
     """
-    Konvertiert eine hochgeladene Datei in Markdown.
-    PDFs: erst pypdf, bei leerem Ergebnis (gescannte PDFs) → Claude Vision (Haiku).
-    Bilder: Claude Vision (Haiku).
-    Speichert immer etwas in markdown_content damit ⏳ verschwindet.
+    Konvertiert eine hochgeladene Datei in Markdown und speichert das Ergebnis.
+
+    Pipeline:
+      Foto  → Claude Haiku Vision (rollenspezifischer Prompt)
+      PDF   → pypdf (Qualitätscheck) → bei unzureichendem Text: Claude Vision
+      Sonst → Fallback-Marker
+
+    Speichert immer etwas, damit ⏳ nie dauerhaft bleibt.
     """
     label = file_record.label or os.path.basename(file_record.file.name)
     file_type_label = file_record.get_file_type_display()
     ext = os.path.splitext(file_record.file.name)[1].lower()
+    is_gutachter = (role == "gutachter")
+
+    markdown = ""
 
     if file_record.is_pdf:
-        text = _extract_pdf_text(file_record.file)
-        if text:
+        text, num_pages = _extract_pdf_text(file_record.file)
+
+        if _pdf_text_is_sufficient(text, num_pages):
+            # Gut lesbares PDF (digitale Behördenakte, modernes Dokument)
             markdown = f"# {file_type_label}: {label}\n\n{text}"
         else:
-            # Gescanntes PDF — direkt an Claude Vision schicken
-            markdown = _pdf_to_markdown_via_claude(file_record, file_type_label, label)
-            if not markdown:
-                markdown = f"[{file_type_label}: {label} — PDF konnte nicht verarbeitet werden]"
+            # Gescanntes PDF (fotografierte Bauakte, eingescannte Pläne)
+            if file_record.file_type == "plan":
+                prompt = PLAN_PROMPT
+            elif file_record.file_type == "bauakte":
+                prompt = BAUAKTE_PROMPT_GUTACHTER if is_gutachter else BAUAKTE_PROMPT_MAKLER
+            else:
+                prompt = BAUAKTE_PROMPT_GUTACHTER if is_gutachter else DOC_PROMPT
+
+            markdown = _pdf_to_markdown_via_vision(file_record, prompt, label, file_type_label)
+
     elif file_record.is_image:
         if ext in CLAUDE_VISION_UNSUPPORTED:
-            markdown = f"[{file_type_label}: {label} — Format {ext} nicht unterstützt (bitte als JPG/PNG hochladen)]"
+            # Sollte durch Upload-Validierung eigentlich nicht mehr vorkommen
+            markdown = (
+                f"[{file_type_label}: {label} — Format {ext} nicht unterstützt "
+                f"(bitte als JPG/PNG hochladen)]"
+            )
         else:
-            markdown = _image_to_markdown_via_claude(file_record, file_type_label, label)
-            if not markdown:
-                markdown = f"[{file_type_label}: {label} — Bildbeschreibung fehlgeschlagen]"
-    else:
-        markdown = f"[{file_type_label}: {label} — Dateiformat wird nicht verarbeitet]"
+            if file_record.file_type == "photo":
+                prompt = PHOTO_PROMPT_GUTACHTER if is_gutachter else PHOTO_PROMPT_MAKLER
+            elif file_record.file_type == "plan":
+                prompt = PLAN_PROMPT
+            elif file_record.file_type == "bauakte":
+                prompt = BAUAKTE_PROMPT_GUTACHTER if is_gutachter else BAUAKTE_PROMPT_MAKLER
+            else:
+                prompt = BAUAKTE_PROMPT_GUTACHTER if is_gutachter else DOC_PROMPT
+
+            markdown = _image_to_markdown(file_record, prompt, label, file_type_label)
+
+    if not markdown:
+        markdown = f"[{file_type_label}: {label} — konnte nicht verarbeitet werden]"
 
     file_record.markdown_content = markdown
     file_record.save(update_fields=["markdown_content"])
     return markdown
 
 
-def _image_to_markdown_via_claude(file_record, file_type_label: str, label: str) -> str:
-    """
-    Sendet ein Bild an Claude (Haiku — kostengünstig für Upload-Verarbeitung)
-    und erhält eine detaillierte Markdown-Beschreibung zurück.
-    """
-    api_key = getattr(settings, "ANTHROPIC_API_KEY", "")
-    if not api_key:
-        return ""
-    try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=api_key)
-        b64, media_type = _image_to_base64(file_record.file)
-
-        if file_record.file_type == "photo":
-            instruction = (
-                "Beschreibe dieses Immobilienfoto in maximal 3-4 Sätzen: "
-                "Welcher Raum/Bereich? Böden, Wände, Einbauten, Zustand, Besonderheiten. "
-                "Nur Fakten, kein Fließtext, keine Wertung."
-            )
-        elif file_record.file_type == "plan":
-            instruction = (
-                "Beschreibe diesen Grundriss / Plan detailliert für eine KI-gestützte "
-                "Objektbeschreibung. Analysiere:\n"
-                "- Raumaufteilung und Anzahl der Zimmer\n"
-                "- Erschließung und Wegführung\n"
-                "- Lage von Bad, Küche, Wohnbereich\n"
-                "- Besonderheiten wie Terrasse, Keller, Dachschrägen\n"
-                "- Gesamteindruck der Grundrissqualität\n"
-                "Schreibe präzise. Strukturiere als Markdown."
-            )
-        else:
-            instruction = (
-                "Beschreibe dieses Dokument / Bild detailliert für eine KI-gestützte "
-                "Immobilienbeschreibung. Extrahiere alle relevanten Informationen "
-                "über das Objekt (Zustand, Ausstattung, Besonderheiten). "
-                "Strukturiere als Markdown."
-            )
-
-        response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=1024,
-            messages=[{
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {"type": "base64", "media_type": media_type, "data": b64},
-                    },
-                    {"type": "text", "text": instruction},
-                ],
-            }],
-        )
-        description = response.content[0].text
-        return f"# {file_type_label}: {label}\n\n{description}"
-    except Exception as exc:
-        logger.warning("Bild-zu-Markdown fehlgeschlagen (%s): %s", label, exc)
-        return ""
-
+# ── Generierungs-Service ──────────────────────────────────────────────────────
 
 class PropertyDescriptionService:
     def generate(self, report) -> str:
@@ -280,14 +341,13 @@ class PropertyDescriptionService:
 
         content = []
 
-        # Hardfacts
+        # 1. Hardfacts
         facts = self._build_hardfacts(report)
         if facts:
             content.append({"type": "text", "text": f"## Objektdaten\n\n{facts}"})
 
-        # Referenz-Exposés / Vorlagen (max. 3)
-        # Passende Gebäudetyp-Vorlagen zuerst, dann allgemeine
-        from django.db.models import Case, When, IntegerField
+        # 2. Referenz-Exposés / Vorlagen (max. 3, passender Gebäudetyp zuerst)
+        from django.db.models import Case, IntegerField, When
         building_type_key = report.building_type or ""
         templates = (
             DescriptionTemplate.objects
@@ -307,78 +367,78 @@ class PropertyDescriptionService:
                 content.append({
                     "type": "text",
                     "text": (
-                        f"## Referenz-Exposé aus vergangenen Projekten: {tpl.name}"
+                        f"## Referenz-Exposé: {tpl.name}"
                         + (f" [{tpl.get_building_type_display()}]" if tpl.building_type else "")
                         + (f" — {' '.join(filter(None, [tpl.street, tpl.postal_code, tpl.city]))}" if any([tpl.street, tpl.city]) else "")
                         + "\n\n"
-                        f"{snippet}\n\n"
-                        "[Analysiere dieses Referenz-Exposé als Beispiel dafür, wie unsere Experten "
-                        "ein Objekt bewertet und beschrieben haben:\n"
-                        "1. BEWERTUNGSLOGIK: Welche Merkmale haben die Experten als Stärken "
-                        "hervorgehoben? Was wurde weggelassen? Welche Prioritäten sind erkennbar?\n"
-                        "2. AUSSTATTUNG: Welche Ausstattungsmerkmale wurden wie bewertet und formuliert? "
-                        "Übernimm diese Bewertungslogik für ähnliche Merkmale beim aktuellen Objekt.\n"
-                        "3. LAGE: Wenn das Referenzobjekt in einer vergleichbaren Lage liegt "
-                        "(gleiche Stadt, Stadtteil oder ähnliches Umfeld), übernimm konkrete "
-                        "Lageinformationen als Ausgangsbasis.\n"
-                        "4. STIL & SPRACHE: Übernimm den Ton, die Satzkonstruktionen und den "
-                        "Abstraktionsgrad als Stilvorlage.\n"
-                        "Wichtig: Validiere alle übernommenen Inhalte — passe sie präzise ans aktuelle "
-                        "Objekt an, verbessere und ergänze sie. Kopiere keine Formulierungen 1:1.]"
+                        + snippet + "\n\n"
+                        + "[Analysiere dieses Referenz-Exposé: Bewertungslogik, Ausstattungsbewertung, "
+                        + "Lagebeschreibung und Stil als Vorlage nutzen — kritisch prüfen und anpassen.]"
                     ),
                 })
 
-        # Hochgeladene Dateien als Markdown-Pool
-        # Noch nicht konvertierte Dateien jetzt aufbereiten (lazy conversion)
+        # 3. Lazy Conversion: noch nicht verarbeitete Dateien jetzt aufbereiten
         pending = report.files.filter(markdown_content="").order_by("file_type", "uploaded_at")
         for f in pending:
             try:
-                convert_file_to_markdown(f)
+                convert_file_to_markdown(f, role=report.role)
             except Exception as exc:
-                logger.warning("Markdown-Konvertierung übersprungen (%s): %s", f.filename, exc)
+                logger.warning("Konvertierung übersprungen (%s): %s", f.filename, exc)
 
-        # Dokumente (Bauakte, Pläne, Sonstiges) vollständig einbeziehen
-        file_sections = []
+        # 4. Dokumente (Pläne, Bauakte, Sonstiges) vollständig einbeziehen
+        doc_sections = []
         for f in report.files.exclude(file_type="photo").order_by("file_type", "uploaded_at"):
-            if f.markdown_content:
-                file_sections.append(f.markdown_content[:MAX_FILE_MARKDOWN_CHARS])
+            mc = f.markdown_content
+            if mc and not mc.startswith("["):
+                doc_sections.append(mc[:MAX_FILE_MARKDOWN_CHARS])
 
-        # Fotos: alle einbeziehen, aber kurz gefasst (~500 Zeichen pro Foto)
-        for f in report.files.filter(file_type="photo").order_by("uploaded_at"):
-            if f.markdown_content:
-                file_sections.append(f.markdown_content[:MAX_PHOTO_MARKDOWN_CHARS])
-
-        if file_sections:
+        if doc_sections:
             content.append({
                 "type": "text",
                 "text": (
-                    "## Hochgeladene Unterlagen (KI-aufbereitetes Markdown)\n\n"
-                    "Die folgenden Beschreibungen wurden automatisch aus den hochgeladenen "
-                    "Fotos, Grundrissen und Dokumenten generiert. Nutze sie als primäre "
-                    "Informationsquelle für Ausstattung und Zustand des Objekts.\n\n"
-                    + "\n\n---\n\n".join(file_sections)
+                    "## Grundrisse & Dokumente\n\n"
+                    + "\n\n---\n\n".join(doc_sections)
                 ),
             })
 
-        # Abschluss-Prompt
+        # 5. Fotos: alle einbeziehen (wichtigstes Element), je 1.200 Zeichen
+        photo_sections = []
+        for f in report.files.filter(file_type="photo").order_by("uploaded_at"):
+            mc = f.markdown_content
+            if mc and not mc.startswith("["):
+                photo_sections.append(mc[:MAX_PHOTO_MARKDOWN_CHARS])
+
+        if photo_sections:
+            content.append({
+                "type": "text",
+                "text": (
+                    f"## Fotobeschreibungen ({len(photo_sections)} Fotos)\n\n"
+                    "Die folgenden Beschreibungen wurden automatisch aus den hochgeladenen Fotos "
+                    "generiert. Sie sind die primäre Informationsquelle für Zustand und Ausstattung.\n\n"
+                    + "\n\n---\n\n".join(photo_sections)
+                ),
+            })
+
+        # 6. Abschluss-Prompt
         if report.role == "gutachter":
             closing = (
-                "Bitte erstelle jetzt die Gutachter-Baubeschreibung (Verkehrswertgutachten) "
-                "für dieses Objekt auf Basis aller oben bereitgestellten Informationen."
+                "Erstelle jetzt die Gutachter-Baubeschreibung (Verkehrswertgutachten-Stil) "
+                "für dieses Objekt auf Basis aller bereitgestellten Informationen. "
+                "Geh systematisch vor: Gebäude → Dach → Fassade → Fenster/Türen → "
+                "Grundriss → Böden → Wände/Decken → Bäder → Heizung → Elektro → "
+                "Modernisierungen → Gesamtzustand. Materialien und Zustand immer benennen."
             )
         else:
             addr_parts = list(filter(None, [report.street, report.postal_code, report.city]))
             addr = " ".join(addr_parts)
             closing = (
-                "Bitte erstelle jetzt die Makler-Objektbeschreibung (Exposé) "
-                "für dieses Objekt auf Basis aller oben bereitgestellten Informationen. "
-                "Strukturiere den Text in die drei Abschnitte: Immobilie, Ausstattung, Lage. "
+                "Erstelle jetzt die Makler-Objektbeschreibung (Exposé) "
+                "in den drei Abschnitten: Immobilie, Ausstattung, Lage. "
             )
             if addr:
                 closing += (
-                    f"Für den Abschnitt 'Lage' nutze dein Wissen über den Standort ({addr}) — "
-                    "beschreibe Infrastruktur, ÖPNV, Schulen, Einkauf, Naherholung und Charakter "
-                    "des Viertels/der Gemeinde so konkret wie möglich."
+                    f"Für 'Lage' nutze dein Wissen über {addr} — beschreibe Infrastruktur, "
+                    "ÖPNV, Schulen, Einkauf, Naherholung und Charakter des Viertels konkret."
                 )
         content.append({"type": "text", "text": closing})
 
@@ -392,8 +452,7 @@ class PropertyDescriptionService:
 
     def _build_hardfacts(self, report) -> str:
         lines = []
-        addr_parts = filter(None, [report.street, report.postal_code, report.city])
-        addr = " ".join(addr_parts)
+        addr = " ".join(filter(None, [report.street, report.postal_code, report.city]))
         if addr:
             lines.append(f"Adresse: {addr}")
         if report.building_type:
