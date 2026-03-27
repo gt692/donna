@@ -183,13 +183,24 @@
               <p class="text-xs text-slate-400">{{ entry.user.get_full_name }} · {{ entry.date|date:"d.m.Y" }}</p>
             </div>
             <span class="flex-shrink-0 text-sm font-semibold text-slate-600">{{ entry.duration_hours }} h</span>
-            {% if entry.status == "approved" %}
-              <span class="flex-shrink-0 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">✓</span>
-            {% elif entry.status == "submitted" %}
-              <span class="flex-shrink-0 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">⏳</span>
-            {% else %}
-              <span class="flex-shrink-0 text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium">Entwurf</span>
-            {% endif %}
+            <div class="flex-shrink-0 flex flex-col items-end gap-1">
+              {% if entry.status == "approved" %}
+                <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">✓ Freigegeben</span>
+              {% elif entry.status == "submitted" %}
+                <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">⏳ Eingereicht</span>
+              {% else %}
+                <span class="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium">Entwurf</span>
+              {% endif %}
+              {% if entry.invoiced_in %}
+                <a href="{% url 'crm:invoice_detail' entry.invoiced_in.pk %}"
+                   class="text-xs bg-[#EFF6FF] text-[#2F6FB3] px-2 py-0.5 rounded-full font-medium hover:bg-[#dbeafe] transition"
+                   title="Abgerechnet in {{ entry.invoiced_in.invoice_number }}">
+                  {{ entry.invoiced_in.invoice_number }}
+                </a>
+              {% elif entry.is_billable %}
+                <span class="text-xs bg-slate-50 text-slate-400 px-2 py-0.5 rounded-full">offen</span>
+              {% endif %}
+            </div>
           </div>
         {% empty %}
           <div class="px-5 py-8 text-center text-slate-400 text-sm">Noch keine Zeitbuchungen für dieses Projekt.</div>

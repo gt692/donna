@@ -612,7 +612,7 @@ class ProjectDetailView(CRMMixin, DetailView):
         entries = (
             TimeEntry.objects
             .filter(project=project)
-            .select_related("user")
+            .select_related("user", "invoiced_in")
             .order_by("-date")[:20]
         )
 

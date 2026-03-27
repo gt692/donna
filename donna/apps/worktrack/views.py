@@ -58,7 +58,7 @@ class TimeEntryListView(WorktrackMixin, TemplateView):
         entries = (
             TimeEntry.objects
             .filter(user=user, date__range=(monday, sunday))
-            .select_related("project", "project__account")
+            .select_related("project", "project__account", "invoiced_in")
             .order_by("date", "start_time")
         )
 
