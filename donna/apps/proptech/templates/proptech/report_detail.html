@@ -113,7 +113,7 @@
       </div>
 
       <!-- Tab: Fotos -->
-      <div id="utab-photo" class="upload-tab-panel p-4">
+      <div id="upanel-photo" class="upload-tab-panel p-4">
         <form id="photo-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
           {% csrf_token %}
           <input type="hidden" name="file_type" value="photo">
@@ -167,7 +167,7 @@
       </div>
 
       <!-- Tab: Pläne -->
-      <div id="utab-plan" class="upload-tab-panel p-4 hidden">
+      <div id="upanel-plan" class="upload-tab-panel p-4 hidden">
         <form id="plan-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
           {% csrf_token %}
           <input type="hidden" name="file_type" value="plan">
@@ -196,7 +196,7 @@
       </div>
 
       <!-- Tab: Flächenberechnung -->
-      <div id="utab-flaechenberechnung" class="upload-tab-panel p-4 hidden">
+      <div id="upanel-flaechenberechnung" class="upload-tab-panel p-4 hidden">
         <form id="flaechenberechnung-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
           {% csrf_token %}
           <input type="hidden" name="file_type" value="flaechenberechnung">
@@ -225,7 +225,7 @@
       </div>
 
       <!-- Tab: Baubeschreibung (Original) -->
-      <div id="utab-baubeschreibung_original" class="upload-tab-panel p-4 hidden">
+      <div id="upanel-baubeschreibung_original" class="upload-tab-panel p-4 hidden">
         <form id="baubeschreibung_original-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
           {% csrf_token %}
           <input type="hidden" name="file_type" value="baubeschreibung_original">
@@ -254,7 +254,7 @@
       </div>
 
       <!-- Tab: Bauakte -->
-      <div id="utab-bauakte" class="upload-tab-panel p-4 hidden">
+      <div id="upanel-bauakte" class="upload-tab-panel p-4 hidden">
         <form id="bauakte-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
           {% csrf_token %}
           <input type="hidden" name="file_type" value="bauakte">
@@ -283,7 +283,7 @@
       </div>
 
       <!-- Tab: Energieausweis -->
-      <div id="utab-energieausweis" class="upload-tab-panel p-4 hidden">
+      <div id="upanel-energieausweis" class="upload-tab-panel p-4 hidden">
         <form id="energieausweis-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
           {% csrf_token %}
           <input type="hidden" name="file_type" value="energieausweis">
@@ -312,7 +312,7 @@
       </div>
 
       <!-- Tab: Grundbuch -->
-      <div id="utab-grundbuch" class="upload-tab-panel p-4 hidden">
+      <div id="upanel-grundbuch" class="upload-tab-panel p-4 hidden">
         <form id="grundbuch-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
           {% csrf_token %}
           <input type="hidden" name="file_type" value="grundbuch">
@@ -341,7 +341,7 @@
       </div>
 
       <!-- Tab: Sonstiges -->
-      <div id="utab-misc" class="upload-tab-panel p-4 hidden">
+      <div id="upanel-misc" class="upload-tab-panel p-4 hidden">
         <form id="misc-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
           {% csrf_token %}
           <input type="hidden" name="file_type" value="misc">
@@ -653,8 +653,7 @@ function showUploadTab(id) {
     b.classList.remove('border-[#2F6FB3]', 'text-[#2F6FB3]');
     b.classList.add('border-transparent', 'text-slate-400');
   });
-  document.getElementById('utab-' + id).classList.remove('hidden');
-  var btn = document.getElementById('utab-' + id + '-btn') || document.querySelector('[id="utab-' + id + '"]')?.previousElementSibling;
+  document.getElementById('upanel-' + id).classList.remove('hidden');
   // Find and activate tab button
   document.querySelectorAll('.upload-tab-btn').forEach(function(b) {
     if (b.getAttribute('onclick') === "showUploadTab('" + id + "')") {
