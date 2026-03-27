@@ -62,11 +62,19 @@ class PropertyReportDetailView(PropTechMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         report = self.object
         ctx["files_by_type"] = {
-            "photo":   report.files.filter(file_type="photo"),
-            "plan":    report.files.filter(file_type="plan"),
-            "bauakte": report.files.filter(file_type="bauakte"),
-            "misc":    report.files.filter(file_type="misc"),
+            "photo":          report.files.filter(file_type="photo"),
+            "plan":           report.files.filter(file_type="plan"),
+            "bauakte":        report.files.filter(file_type="bauakte"),
+            "energieausweis": report.files.filter(file_type="energieausweis"),
+            "misc":           report.files.filter(file_type="misc"),
         }
+        ctx["upload_tabs"] = [
+            ("photo",          "Fotos",         "violet"),
+            ("plan",           "Pläne",          "blue"),
+            ("bauakte",        "Bauakte",        "amber"),
+            ("energieausweis", "Energieausweis", "emerald"),
+            ("misc",           "Sonstiges",      "slate"),
+        ]
         ctx["upload_form"] = PropertyReportFileForm()
         ctx["pending_files_count"] = report.files.filter(markdown_content="").count()
         ctx["failed_files_count"] = report.files.filter(markdown_content__startswith="[").count()

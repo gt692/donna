@@ -84,11 +84,13 @@ class PropertyReportFile(models.Model):
     TYPE_PHOTO = "photo"
     TYPE_PLAN = "plan"
     TYPE_BAUAKTE = "bauakte"
+    TYPE_ENERGIEAUSWEIS = "energieausweis"
     TYPE_MISC = "misc"
     TYPE_CHOICES = [
         (TYPE_PHOTO, "Fotos"),
         (TYPE_PLAN, "Grundrisse / Pläne"),
         (TYPE_BAUAKTE, "Bauakte / Beschreibungen"),
+        (TYPE_ENERGIEAUSWEIS, "Energieausweis"),
         (TYPE_MISC, "Sonstige Dokumente"),
     ]
 

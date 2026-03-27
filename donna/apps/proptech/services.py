@@ -156,6 +156,19 @@ BAUAKTE_PROMPT_MAKLER = (
     "Strukturiere als Markdown."
 )
 
+ENERGIEAUSWEIS_PROMPT = (
+    "Analysiere diesen Energieausweis und extrahiere alle relevanten Daten strukturiert:\n"
+    "- Art des Ausweises (Bedarfs- oder Verbrauchsausweis)\n"
+    "- Energieeffizienzklasse (A+ bis H)\n"
+    "- Endenergiebedarf oder -verbrauch (kWh/(m²·a))\n"
+    "- Primärenergiebedarf (kWh/(m²·a))\n"
+    "- Hauptenergieträger (Gas, Öl, Wärmepumpe, Fernwärme etc.)\n"
+    "- Baujahr des Gebäudes laut Ausweis\n"
+    "- Wesentliche Modernisierungsempfehlungen\n"
+    "- Ausstellungsdatum und Gültigkeit\n"
+    "Strukturiere als Markdown."
+)
+
 DOC_PROMPT = (
     "Analysiere dieses Dokument und extrahiere alle Informationen, die für eine "
     "Immobilienbeschreibung (Gutachten oder Exposé) relevant sind. "
@@ -297,6 +310,8 @@ def convert_file_to_markdown(file_record, role: str = "") -> str:
                 prompt = PLAN_PROMPT
             elif file_record.file_type == "bauakte":
                 prompt = BAUAKTE_PROMPT_GUTACHTER if is_gutachter else BAUAKTE_PROMPT_MAKLER
+            elif file_record.file_type == "energieausweis":
+                prompt = ENERGIEAUSWEIS_PROMPT
             else:
                 prompt = BAUAKTE_PROMPT_GUTACHTER if is_gutachter else DOC_PROMPT
 
@@ -316,6 +331,8 @@ def convert_file_to_markdown(file_record, role: str = "") -> str:
                 prompt = PLAN_PROMPT
             elif file_record.file_type == "bauakte":
                 prompt = BAUAKTE_PROMPT_GUTACHTER if is_gutachter else BAUAKTE_PROMPT_MAKLER
+            elif file_record.file_type == "energieausweis":
+                prompt = ENERGIEAUSWEIS_PROMPT
             else:
                 prompt = BAUAKTE_PROMPT_GUTACHTER if is_gutachter else DOC_PROMPT
 

@@ -94,82 +94,191 @@
 
     <!-- Dateien hochladen -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div class="px-5 py-4 bg-slate-50 border-b border-slate-200">
+      <div class="px-5 py-3 bg-slate-50 border-b border-slate-200">
         <h3 class="text-sm font-semibold text-slate-700">Unterlagen hochladen</h3>
         <p class="text-xs text-slate-400 mt-0.5">Fotos, Pläne und Dokumente für die KI</p>
       </div>
-      <div class="divide-y divide-slate-100">
 
-        <!-- Fotos (mehrere gleichzeitig + Ordner) -->
-        <div class="px-5 py-4">
-          <p class="text-xs font-semibold text-slate-600 mb-2">Fotos</p>
-          <form id="photo-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
-            {% csrf_token %}
-            <input type="hidden" name="file_type" value="photo">
-            <div class="space-y-2">
-              <div class="flex gap-2">
-                <label class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded border border-violet-200 bg-violet-50 text-violet-700 text-xs font-medium cursor-pointer hover:bg-violet-100 transition">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                  Fotos auswählen
-                  <input id="photo-files-input" type="file" name="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif" style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;" onchange="updatePhotoLabel(this)">
-                </label>
-                <label class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded border border-violet-200 bg-violet-50 text-violet-700 text-xs font-medium cursor-pointer hover:bg-violet-100 transition" title="Ordner auswählen">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
-                  Ordner
-                  <input id="photo-folder-input" type="file" name="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif" webkitdirectory style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;" onchange="updatePhotoLabel(this)">
-                </label>
-              </div>
-              <p id="photo-label" class="text-xs text-slate-400"></p>
-              <button type="submit"
-                      class="w-full bg-slate-700 hover:bg-slate-800 text-white text-xs font-medium py-1.5 rounded-lg transition">
-                Fotos hochladen
-              </button>
-            </div>
-          </form>
-        </div>
+      <!-- Upload-Tabs -->
+      <div class="flex text-xs font-medium border-b border-slate-100 bg-white">
+        {% for tab_id, tab_label, tab_color in upload_tabs %}
+        <button type="button" onclick="showUploadTab('{{ tab_id }}')"
+                id="utab-{{ tab_id }}"
+                class="upload-tab-btn flex-1 py-2.5 text-center transition border-b-2
+                       {% if forloop.first %}border-[#2F6FB3] text-[#2F6FB3]{% else %}border-transparent text-slate-400 hover:text-slate-600{% endif %}">
+          {{ tab_label }}
+        </button>
+        {% endfor %}
+      </div>
 
-        <!-- Pläne (mehrere gleichzeitig) -->
-        <div class="px-5 py-4">
-          <p class="text-xs font-semibold text-slate-600 mb-2">Grundrisse / Pläne</p>
-          <form id="plan-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
-            {% csrf_token %}
-            <input type="hidden" name="file_type" value="plan">
-            <div class="space-y-2">
-              <input type="file" name="file" multiple accept="image/*,.pdf"
-                     class="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-[#EFF6FF] file:text-[#2F6FB3] hover:file:bg-blue-100 cursor-pointer">
-              <button type="submit" class="w-full bg-slate-700 hover:bg-slate-800 text-white text-xs font-medium py-1.5 rounded-lg transition">Pläne hochladen</button>
-            </div>
-          </form>
-        </div>
+      <!-- Tab: Fotos -->
+      <div id="utab-photo" class="upload-tab-panel p-4">
+        <form id="photo-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="file_type" value="photo">
+          <input id="photo-files-input" type="file" name="file" multiple
+                 accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif"
+                 style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;"
+                 onchange="onFileSelect('photo', this)">
+          <input id="photo-folder-input" type="file" name="file" multiple
+                 accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif"
+                 webkitdirectory
+                 style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;"
+                 onchange="onFileSelect('photo', this)">
+          <!-- Drop zone -->
+          <div id="photo-dropzone"
+               onclick="document.getElementById('photo-files-input').click()"
+               ondragover="handleDragOver(event,'photo')" ondragleave="handleDragLeave('photo')" ondrop="handleDrop(event,'photo')"
+               class="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center cursor-pointer hover:border-violet-300 hover:bg-violet-50 transition-all">
+            <svg class="w-7 h-7 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <p class="text-xs font-medium text-slate-500">Fotos hier ablegen</p>
+            <p class="text-xs text-slate-400 mt-0.5">JPG, PNG, HEIC — auch Ordner</p>
+          </div>
+          <!-- Auswahl-Buttons -->
+          <div class="flex gap-2 mt-3">
+            <button type="button" onclick="document.getElementById('photo-files-input').click()"
+                    class="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              Dateien
+            </button>
+            <button type="button" onclick="document.getElementById('photo-folder-input').click()"
+                    class="flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+              Ordner
+            </button>
+          </div>
+          <!-- Ausgewählte Dateien -->
+          <div id="photo-selection" class="hidden mt-3 px-3 py-2 bg-violet-50 rounded-lg border border-violet-100 flex items-center justify-between">
+            <span id="photo-count" class="text-xs font-medium text-violet-700"></span>
+            <button type="button" onclick="clearSelection('photo')" class="text-xs text-violet-400 hover:text-violet-600">✕ Zurücksetzen</button>
+          </div>
+          <!-- Upload-Button: nur aktiv wenn Dateien gewählt -->
+          <button type="submit" id="photo-submit" disabled
+                  class="mt-3 w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-lg transition
+                         bg-slate-100 text-slate-400 cursor-not-allowed
+                         disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            Hochladen
+          </button>
+        </form>
+      </div>
 
-        <!-- Bauakte (einzeln) -->
-        <div class="px-5 py-4">
-          <p class="text-xs font-semibold text-slate-600 mb-2">Bauakte / Gutachten</p>
-          <form id="bauakte-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
-            {% csrf_token %}
-            <input type="hidden" name="file_type" value="bauakte">
-            <div class="space-y-2">
-              <input type="file" name="file" accept=".pdf,image/*"
-                     class="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer">
-              <button type="submit" class="w-full bg-slate-700 hover:bg-slate-800 text-white text-xs font-medium py-1.5 rounded-lg transition">Bauakte hochladen</button>
-            </div>
-          </form>
-        </div>
+      <!-- Tab: Pläne -->
+      <div id="utab-plan" class="upload-tab-panel p-4 hidden">
+        <form id="plan-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="file_type" value="plan">
+          <input id="plan-input" type="file" name="file" multiple accept="image/*,.pdf"
+                 style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;"
+                 onchange="onFileSelect('plan', this)">
+          <div onclick="document.getElementById('plan-input').click()"
+               ondragover="handleDragOver(event,'plan')" ondragleave="handleDragLeave('plan')" ondrop="handleDrop(event,'plan')"
+               class="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center cursor-pointer hover:border-[#2F6FB3] hover:bg-[#EFF6FF] transition-all">
+            <svg class="w-7 h-7 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+            </svg>
+            <p class="text-xs font-medium text-slate-500">Grundrisse & Pläne ablegen</p>
+            <p class="text-xs text-slate-400 mt-0.5">PDF oder Bild, auch gescannte Pläne</p>
+          </div>
+          <div id="plan-selection" class="hidden mt-3 px-3 py-2 bg-[#EFF6FF] rounded-lg border border-blue-100 flex items-center justify-between">
+            <span id="plan-count" class="text-xs font-medium text-[#2F6FB3]"></span>
+            <button type="button" onclick="clearSelection('plan')" class="text-xs text-blue-300 hover:text-blue-500">✕</button>
+          </div>
+          <button type="submit" id="plan-submit" disabled
+                  class="mt-3 w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-lg transition disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            Hochladen
+          </button>
+        </form>
+      </div>
 
-        <!-- Sonstiges (einzeln) -->
-        <div class="px-5 py-4">
-          <p class="text-xs font-semibold text-slate-600 mb-2">Sonstige Dokumente</p>
-          <form id="misc-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
-            {% csrf_token %}
-            <input type="hidden" name="file_type" value="misc">
-            <div class="space-y-2">
-              <input type="file" name="file" accept=".pdf,image/*,.doc,.docx"
-                     class="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer">
-              <button type="submit" class="w-full bg-slate-700 hover:bg-slate-800 text-white text-xs font-medium py-1.5 rounded-lg transition">Dokument hochladen</button>
-            </div>
-          </form>
-        </div>
+      <!-- Tab: Bauakte -->
+      <div id="utab-bauakte" class="upload-tab-panel p-4 hidden">
+        <form id="bauakte-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="file_type" value="bauakte">
+          <input id="bauakte-input" type="file" name="file" multiple accept=".pdf,image/*"
+                 style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;"
+                 onchange="onFileSelect('bauakte', this)">
+          <div onclick="document.getElementById('bauakte-input').click()"
+               ondragover="handleDragOver(event,'bauakte')" ondragleave="handleDragLeave('bauakte')" ondrop="handleDrop(event,'bauakte')"
+               class="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center cursor-pointer hover:border-amber-300 hover:bg-amber-50 transition-all">
+            <svg class="w-7 h-7 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <p class="text-xs font-medium text-slate-500">Bauakte & Gutachten ablegen</p>
+            <p class="text-xs text-slate-400 mt-0.5">Auch fotografierte Akten — KI liest beides</p>
+          </div>
+          <div id="bauakte-selection" class="hidden mt-3 px-3 py-2 bg-amber-50 rounded-lg border border-amber-100 flex items-center justify-between">
+            <span id="bauakte-count" class="text-xs font-medium text-amber-700"></span>
+            <button type="button" onclick="clearSelection('bauakte')" class="text-xs text-amber-300 hover:text-amber-500">✕</button>
+          </div>
+          <button type="submit" id="bauakte-submit" disabled
+                  class="mt-3 w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-lg transition disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            Hochladen
+          </button>
+        </form>
+      </div>
 
+      <!-- Tab: Energieausweis -->
+      <div id="utab-energieausweis" class="upload-tab-panel p-4 hidden">
+        <form id="energieausweis-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="file_type" value="energieausweis">
+          <input id="energieausweis-input" type="file" name="file" multiple accept=".pdf,image/*"
+                 style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;"
+                 onchange="onFileSelect('energieausweis', this)">
+          <div onclick="document.getElementById('energieausweis-input').click()"
+               ondragover="handleDragOver(event,'energieausweis')" ondragleave="handleDragLeave('energieausweis')" ondrop="handleDrop(event,'energieausweis')"
+               class="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center cursor-pointer hover:border-emerald-300 hover:bg-emerald-50 transition-all">
+            <svg class="w-7 h-7 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            <p class="text-xs font-medium text-slate-500">Energieausweis ablegen</p>
+            <p class="text-xs text-slate-400 mt-0.5">KI extrahiert Klasse, Verbrauch & Heizungsart</p>
+          </div>
+          <div id="energieausweis-selection" class="hidden mt-3 px-3 py-2 bg-emerald-50 rounded-lg border border-emerald-100 flex items-center justify-between">
+            <span id="energieausweis-count" class="text-xs font-medium text-emerald-700"></span>
+            <button type="button" onclick="clearSelection('energieausweis')" class="text-xs text-emerald-300 hover:text-emerald-500">✕</button>
+          </div>
+          <button type="submit" id="energieausweis-submit" disabled
+                  class="mt-3 w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-lg transition disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            Hochladen
+          </button>
+        </form>
+      </div>
+
+      <!-- Tab: Sonstiges -->
+      <div id="utab-misc" class="upload-tab-panel p-4 hidden">
+        <form id="misc-upload-form" method="post" action="{% url 'proptech:file_upload' report.pk %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="file_type" value="misc">
+          <input id="misc-input" type="file" name="file" multiple accept=".pdf,image/*,.doc,.docx"
+                 style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;"
+                 onchange="onFileSelect('misc', this)">
+          <div onclick="document.getElementById('misc-input').click()"
+               ondragover="handleDragOver(event,'misc')" ondragleave="handleDragLeave('misc')" ondrop="handleDrop(event,'misc')"
+               class="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center cursor-pointer hover:border-slate-300 hover:bg-slate-50 transition-all">
+            <svg class="w-7 h-7 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+            </svg>
+            <p class="text-xs font-medium text-slate-500">Sonstige Dokumente ablegen</p>
+            <p class="text-xs text-slate-400 mt-0.5">PDF, Bild, Word</p>
+          </div>
+          <div id="misc-selection" class="hidden mt-3 px-3 py-2 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
+            <span id="misc-count" class="text-xs font-medium text-slate-600"></span>
+            <button type="button" onclick="clearSelection('misc')" class="text-xs text-slate-300 hover:text-slate-500">✕</button>
+          </div>
+          <button type="submit" id="misc-submit" disabled
+                  class="mt-3 w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-lg transition disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            Hochladen
+          </button>
+        </form>
       </div>
     </div>
 
@@ -178,68 +287,101 @@
     <form id="bulk-delete-form" method="post" action="{% url 'proptech:file_bulk_delete' report.pk %}">
       {% csrf_token %}
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="px-5 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
-          <div class="flex items-center gap-2 flex-wrap">
+
+        <!-- Header -->
+        <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
             <input type="checkbox" id="select-all-files" onchange="toggleAllFiles(this)"
                    class="rounded border-slate-300 text-[#2F6FB3] cursor-pointer">
-            <h3 class="text-sm font-semibold text-slate-700">Hochgeladene Dateien</h3>
-            <span class="text-xs text-slate-400">{{ report.files.count }}</span>
-            <span class="text-slate-200">|</span>
-            <button type="button" onclick="selectByType('photo')" class="text-xs text-[#2F6FB3] hover:text-[#265e99] transition">Fotos</button>
-            <button type="button" onclick="selectByType('plan')" class="text-xs text-[#2F6FB3] hover:text-[#265e99] transition">Pläne</button>
-            <button type="button" onclick="selectByType('bauakte')" class="text-xs text-[#2F6FB3] hover:text-[#265e99] transition">Bauakte</button>
-            <button type="button" onclick="selectByType('misc')" class="text-xs text-[#2F6FB3] hover:text-[#265e99] transition">Sonstige</button>
+            <span class="text-sm font-semibold text-slate-700">Dateien</span>
+            <span class="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">{{ report.files.count }}</span>
+          </div>
+          <div class="flex items-center gap-2">
             {% if failed_files_count %}
-            <span class="text-slate-200">|</span>
             <form method="post" action="{% url 'proptech:file_reprocess' report.pk %}" class="inline">
               {% csrf_token %}
-              <button type="submit" class="text-xs text-amber-600 hover:text-amber-800 transition" title="{{ failed_files_count }} fehlgeschlagene Dateien neu verarbeiten">
-                ↺ {{ failed_files_count }} neu verarbeiten
+              <button type="submit" class="text-xs text-amber-500 hover:text-amber-700 font-medium transition">
+                ↺ {{ failed_files_count }} neu
               </button>
             </form>
             {% endif %}
+            <button type="button" id="bulk-delete-btn" onclick="confirmBulkDelete()"
+                    class="hidden items-center gap-1 text-xs text-red-500 hover:text-red-700 font-medium transition px-2 py-1 rounded hover:bg-red-50">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              <span id="bulk-delete-label">Löschen</span>
+            </button>
           </div>
-          <button type="button" id="bulk-delete-btn" onclick="confirmBulkDelete()"
-                  class="hidden items-center gap-1 text-xs text-red-500 hover:text-red-700 font-medium transition px-2 py-1 rounded hover:bg-red-50">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-            </svg>
-            <span id="bulk-delete-label">Auswahl löschen</span>
-          </button>
         </div>
-        <div class="divide-y divide-slate-100">
+
+        <!-- Filter-Tabs -->
+        <div class="flex text-xs border-b border-slate-100">
+          <button type="button" onclick="filterFiles('all')" id="ftab-all"
+                  class="file-filter-btn px-3 py-2 font-medium text-[#2F6FB3] border-b-2 border-[#2F6FB3]">
+            Alle <span class="ml-1 text-slate-400">{{ report.files.count }}</span>
+          </button>
+          {% if files_by_type.photo.exists %}
+          <button type="button" onclick="filterFiles('photo')" id="ftab-photo"
+                  class="file-filter-btn px-3 py-2 text-slate-400 border-b-2 border-transparent hover:text-slate-600">
+            📷 <span class="ml-0.5">{{ files_by_type.photo.count }}</span>
+          </button>
+          {% endif %}
+          {% if files_by_type.plan.exists %}
+          <button type="button" onclick="filterFiles('plan')" id="ftab-plan"
+                  class="file-filter-btn px-3 py-2 text-slate-400 border-b-2 border-transparent hover:text-slate-600">
+            📐 <span class="ml-0.5">{{ files_by_type.plan.count }}</span>
+          </button>
+          {% endif %}
+          {% if files_by_type.bauakte.exists %}
+          <button type="button" onclick="filterFiles('bauakte')" id="ftab-bauakte"
+                  class="file-filter-btn px-3 py-2 text-slate-400 border-b-2 border-transparent hover:text-slate-600">
+            📋 <span class="ml-0.5">{{ files_by_type.bauakte.count }}</span>
+          </button>
+          {% endif %}
+          {% if files_by_type.energieausweis.exists %}
+          <button type="button" onclick="filterFiles('energieausweis')" id="ftab-energieausweis"
+                  class="file-filter-btn px-3 py-2 text-slate-400 border-b-2 border-transparent hover:text-slate-600">
+            ⚡ <span class="ml-0.5">{{ files_by_type.energieausweis.count }}</span>
+          </button>
+          {% endif %}
+          {% if files_by_type.misc.exists %}
+          <button type="button" onclick="filterFiles('misc')" id="ftab-misc"
+                  class="file-filter-btn px-3 py-2 text-slate-400 border-b-2 border-transparent hover:text-slate-600">
+            📄 <span class="ml-0.5">{{ files_by_type.misc.count }}</span>
+          </button>
+          {% endif %}
+        </div>
+
+        <!-- Datei-Liste -->
+        <div class="divide-y divide-slate-100 max-h-80 overflow-y-auto">
           {% for f in report.files.all %}
-          <div class="px-5 py-3 flex items-center gap-3">
+          <div class="file-row px-4 py-2.5 flex items-center gap-3 hover:bg-slate-50 transition" data-type="{{ f.file_type }}">
             <input type="checkbox" name="file_ids" value="{{ f.pk }}" data-file-type="{{ f.file_type }}"
                    class="file-checkbox rounded border-slate-300 text-[#2F6FB3] flex-shrink-0 cursor-pointer"
                    onchange="updateBulkDeleteBtn()">
-            <div class="flex items-center gap-2 min-w-0 flex-1">
-              {% if f.is_image %}
-                <svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                </svg>
-              {% elif f.is_pdf %}
-                <svg class="w-4 h-4 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-              {% else %}
-                <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
-                </svg>
-              {% endif %}
-              <div class="min-w-0">
-                <p class="text-xs font-medium text-slate-700 truncate">{{ f.label|default:f.filename }}</p>
-                <p class="text-xs text-slate-400">
-                  {{ f.get_file_type_display }}
-                  {% if f.markdown_content and not f.markdown_content|slice:":1" == "[" %}
-                    <span class="ml-1 text-emerald-500" title="Markdown aufbereitet">✓ KI-bereit</span>
-                  {% elif f.markdown_content %}
-                    <span class="ml-1 text-amber-500" title="{{ f.markdown_content }}">⚠ nicht verarbeitbar</span>
-                  {% else %}
-                    <span class="ml-1 text-slate-400" title="Noch nicht aufbereitet">⏳ ausstehend</span>
-                  {% endif %}
-                </p>
-              </div>
+            <!-- Thumbnail für Bilder, Icon für PDFs -->
+            {% if f.is_image %}
+            <img src="{{ f.file.url }}" alt="" class="w-9 h-9 object-cover rounded flex-shrink-0 bg-slate-100">
+            {% elif f.is_pdf %}
+            <div class="w-9 h-9 flex-shrink-0 rounded bg-red-50 flex items-center justify-center">
+              <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </div>
+            {% else %}
+            <div class="w-9 h-9 flex-shrink-0 rounded bg-slate-100 flex items-center justify-center">
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            </div>
+            {% endif %}
+            <div class="min-w-0 flex-1">
+              <p class="text-xs font-medium text-slate-700 truncate leading-tight">{{ f.label|default:f.filename }}</p>
+              <p class="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
+                {{ f.get_file_type_display }}
+                {% if f.markdown_content and not f.markdown_content|slice:":1" == "[" %}
+                  <span class="text-emerald-500 font-medium">✓</span>
+                {% elif f.markdown_content %}
+                  <span class="text-amber-400" title="{{ f.markdown_content }}">⚠</span>
+                {% else %}
+                  <span class="text-slate-300">⏳</span>
+                {% endif %}
+              </p>
             </div>
           </div>
           {% endfor %}
@@ -395,163 +537,190 @@
 </div>
 
 <script>
-function updatePhotoLabel(input) {
-  const count = input.files.length;
-  const label = document.getElementById('photo-label');
-  if (label) label.textContent = count > 0 ? count + ' Datei' + (count !== 1 ? 'en' : '') + ' ausgewählt' : '';
-}
-
-function setupUploadForm(formId, label) {
-  const form = document.getElementById(formId);
-  if (!form) return;
-  form.addEventListener('submit', function(e) {
-    e.preventDefault();
-    const formData = new FormData(form);
-    // Count files from all file inputs in this form
-    let fileCount = 0;
-    form.querySelectorAll('input[type="file"]').forEach(function(inp) {
-      fileCount += inp.files.length;
-    });
-    if (fileCount === 0) { form.submit(); return; }
-
-    document.getElementById('upload-title').textContent = fileCount + ' ' + label + (fileCount !== 1 ? 'n' : '') + ' werden hochgeladen…';
-    document.getElementById('upload-subtitle').textContent = 'Bitte warten und die Seite nicht verlassen.';
-    document.getElementById('upload-bar').style.width = '0%';
-    document.getElementById('upload-percent').textContent = '0%';
-    document.getElementById('upload-overlay').style.display = 'block';
-
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', form.action);
-
-    xhr.upload.addEventListener('progress', function(ev) {
-      if (ev.lengthComputable) {
-        const pct = Math.round(ev.loaded / ev.total * 100);
-        document.getElementById('upload-bar').style.width = pct + '%';
-        document.getElementById('upload-percent').textContent = pct + '%';
-        if (pct === 100) {
-          document.getElementById('upload-title').textContent = 'Dateien werden verarbeitet…';
-          document.getElementById('upload-subtitle').textContent = 'Fast fertig, bitte noch einen Moment.';
-        }
-      }
-    });
-
-    xhr.addEventListener('load', function() { window.location.reload(); });
-    xhr.addEventListener('error', function() {
-      document.getElementById('upload-overlay').style.display = 'none';
-      alert('Upload fehlgeschlagen. Bitte erneut versuchen.');
-    });
-
-    xhr.send(formData);
+// ── Upload-Tabs ───────────────────────────────────────────────────────────────
+function showUploadTab(id) {
+  document.querySelectorAll('.upload-tab-panel').forEach(function(p) { p.classList.add('hidden'); });
+  document.querySelectorAll('.upload-tab-btn').forEach(function(b) {
+    b.classList.remove('border-[#2F6FB3]', 'text-[#2F6FB3]');
+    b.classList.add('border-transparent', 'text-slate-400');
+  });
+  document.getElementById('utab-' + id).classList.remove('hidden');
+  var btn = document.getElementById('utab-' + id + '-btn') || document.querySelector('[id="utab-' + id + '"]')?.previousElementSibling;
+  // Find and activate tab button
+  document.querySelectorAll('.upload-tab-btn').forEach(function(b) {
+    if (b.getAttribute('onclick') === "showUploadTab('" + id + "')") {
+      b.classList.add('border-[#2F6FB3]', 'text-[#2F6FB3]');
+      b.classList.remove('border-transparent', 'text-slate-400');
+    }
   });
 }
 
-// Photo upload: custom label counting across two inputs
-document.getElementById('photo-upload-form').addEventListener('submit', function(e) {
+// ── Dateiauswahl ──────────────────────────────────────────────────────────────
+var _selectedFiles = {};  // type → FileList(s)
+
+function onFileSelect(type, input) {
+  // Merge files from multiple inputs (photo has files + folder)
+  if (!_selectedFiles[type]) _selectedFiles[type] = [];
+  // Store reference to input so FormData picks them up
+  _selectedFiles[type] = true;
+  updateUploadBtn(type);
+}
+
+function updateUploadBtn(type) {
+  var count = 0;
+  var form = document.getElementById(type + '-upload-form') ||
+             document.getElementById('photo-upload-form');
+  if (type === 'photo') {
+    count = (document.getElementById('photo-files-input')?.files.length || 0)
+          + (document.getElementById('photo-folder-input')?.files.length || 0);
+  } else {
+    var inp = document.getElementById(type + '-input');
+    count = inp ? inp.files.length : 0;
+  }
+  var submitBtn = document.getElementById(type + '-submit');
+  var selDiv = document.getElementById(type + '-selection');
+  var countEl = document.getElementById(type + '-count');
+  if (!submitBtn) return;
+
+  if (count > 0) {
+    submitBtn.disabled = false;
+    submitBtn.classList.remove('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+    submitBtn.classList.add('bg-[#2F6FB3]', 'hover:bg-[#265e99]', 'text-white', 'cursor-pointer');
+    if (selDiv) selDiv.classList.remove('hidden');
+    if (countEl) countEl.textContent = count + (type === 'photo' ? ' Foto' + (count !== 1 ? 's' : '') : ' Datei' + (count !== 1 ? 'en' : '')) + ' ausgewählt';
+  } else {
+    submitBtn.disabled = true;
+    submitBtn.classList.add('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+    submitBtn.classList.remove('bg-[#2F6FB3]', 'hover:bg-[#265e99]', 'text-white', 'cursor-pointer');
+    if (selDiv) selDiv.classList.add('hidden');
+  }
+}
+
+function clearSelection(type) {
+  if (type === 'photo') {
+    var fi = document.getElementById('photo-files-input');
+    var fo = document.getElementById('photo-folder-input');
+    if (fi) fi.value = '';
+    if (fo) fo.value = '';
+  } else {
+    var inp = document.getElementById(type + '-input');
+    if (inp) inp.value = '';
+  }
+  updateUploadBtn(type);
+}
+
+// ── Drag & Drop ───────────────────────────────────────────────────────────────
+function handleDragOver(e, type) {
   e.preventDefault();
-  const form = this;
-  const formData = new FormData(form);
-  const fileCount = (document.getElementById('photo-files-input').files.length || 0)
-                  + (document.getElementById('photo-folder-input').files.length || 0);
+  var dz = document.getElementById(type === 'photo' ? 'photo-dropzone' : 'utab-' + type)
+             ?.querySelector('[ondragover]') || e.currentTarget;
+  e.currentTarget.classList.add('border-[#2F6FB3]', 'bg-[#EFF6FF]');
+}
+function handleDragLeave(type) {
+  var targets = document.querySelectorAll('#utab-' + type + ' [ondragleave]');
+  targets.forEach(function(el) {
+    el.classList.remove('border-[#2F6FB3]', 'bg-[#EFF6FF]',
+      'border-violet-300', 'bg-violet-50',
+      'border-amber-300', 'bg-amber-50',
+      'border-emerald-300', 'bg-emerald-50',
+      'border-slate-300', 'bg-slate-50');
+  });
+}
+function handleDrop(e, type) {
+  e.preventDefault();
+  handleDragLeave(type);
+  var files = e.dataTransfer.files;
+  if (!files.length) return;
+  // Assign dropped files to the primary input
+  var inputId = type === 'photo' ? 'photo-files-input' : type + '-input';
+  var inp = document.getElementById(inputId);
+  if (!inp) return;
+  var dt = new DataTransfer();
+  for (var i = 0; i < files.length; i++) dt.items.add(files[i]);
+  inp.files = dt.files;
+  onFileSelect(type, inp);
+}
 
-  if (fileCount === 0) { form.submit(); return; }
-
-  document.getElementById('upload-title').textContent = fileCount + ' Foto' + (fileCount !== 1 ? 's' : '') + ' werden hochgeladen…';
+// ── Upload mit Fortschritts-Modal ─────────────────────────────────────────────
+function doUpload(form, fileCount, label) {
+  var formData = new FormData(form);
+  document.getElementById('upload-title').textContent = fileCount + ' ' + label + ' werden hochgeladen…';
   document.getElementById('upload-subtitle').textContent = 'Bitte warten und die Seite nicht verlassen.';
   document.getElementById('upload-bar').style.width = '0%';
   document.getElementById('upload-percent').textContent = '0%';
   document.getElementById('upload-overlay').style.display = 'block';
-
-  const xhr = new XMLHttpRequest();
+  var xhr = new XMLHttpRequest();
   xhr.open('POST', form.action);
-
-  xhr.upload.addEventListener('progress', function(e) {
-    if (e.lengthComputable) {
-      const pct = Math.round(e.loaded / e.total * 100);
+  xhr.upload.addEventListener('progress', function(ev) {
+    if (ev.lengthComputable) {
+      var pct = Math.round(ev.loaded / ev.total * 100);
       document.getElementById('upload-bar').style.width = pct + '%';
       document.getElementById('upload-percent').textContent = pct + '%';
       if (pct === 100) {
-        document.getElementById('upload-title').textContent = 'Dateien werden verarbeitet…';
+        document.getElementById('upload-title').textContent = 'Wird verarbeitet…';
         document.getElementById('upload-subtitle').textContent = 'Fast fertig, bitte noch einen Moment.';
       }
     }
   });
-
   xhr.addEventListener('load', function() { window.location.reload(); });
   xhr.addEventListener('error', function() {
     document.getElementById('upload-overlay').style.display = 'none';
     alert('Upload fehlgeschlagen. Bitte erneut versuchen.');
   });
-
   xhr.send(formData);
-});
-
-setupUploadForm('plan-upload-form', 'Datei');
-setupUploadForm('bauakte-upload-form', 'Datei');
-setupUploadForm('misc-upload-form', 'Datei');
-
-function refineText() {
-  const feedback = document.getElementById('refine-input').value.trim();
-  if (!feedback) return;
-  const currentText = document.getElementById('generated-text-area').value;
-  const btn = document.getElementById('refine-btn');
-  const loading = document.getElementById('refine-loading');
-  const history = document.getElementById('refine-history');
-
-  btn.disabled = true;
-  btn.classList.add('opacity-50', 'cursor-not-allowed');
-  loading.classList.remove('hidden');
-
-  // Feedback im Verlauf anzeigen
-  history.style.display = 'block';
-  const entry = document.createElement('div');
-  entry.className = 'text-xs bg-slate-50 rounded-lg px-3 py-2 text-slate-600 border border-slate-100';
-  entry.textContent = '💬 ' + feedback;
-  history.appendChild(entry);
-
-  const formData = new FormData();
-  formData.append('feedback', feedback);
-  formData.append('current_text', currentText);
-  formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-
-  fetch('{% url "proptech:report_refine" report.pk %}', { method: 'POST', body: formData })
-    .then(r => r.json())
-    .then(data => {
-      if (data.text) {
-        document.getElementById('generated-text-area').value = data.text;
-        document.getElementById('refine-input').value = '';
-        const ok = document.createElement('div');
-        ok.className = 'text-xs text-emerald-600 px-3 py-1';
-        ok.textContent = '✓ Text wurde überarbeitet und gespeichert.';
-        history.appendChild(ok);
-        history.scrollTop = history.scrollHeight;
-      } else {
-        alert('Fehler: ' + (data.error || 'Unbekannter Fehler'));
-      }
-    })
-    .catch(() => alert('Verbindungsfehler. Bitte erneut versuchen.'))
-    .finally(() => {
-      btn.disabled = false;
-      btn.classList.remove('opacity-50', 'cursor-not-allowed');
-      loading.classList.add('hidden');
-    });
 }
 
+document.getElementById('photo-upload-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  var count = (document.getElementById('photo-files-input').files.length || 0)
+            + (document.getElementById('photo-folder-input').files.length || 0);
+  if (count === 0) return;
+  doUpload(this, count, 'Foto' + (count !== 1 ? 's' : ''));
+});
+
+['plan','bauakte','energieausweis','misc'].forEach(function(type) {
+  var form = document.getElementById(type + '-upload-form');
+  if (!form) return;
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var inp = document.getElementById(type + '-input');
+    var count = inp ? inp.files.length : 0;
+    if (count === 0) return;
+    doUpload(this, count, 'Datei' + (count !== 1 ? 'en' : ''));
+  });
+});
+
+// ── Datei-Filter-Tabs ─────────────────────────────────────────────────────────
+function filterFiles(type) {
+  document.querySelectorAll('.file-row').forEach(function(row) {
+    row.style.display = (type === 'all' || row.dataset.type === type) ? '' : 'none';
+  });
+  document.querySelectorAll('.file-filter-btn').forEach(function(btn) {
+    var active = btn.getAttribute('onclick') === "filterFiles('" + type + "')";
+    btn.classList.toggle('text-[#2F6FB3]', active);
+    btn.classList.toggle('border-[#2F6FB3]', active);
+    btn.classList.toggle('text-slate-400', !active);
+    btn.classList.toggle('border-transparent', !active);
+    btn.classList.toggle('font-medium', active);
+  });
+  // Update select-all checkbox state after filter
+  updateBulkDeleteBtn();
+}
+
+// ── Bulk Delete ───────────────────────────────────────────────────────────────
 function updateBulkDeleteBtn() {
-  const checked = document.querySelectorAll('.file-checkbox:checked').length;
-  const btn = document.getElementById('bulk-delete-btn');
+  var checked = document.querySelectorAll('.file-checkbox:checked').length;
+  var btn = document.getElementById('bulk-delete-btn');
   if (!btn) return;
   if (checked > 0) {
-    btn.classList.remove('hidden');
-    btn.classList.add('flex');
+    btn.classList.remove('hidden'); btn.classList.add('flex');
     document.getElementById('bulk-delete-label').textContent = checked + ' löschen';
   } else {
-    btn.classList.add('hidden');
-    btn.classList.remove('flex');
+    btn.classList.add('hidden'); btn.classList.remove('flex');
   }
-  const total = document.querySelectorAll('.file-checkbox').length;
-  const selectAll = document.getElementById('select-all-files');
-  if (selectAll) selectAll.indeterminate = checked > 0 && checked < total;
-  if (selectAll) selectAll.checked = checked === total;
+  var total = document.querySelectorAll('.file-checkbox').length;
+  var sa = document.getElementById('select-all-files');
+  if (sa) { sa.indeterminate = checked > 0 && checked < total; sa.checked = total > 0 && checked === total; }
 }
 
 function toggleAllFiles(cb) {
@@ -559,25 +728,57 @@ function toggleAllFiles(cb) {
   updateBulkDeleteBtn();
 }
 
-function selectByType(type) {
-  document.querySelectorAll('.file-checkbox').forEach(function(c) {
-    c.checked = c.dataset.fileType === type;
-  });
-  updateBulkDeleteBtn();
-}
-
 function confirmBulkDelete() {
-  const count = document.querySelectorAll('.file-checkbox:checked').length;
+  var count = document.querySelectorAll('.file-checkbox:checked').length;
   if (count === 0) return;
   if (confirm(count + ' Datei' + (count !== 1 ? 'en' : '') + ' wirklich löschen?')) {
     document.getElementById('bulk-delete-form').submit();
   }
 }
 
+// ── Text überarbeiten ─────────────────────────────────────────────────────────
+function refineText() {
+  var feedback = document.getElementById('refine-input').value.trim();
+  if (!feedback) return;
+  var currentText = document.getElementById('generated-text-area').value;
+  var btn = document.getElementById('refine-btn');
+  var loading = document.getElementById('refine-loading');
+  var history = document.getElementById('refine-history');
+  btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed');
+  loading.classList.remove('hidden');
+  history.style.display = 'block';
+  var entry = document.createElement('div');
+  entry.className = 'text-xs bg-slate-50 rounded-lg px-3 py-2 text-slate-600 border border-slate-100';
+  entry.textContent = '💬 ' + feedback;
+  history.appendChild(entry);
+  var formData = new FormData();
+  formData.append('feedback', feedback);
+  formData.append('current_text', currentText);
+  formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  fetch('{% url "proptech:report_refine" report.pk %}', { method: 'POST', body: formData })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.text) {
+        document.getElementById('generated-text-area').value = data.text;
+        document.getElementById('refine-input').value = '';
+        var ok = document.createElement('div');
+        ok.className = 'text-xs text-emerald-600 px-3 py-1';
+        ok.textContent = '✓ Text überarbeitet und gespeichert.';
+        history.appendChild(ok);
+        history.scrollTop = history.scrollHeight;
+      } else { alert('Fehler: ' + (data.error || 'Unbekannter Fehler')); }
+    })
+    .catch(function() { alert('Verbindungsfehler.'); })
+    .finally(function() {
+      btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed');
+      loading.classList.add('hidden');
+    });
+}
 document.getElementById('refine-input') && document.getElementById('refine-input').addEventListener('keydown', function(e) {
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) refineText();
 });
 
+// ── Generieren ────────────────────────────────────────────────────────────────
 document.getElementById('generate-form').addEventListener('submit', function() {
   document.getElementById('generate-loading').classList.remove('hidden');
   document.getElementById('generate-btn').disabled = true;
